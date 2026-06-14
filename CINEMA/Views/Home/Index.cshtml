@@ -8,8 +8,7 @@
 
     var popup = ViewBag.Popup as CINEMA.Models.Popup;
 }
-
-
+<link rel="stylesheet" href="~/css/style-home.css" />
 <!-- 🎬 POPUP QUẢNG CÁO -->
 @if (popup != null && popup.IsActive)
 {
@@ -62,14 +61,27 @@
     </div>
 }
 
+<!-- HEADER SECTION -->
+<div class="hero-section">
+    <div class="container">
+        <h1 class="hero-title text-center fw-bold mb-2">
+            CINEZONE
+        </h1>
+        <p class="text-center subtitle text-muted mb-0">
+            Điểm hẹn điện ảnh của bạn - Đặt vé, chọn ghế, thưởng thức bộ phim yêu thích
+        </p>
+    </div>
+</div>
+
+@* 
 <!-- 🏠 Banner -->
 <div class="container mt-2">
 
-    <h2 class="text-center mb-2  fw-bold text-gradient">
-        🎬 CINEZONE - ĐIỂM HẸN ĐIỆN ẢNH CỦA BẠN 🎬
-    </h2>
+    <h2 class="text-center mb-2  fw-bold">
+        CINEZONE - ĐIỂM HẸN ĐIỆN ẢNH CỦA BẠN
+    </h2> *@
     <!-- 🔍 TÌM KIẾM PHIM -->
-<div class="container mt-4 d-flex justify-content-center">
+<div class="container mt-1 d-flex justify-content-center">
     <div class="search-box shadow-lg">
 
         <form asp-controller="Home" asp-action="Search" method="get">
@@ -96,106 +108,6 @@
     </div>
 </div>
 
-<style>
-    .search-box {
-        width: 100%;
-        max-width: 1200px; /* gần bằng banner */
-        background: rgba(255,255,255,0.95);
-        border-radius: 50px;
-        padding: 10px 15px;
-        box-shadow: 0 10px 25px 
-        rgba(0,0,0,0.1);
-        margin: 15px auto 30px auto;
-    }
-
-    .search-input {
-        border-radius: 50px;
-        padding-left: 40px;
-        padding-right: 90px;
-        height: 45px;
-        border: 1px solid #ddd;
-        transition: 0.3s;
-    }
-
-    .search-input:focus {
-        border-color: #dc3545;
-        box-shadow: 0 0 8px rgba(220,53,69,0.3);
-    }
-
-    .search-icon {
-        position: absolute;
-        top: 50%;
-        left: 15px;
-        transform: translateY(-50%);
-        color: #888;
-    }
-
-    .search-btn {
-        position: absolute;
-        right: 5px;
-        top: 50%;
-        transform: translateY(-50%);
-        border-radius: 50px;
-        padding: 6px 20px;
-        background: #dc3545;
-        color: white;
-        font-weight: bold;
-        border: none;
-        transition: 0.3s;
-    }
-
-    .search-btn:hover {
-        background: #c82333;
-    }
-
-            .theater-list {
-                display: flex;
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .theater-card {
-                background: #fff;
-                border-radius: 20px;
-                padding: 20px;
-                cursor: pointer;
-                transition: .3s;
-                border-left: 5px solid #dc3545;
-                box-shadow: 0 5px 20px rgba(0,0,0,.08);
-            }
-
-                .theater-card:hover {
-                    transform: translateX(8px);
-                    background: #fff5f5;
-                }
-
-                .theater-card h5 {
-                    font-weight: 700;
-                    margin-bottom: 10px;
-                }
-
-                .theater-card p {
-                    margin-bottom: 8px;
-                    color: #555;
-                }
-
-            .map-wrapper {
-                border-radius: 20px;
-                overflow: hidden;
-            }
-
-            #theaterMap {
-                width: 100%;
-                height: 550px;
-            }
-
-            .theater-card.active {
-                background: linear-gradient(135deg,#4facfe,#00f2fe);
-                color: white;
-                border-left: 5px solid #0d6efd;
-            }
-</style>
-  
 <div id="bannerCarousel"
          class="carousel slide carousel-fade shadow-sm rounded"
          data-bs-ride="carousel">
@@ -242,429 +154,357 @@
             </div>
 
 
-            <!-- 🎟 ĐẶT VÉ NHANH -->
-            <div class="container mt-4">
 
-                <div class="card shadow-sm border-0">
+<!-- QUICK BOOKING SECTION -->
+<section class="booking-section mt-5">
+    <div class="container">
+        <div class="booking-card">
 
-                    <div class="card-body">
+            <h2 class="section-title mb-4">
+                <i class="bi bi-ticket-perforated"></i> ĐẶT VÉ NHANH
+            </h2>
 
-                        <h5 class="fw-bold mb-3">
-                            🎟 ĐẶT VÉ NHANH
-                        </h5>
+            <form asp-controller="Home"
+                  asp-action="BookTicket"
+                  method="post"
+                  class="booking-form">
 
-                        <form asp-controller="Home"
-                              asp-action="BookTicket"
-                              method="post"
-                              class="row g-3 align-items-center">
+                <div class="row g-3">
 
-                            <div class="col-md-3">
+                    <div class="col-md-3 col-sm-6">
+                        <label class="form-label fw-bold small">Chọn rạp chiếu</label>
+                        <select class="form-select form-control-lg"
+                                id="theaterSelect"
+                                name="theaterId"
+                                required>
+                            <option selected disabled>-- Chọn rạp --</option>
+                            @foreach (var theater in ViewBag.Theaters)
+                            {
+                                <option value="@theater.TheaterId">@theater.Name</option>
+                            }
+                        </select>
+                    </div>
 
-                                <select class="form-select"
-                                        id="theaterSelect"
-                                        name="theaterId"
-                                        required>
+                    <div class="col-md-3 col-sm-6">
+                        <label class="form-label fw-bold small">Chọn phim</label>
+                        <select class="form-select form-control-lg"
+                                id="movieSelect"
+                                name="movieId"
+                                required>
+                            <option selected disabled>-- Chọn phim --</option>
+                        </select>
+                    </div>
 
-                                    <option selected disabled>
-                                        -- Chọn rạp --
-                                    </option>
+                    <div class="col-md-2 col-sm-6">
+                        <label class="form-label fw-bold small">Chọn ngày</label>
+                        <select class="form-select form-control-lg"
+                                id="dateSelect"
+                                name="date"
+                                required>
+                            <option selected disabled>-- Chọn ngày --</option>
+                        </select>
+                    </div>
 
-                                    @foreach (var theater in ViewBag.Theaters)
-                                    {
-                                        <option value="@theater.TheaterId">
-                                            @theater.Name
-                                        </option>
-                                    }
+                    <div class="col-md-2 col-sm-6">
+                        <label class="form-label fw-bold small">Suất chiếu</label>
+                        <select class="form-select form-control-lg"
+                                id="showtimeSelect"
+                                name="showtimeId"
+                                required>
+                            <option selected disabled>-- Suất --</option>
+                        </select>
+                    </div>
 
-                                </select>
-
-                            </div>
-
-                            <div class="col-md-3">
-
-                                <select class="form-select"
-                                        id="movieSelect"
-                                        name="movieId"
-                                        required>
-
-                                    <option selected disabled>
-                                        -- Chọn phim --
-                                    </option>
-
-                                </select>
-
-                            </div>
-
-                            <div class="col-md-3">
-
-                                <select class="form-select"
-                                        id="dateSelect"
-                                        name="date"
-                                        required>
-
-                                    <option selected disabled>
-                                        -- Chọn ngày --
-                                    </option>
-
-                                </select>
-
-                            </div>
-
-                            <div class="col-md-2">
-
-                                <select class="form-select"
-                                        id="showtimeSelect"
-                                        name="showtimeId"
-                                        required>
-
-                                    <option selected disabled>
-                                        -- Chọn suất chiếu --
-                                    </option>
-
-                                </select>
-
-                            </div>
-
-                            <div class="col-md-1">
-
-                                <button type="submit"
-                                        class="btn btn-danger w-100 fw-bold">
-
-                                    ĐẶT
-
-                                </button>
-
-                            </div>
-
-                        </form>
-
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit"
+                                class="btn btn-primary btn-lg w-100 fw-bold rounded-2 booking-btn hover-lift">
+                            Đặt vé
+                        </button>
                     </div>
 
                 </div>
 
-            </div>
-
-
-            <!-- 🎥 PHIM ĐANG CHIẾU -->
-            <section class="container my-5">
-
-                <h2 class="fw-bold text-center mb-5 text-gradient">
-                    🎬 PHIM ĐANG CHIẾU
-                </h2>
-
-                <div class="row g-4">
-
-                    @foreach (var movie in Model.Where(m =>
-                            m.ReleaseDate.HasValue &&
-                            m.ReleaseDate.Value.ToDateTime(TimeOnly.MinValue) <= DateTime.Today))
-                    {
-
-                        <div class="col-md-3 col-sm-6">
-
-                            <div class="movie-card shadow-sm border-0 h-100">
-
-                                <div class="position-relative">
-
-                                    <img src="@movie.PosterUrl"
-                                         class="card-img-top rounded-top-4"
-                                         alt="@movie.Title">
-
-                                    <div class="overlay d-flex align-items-center justify-content-center">
-
-                                        <a asp-controller="Home"
-                                               asp-action="BookTicket"
-                                               asp-route-id="@movie.MovieId"
-                                               class="btn btn-warning fw-bold rounded-pill px-4 py-2 shadow">
-
-                                            🎟 Đặt vé
-
-                                        </a>
-
-                                    </div>
-
-                                </div>
-
-                                <div class="card-body text-center">
-
-                                    <h5 class="fw-bold">
-                                        @movie.Title
-                                    </h5>
-
-                                    <p class="text-muted small">
-                                        @movie.AgeRating | @movie.Duration phút
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    }
-
-                </div>
-
-            </section>
-
-
-            <!-- 🚀 PHIM SẮP CHIẾU -->
-            <section class="container my-5">
-
-                <h2 class="fw-bold text-center mb-5 text-gradient">
-                    🚀 PHIM SẮP CHIẾU
-                </h2>
-
-                <div class="row g-4">
-
-                    @foreach (var movie in comingSoon)
-                    {
-
-                        <div class="col-md-3 col-sm-6">
-
-                            <div class="movie-card shadow-sm border-0 h-100">
-
-                                <div class="position-relative">
-
-                                    <img src="@movie.PosterUrl"
-                                         class="card-img-top rounded-top-4">
-
-                                    <div class="overlay d-flex align-items-center justify-content-center">
-
-                                        <a class="btn btn-outline-secondary fw-bold rounded-pill px-4 py-2 shadow">
-                                            ⏳ Sắp chiếu
-                                        </a>
-
-                                    </div>
-
-                                </div>
-
-                                <div class="card-body text-center">
-
-                                    <h5 class="fw-bold">
-                                        @movie.Title
-                                    </h5>
-
-                                    <p class="text-muted small">
-                                        Khởi chiếu:
-                                        @movie.ReleaseDate?.ToString("dd/MM/yyyy")
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    }
-
-                </div>
-
-            </section>
-
-
-            <link rel="stylesheet" href="~/css/site-home.css" />
-
-<section class="container my-5">
-
-    <h2 class="fw-bold text-center mb-3 text-gradient">
-        📍 HỆ THỐNG RẠP CINEZONE
-    </h2>
-
-    <p class="text-center text-muted mb-5">
-        Chọn rạp để xem vị trí trên bản đồ
-    </p>
-
-    <div class="row g-4">
-
-        <!-- Danh sách rạp -->
-        <div class="col-lg-4">
-
-            <div class="theater-list">
-
-                @foreach (var theater in ViewBag.Theaters)
-                {
-                    <div class="theater-card"
-                         onclick="changeMap('@theater.Address',this)">
-
-                        <h5>
-                            🎬 @theater.Name
-                        </h5>
-
-                        <p>
-                            📍 @theater.Address
-                        </p>
-
-                        <small>
-                            ☎ @theater.Phone
-                        </small>
-
-                    </div>
-                }
-
-            </div>
+            </form>
 
         </div>
+    </div>
+</section>
 
-        <!-- Bản đồ -->
-        <div class="col-lg-8">
+<!-- NOW SHOWING MOVIES -->
+<section class="movies-section mt-5">
+    <div class="container">
 
-            <div class="map-wrapper shadow">
+        <div class="section-header mb-5">
+            <h2 class="section-title text-center fw-bold">
+                <i class="bi bi-film"></i> PHIM ĐANG CHIẾU
+            </h2>
+            <div class="title-underline"></div>
+        </div>
 
-                @{
-                    var theaters = ViewBag.Theaters as List<CINEMA.Models.Theater>;
-                    var firstTheater = theaters?.FirstOrDefault();
+        <div class="row g-4">
 
-                    string defaultMap =
-                        firstTheater != null
-                        ? $"https://maps.google.com/maps?q={Uri.EscapeDataString(firstTheater.Address ?? "")}&output=embed"
-                        : "https://maps.google.com/maps?q=Ho%20Chi%20Minh&output=embed";
-                }
+            @foreach (var movie in Model.Where(m =>
+                    m.ReleaseDate.HasValue &&
+                    m.ReleaseDate.Value.ToDateTime(TimeOnly.MinValue) <= DateTime.Today))
+            {
 
-                <iframe id="theaterMap"
-                        src="@defaultMap"
-                        width="100%"
-                        height="650"
-                        style="border:0;"
-                        loading="lazy">
-                </iframe>
-            </div>
+                <div class="col-lg-3 col-md-4 col-sm-6">
+
+                    <div class="movie-card h-100 shadow-sm rounded-3 overflow-hidden">
+
+                        <div class="movie-poster-container position-relative">
+
+                            <img src="@movie.PosterUrl"
+                                 class="movie-poster w-100"
+                                 alt="@movie.Title">
+
+                            <div class="movie-overlay d-flex align-items-center justify-content-center">
+
+                                <a asp-controller="Home"
+                                   asp-action="BookTicket"
+                                   asp-route-id="@movie.MovieId"
+                                   class="btn btn-light btn-lg fw-bold rounded-pill px-4 shadow hover-lift movie-btn">
+                                    Đặt vé
+                                </a>
+
+                            </div>
+
+                        </div>
+
+                        <div class="movie-info p-3">
+
+                            <h5 class="fw-bold mb-2 movie-title">
+                                @movie.Title
+                            </h5>
+
+                            <div class="movie-meta text-muted small">
+                                <span class="badge bg-secondary me-2">@movie.AgeRating</span>
+                                <span>@movie.Duration phút</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            }
 
         </div>
 
     </div>
-
 </section>
-            @section Scripts {
-       
 
+<!-- COMING SOON MOVIES -->
+<section class="movies-section mt-5">
+    <div class="container">
 
-                <script>
-                                    
-                                        
-                    document.addEventListener("DOMContentLoaded", function () {
-                        document.addEventListener("DOMContentLoaded", function () {
+        <div class="section-header mb-5">
+            <h2 class="section-title text-center fw-bold">
+                <i class="bi bi-star"></i> PHIM SẮP CHIẾU
+            </h2>
+            <div class="title-underline"></div>
+        </div>
 
-    const firstCard =
-        document.querySelector(".theater-card");
+        <div class="row g-4">
 
-    if(firstCard)
-        firstCard.classList.add("active");
+            @foreach (var movie in comingSoon)
+            {
 
-});
+                <div class="col-lg-3 col-md-4 col-sm-6">
 
-                    const popupElement = document.getElementById("promoPopup");
-                    if (!popupElement) return;
+                    <div class="movie-card coming-soon h-100 shadow-sm rounded-3 overflow-hidden opacity-75">
 
-                    const popup = new bootstrap.Modal(popupElement);
+                        <div class="movie-poster-container position-relative">
 
-                    // Nếu chưa hiện popup trong session
-                    if (!sessionStorage.getItem("popupShown")) {
+                            <img src="@movie.PosterUrl"
+                                 class="movie-poster w-100"
+                                 alt="@movie.Title">
 
-                    setTimeout(() => {
-                    popup.show();
-                    }, 1000);
+                            <div class="movie-overlay d-flex align-items-center justify-content-center">
 
-                    sessionStorage.setItem("popupShown", "true");
-                    }
+                                <div class="btn btn-outline-light btn-lg fw-bold rounded-pill px-4 shadow coming-soon-badge">
+                                    Sắp chiếu
+                                </div>
 
-                    });
-                    const theaterSelect = document.getElementById("theaterSelect");
-                    const movieSelect = document.getElementById("movieSelect");
-                    const dateSelect = document.getElementById("dateSelect");
-                    const showtimeSelect = document.getElementById("showtimeSelect");
+                            </div>
 
-                    theaterSelect.addEventListener("change", function () {
+                        </div>
 
-                        const theaterId = this.value;
+                        <div class="movie-info p-3">
 
-                        movieSelect.innerHTML = '<option selected disabled>-- Chọn phim --</option>';
-                        dateSelect.innerHTML = '<option selected disabled>-- Chọn ngày --</option>';
-                        showtimeSelect.innerHTML = '<option selected disabled>-- Chọn suất chiếu --</option>';
+                            <h5 class="fw-bold mb-2 movie-title">
+                                @movie.Title
+                            </h5>
 
-                        fetch(`/Home/GetMoviesByTheater?theaterId=${theaterId}`)
-                            .then(res => res.json())
-                            .then(data => {
+                            <div class="movie-meta text-muted small">
+                                <i class="bi bi-calendar-event"></i>
+                                Khởi chiếu: <strong>@movie.ReleaseDate?.ToString("dd/MM/yyyy")</strong>
+                            </div>
 
-                                data.forEach(m => {
+                        </div>
 
-                                    const opt = document.createElement("option");
-                                    opt.value = m.movieId;
-                                    opt.textContent = m.title;
+                    </div>
 
-                                    movieSelect.appendChild(opt);
-
-                                });
-
-                            });
-
-                    });
-
-
-                    movieSelect.addEventListener("change", function () {
-
-                        const theaterId = theaterSelect.value;
-                        const movieId = this.value;
-
-                        dateSelect.innerHTML = '<option selected disabled>-- Chọn ngày --</option>';
-
-                        fetch(`/Home/GetShowtimes?theaterId=${theaterId}&movieId=${movieId}`)
-                            .then(res => res.json())
-                            .then(data => {
-
-                                const dates = [...new Set(data.map(s => s.date))];
-
-                                dates.forEach(d => {
-
-                                    const opt = document.createElement("option");
-                                    opt.value = d;
-
-                                    const [y, m, day] = d.split("-");
-                                    opt.textContent = `${day}/${m}/${y}`;
-
-                                    dateSelect.appendChild(opt);
-
-                                });
-
-                                dateSelect.onchange = function () {
-
-                                    const selectedDate = this.value;
-
-                                    showtimeSelect.innerHTML = '<option selected disabled>-- Chọn suất chiếu --</option>';
-
-                                    data.filter(s => s.date === selectedDate)
-                                        .forEach(s => {
-
-                                            const opt = document.createElement("option");
-
-                                            opt.value = s.showtimeId;
-                                            opt.textContent = `${s.time} - ${Number(s.price).toLocaleString("vi-VN")}đ`;
-
-                                            showtimeSelect.appendChild(opt);
-
-                                        });
-
-                                };
-
-                            });
-
-                    });
-                 window.changeMap = function(address, element)
-{
-    document
-        .querySelectorAll('.theater-card')
-        .forEach(x => x.classList.remove('active'));
-
-    if(element)
-        element.classList.add('active');
-
-    const mapUrl =
-        "https://maps.google.com/maps?q="
-        + encodeURIComponent(address)
-        + "&output=embed";
-
-    document.getElementById("theaterMap").src = mapUrl;
-}
-
-                </script>
+                </div>
 
             }
+
+        </div>
+
+    </div>
+</section>
+
+<!-- THEATER LOCATIONS -->
+<section class="theater-section mt-5 mb-5">
+    <div class="container">
+
+        <div class="section-header mb-5">
+            <h2 class="section-title text-center fw-bold">
+                <i class="bi bi-geo-alt"></i> HỆ THỐNG RẠP CINEZONE
+            </h2>
+            <p class="text-center text-muted">Chọn rạp để xem vị trí trên bản đồ</p>
+            <div class="title-underline"></div>
+        </div>
+
+        @{
+            var theaters = ViewBag.Theaters as List<CINEMA.Models.Theater>;
+            var firstTheater = theaters?.FirstOrDefault();
+
+            string defaultMap =
+                firstTheater != null
+                ? $"https://maps.google.com/maps?q={Uri.EscapeDataString(firstTheater.Address ?? "")}&output=embed"
+                : "https://maps.google.com/maps?q=Ho%20Chi%20Minh&output=embed";
+        }
+
+        <!-- Theater List -->
+        <div class="row mb-5">
+
+            @foreach (var theater in ViewBag.Theaters)
+            {
+                <div class="col-md-6 col-lg-4 mb-3">
+
+                    <div class="theater-card h-100 p-4 rounded-3 shadow-sm cursor-pointer"
+                         onclick="changeMap('@theater.Address', this)">
+
+                        <h5 class="fw-bold mb-3 theater-name">
+                            <i class="bi bi-building"></i> @theater.Name
+                        </h5>
+
+                        <div class="theater-info mb-2">
+                            <p class="mb-2">
+                                <i class="bi bi-geo-alt-fill text-primary"></i>
+                                <span class="ms-2">@theater.Address</span>
+                            </p>
+                        </div>
+
+                        <small class="text-muted">
+                            <i class="bi bi-telephone-fill"></i>
+                            <span class="ms-2">@theater.Phone</span>
+                        </small>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+
+        <!-- Map -->
+        <div class="map-container rounded-3 overflow-hidden shadow-md">
+
+            <iframe id="theaterMap"
+                    src="@defaultMap"
+                    width="100%"
+                    height="550"
+                    style="border: none;"
+                    loading="lazy">
+            </iframe>
+
+        </div>
+
+    </div>
+</section>
+
+<!-- SCRIPTS -->
+@section Scripts {
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const firstCard = document.querySelector(".theater-card");
+            if (firstCard) firstCard.classList.add("active");
+
+            const popupElement = document.getElementById("promoPopup");
+            if (popupElement) {
+                const popup = new bootstrap.Modal(popupElement);
+                if (!sessionStorage.getItem("popupShown")) {
+                    setTimeout(() => popup.show(), 1000);
+                    sessionStorage.setItem("popupShown", "true");
+                }
+            }
+        });
+
+        const theaterSelect = document.getElementById("theaterSelect");
+        const movieSelect = document.getElementById("movieSelect");
+        const dateSelect = document.getElementById("dateSelect");
+        const showtimeSelect = document.getElementById("showtimeSelect");
+
+        theaterSelect.addEventListener("change", function () {
+            const theaterId = this.value;
+            movieSelect.innerHTML = '<option selected disabled>-- Chọn phim --</option>';
+            dateSelect.innerHTML = '<option selected disabled>-- Chọn ngày --</option>';
+            showtimeSelect.innerHTML = '<option selected disabled>-- Chọn suất chiếu --</option>';
+
+            fetch(`/Home/GetMoviesByTheater?theaterId=${theaterId}`)
+                .then(res => res.json())
+                .then(data => {
+                    data.forEach(m => {
+                        const opt = document.createElement("option");
+                        opt.value = m.movieId;
+                        opt.textContent = m.title;
+                        movieSelect.appendChild(opt);
+                    });
+                });
+        });
+
+        movieSelect.addEventListener("change", function () {
+            const theaterId = theaterSelect.value;
+            const movieId = this.value;
+            dateSelect.innerHTML = '<option selected disabled>-- Chọn ngày --</option>';
+
+            fetch(`/Home/GetShowtimes?theaterId=${theaterId}&movieId=${movieId}`)
+                .then(res => res.json())
+                .then(data => {
+                    const dates = [...new Set(data.map(s => s.date))];
+                    dates.forEach(d => {
+                        const opt = document.createElement("option");
+                        opt.value = d;
+                        const [y, m, day] = d.split("-");
+                        opt.textContent = `${day}/${m}/${y}`;
+                        dateSelect.appendChild(opt);
+                    });
+
+                    dateSelect.onchange = function () {
+                        const selectedDate = this.value;
+                        showtimeSelect.innerHTML = '<option selected disabled>-- Chọn suất chiếu --</option>';
+                        data.filter(s => s.date === selectedDate)
+                            .forEach(s => {
+                                const opt = document.createElement("option");
+                                opt.value = s.showtimeId;
+                                opt.textContent = `${s.time} - ${Number(s.price).toLocaleString("vi-VN")}đ`;
+                                showtimeSelect.appendChild(opt);
+                            });
+                    };
+                });
+        });
+
+        window.changeMap = function (address, element) {
+            document.querySelectorAll('.theater-card')
+                .forEach(x => x.classList.remove('active'));
+            if (element) element.classList.add('active');
+            const mapUrl = "https://maps.google.com/maps?q=" + encodeURIComponent(address) + "&output=embed";
+            document.getElementById("theaterMap").src = mapUrl;
+        }
+    </script>
+
+}

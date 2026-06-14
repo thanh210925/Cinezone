@@ -1,4 +1,5 @@
 ﻿using CINEMA.Models;
+using CINEMA.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -22,127 +23,113 @@ namespace CINEMA.Controllers
             if (req == null || string.IsNullOrWhiteSpace(req.Message))
                 return Json("🤖 Bạn hãy nhập câu hỏi nhé!");
 
-            var msg = RemoveVietnameseTone(req.Message.ToLower());
+            // Khai báo originalMsg để giữ nguyên câu hỏi gốc truyền cho AI
+            var originalMsg = req.Message.Trim();
+            var msg = RemoveVietnameseTone(originalMsg.ToLower());
+            var today = DateOnly.FromDateTime(DateTime.Now);
 
             // =====================================================
-            // 🎬 1. TÌM PHIM THEO TÊN
+            // 1. CHỈ XỬ LÝ KHI BẤM NÚT GỢI Ý (Exact Match)
             // =====================================================
-            var movie = _context.Movies
-                .AsEnumerable()
-                .FirstOrDefault(m =>
-                {
-                    var title = RemoveVietnameseTone(m.Title.ToLower());
-                    var words = msg.Split(' ');
-                    return (m.IsActive ?? false) && words.Any(w => title.Contains(w));
-                });
-
-            if (movie != null)
+            if (msg == "phim dang chieu")
             {
-                var shows = _context.Showtimes
-                    .Where(s =>
-                        s.MovieId == movie.MovieId &&
-                        (s.IsActive ?? false) &&
-                        s.StartTime >= DateTime.Now)
-                    .OrderBy(s => s.StartTime)
-                    .Take(5)
-                    .ToList();
+                var movies = _context.Movies
+                    .Where(m => (m.IsActive ?? false) && m.ReleaseDate != null && m.ReleaseDate <= today)
+                    .OrderByDescending(m => m.ReleaseDate)
+                    .Select(m => m.Title)
+                    .Take(10).ToList();
 
-                if (!shows.Any())
-                    return Json($"😢 Phim '<b>{movie.Title}</b>' chưa có suất chiếu");
+                if (!movies.Any()) return Json("😢 Hiện tại rạp chưa có phim nào đang chiếu.");
+                return Json("🎬 Phim đang chiếu:<br>- " + string.Join("<br>- ", movies));
+            }
+
+            if (msg == "lich chieu")
+            {
+                var shows = _context.Showtimes.Include(s => s.Movie)
+                    .Where(s => (s.IsActive ?? false) && s.StartTime >= DateTime.Now)
+                    .OrderBy(s => s.StartTime).Take(5).ToList();
+
+                if (!shows.Any()) return Json("😢 Rất tiếc, hiện tại chưa có lịch chiếu nào sắp tới.");
 
                 var result = shows.Select(s =>
-                    $"<div style='margin-bottom:10px'>" +
-                    $"🎬 <b>{movie.Title}</b><br>" +
-                    $"⏰ {s.StartTime:HH:mm dd/MM}<br>" +
-                    $"<a href='/Home/BookTicket?id={movie.MovieId}&showtimeId={s.ShowtimeId}' " +
-                    $"style='color:#198754;font-weight:bold'>🎟 Đặt vé</a>" +
-                    $"</div>"
-                );
+                    $"<div style='margin-bottom:10px'>🎬 <b>{s.Movie.Title}</b><br>⏰ {s.StartTime:HH:mm dd/MM}<br><a href='/Home/BookTicket?id={s.MovieId}&showtimeId={s.ShowtimeId}' style='color:#198754;font-weight:bold'>🎟 Đặt vé</a></div>");
+                return Json("⏰ Lịch chiếu sắp tới:<br>" + string.Join("<br><br>", result));
+            }
 
+            if (msg == "ghe trong")
+            {
+                int totalSeats = _context.Seats.Count();
+                int booked = _context.Tickets.Count();
+                return Json($"💺 Hiện hệ thống đang còn khoảng <b>{totalSeats - booked}</b> ghế trống");
+            }
+
+            if (msg == "phim sap chieu" || msg == "sap ra")
+            {
+                var upcoming = _context.Movies
+                    .Where(m => (m.IsActive ?? false) && m.ReleaseDate != null && m.ReleaseDate > today)
+                    .OrderBy(m => m.ReleaseDate).Select(m => m.Title).Take(5).ToList();
+
+                if (!upcoming.Any()) return Json("😢 Hiện tại rạp CineZone chưa cập nhật danh sách phim sắp chiếu.");
+                return Json("🍿 Những siêu phẩm sắp đổ bộ rạp CineZone:<br>- " + string.Join("<br>- ", upcoming));
+            }
+
+            // =====================================================
+            // 2. TÌM TÊN PHIM TRỰC TIẾP TRONG CÂU TRẢ LỜI
+            // =====================================================
+            var exactMovie = _context.Movies.AsEnumerable().FirstOrDefault(m =>
+            {
+                var title = RemoveVietnameseTone(m.Title.ToLower());
+                // Câu nói của user phải chứa TOÀN BỘ cụm tên phim thì mới tính là đúng
+                return (m.IsActive ?? false) && msg.Contains(title);
+            });
+
+            if (exactMovie != null)
+            {
+                var shows = _context.Showtimes
+                    .Where(s => s.MovieId == exactMovie.MovieId && (s.IsActive ?? false) && s.StartTime >= DateTime.Now)
+                    .OrderBy(s => s.StartTime).Take(5).ToList();
+
+                if (!shows.Any()) return Json($"😢 Phim '<b>{exactMovie.Title}</b>' hiện chưa có suất chiếu nào.");
+                var result = shows.Select(s => $"<div style='margin-bottom:10px'>🎬 <b>{exactMovie.Title}</b><br>⏰ {s.StartTime:HH:mm dd/MM}<br><a href='/Home/BookTicket?id={exactMovie.MovieId}&showtimeId={s.ShowtimeId}' style='color:#198754;font-weight:bold'>🎟 Đặt vé</a></div>");
                 return Json(string.Join("", result));
             }
 
             // =====================================================
-            // 🎬 2. PHIM ĐANG CHIẾU
-            // =====================================================
-            if (msg.Contains("dang chieu"))
-            {
-                var movies = _context.Movies
-                    .Where(m => m.IsActive ?? false)
-                    .Select(m => m.Title)
-                    .Take(10)
-                    .ToList();
-
-                return Json("🎬 Phim đang chiếu:<br>- " + string.Join("<br>- ", movies));
-            }
-
-            // =====================================================
-            // ⏰ 3. LỊCH CHIẾU
-            // =====================================================
-            if (msg.Contains("lich"))
-            {
-                var shows = _context.Showtimes
-                    .Include(s => s.Movie)
-                    .Where(s =>
-                        (s.IsActive ?? false) &&
-                        s.StartTime >= DateTime.Now)
-                    .OrderBy(s => s.StartTime)
-                    .Take(5)
-                    .ToList();
-
-                var result = shows.Select(s =>
-                    $"<div style='margin-bottom:10px'>" +
-                    $"🎬 <b>{s.Movie.Title}</b><br>" +
-                    $"⏰ {s.StartTime:HH:mm dd/MM}<br>" +
-                    $"<a href='/Home/BookTicket?id={s.MovieId}&showtimeId={s.ShowtimeId}' " +
-                    $"style='color:#198754;font-weight:bold'>🎟 Đặt vé</a>" +
-                    $"</div>"
-                );
-
-                return Json("⏰ Lịch chiếu:<br>" + string.Join("<br><br>", result));
-            }
-
-            // =====================================================
-            // 💺 4. GHẾ TRỐNG
-            // =====================================================
-            if (msg.Contains("ghe"))
-            {
-                int totalSeats = _context.Seats.Count();
-                int booked = _context.Tickets.Count();
-                int available = totalSeats - booked;
-
-                return Json($"💺 Còn khoảng <b>{available}</b> ghế trống");
-            }
-
-            // =====================================================
-            // 🤖 5. GEMINI (AI)
+            // 3. GEMINI AI (ĐƯỢC BƠM NGỮ CẢNH TỪ DATABASE)
             // =====================================================
             try
             {
-                var ai = await _gemini.Ask(req.Message);
+                // Lấy danh sách phim thực tế từ CSDL
+                var currentMovies = _context.Movies.Where(m => (m.IsActive ?? false) && m.ReleaseDate <= today).Select(m => m.Title).ToList();
+                string movieListStr = currentMovies.Any() ? string.Join(", ", currentMovies) : "Hiện không có phim nào";
 
-                Console.WriteLine(ai); // debug
+                // Bơm thông tin cho AI đóng vai nhân viên
+                string systemPrompt = $@"
+Bạn là nhân viên CSKH của rạp chiếu phim CineZone. Khách hàng vừa hỏi: '{originalMsg}'.
+Hãy dựa vào thông tin nội bộ sau để trả lời khách:
+- Danh sách phim RẠP ĐANG CHIẾU: {movieListStr}.
+Quy tắc:
+1. Nếu khách hỏi phim không có trong danh sách, hãy nói rõ là rạp không chiếu phim đó và mời xem phim khác.
+2. Trả lời ngắn gọn, lịch sự, thân thiện (có emoji). KHÔNG bịa đặt thêm phim ngoài danh sách.";
 
+                var ai = await _gemini.Ask(systemPrompt);
                 dynamic json = JsonConvert.DeserializeObject(ai);
 
-                string text = "⚠️ AI chưa phản hồi";
+                if (json?.error != null) return Json($"❌ Lỗi từ Google: {json.error.message}");
 
-                if (json?.candidates != null &&
-                    json.candidates.Count > 0 &&
-                    json.candidates[0].content != null &&
-                    json.candidates[0].content.parts != null &&
-                    json.candidates[0].content.parts.Count > 0)
+                string text = "⚠️ AI chưa phản hồi";
+                if (json?.candidates != null && json.candidates.Count > 0)
                 {
                     text = json.candidates[0].content.parts[0].text;
+                    text = text.Replace("**", "<b>").Replace("**", "</b>").Replace("\n", "<br>");
                 }
-                Console.WriteLine(ai);
+
                 return Json("🤖 " + text);
             }
-            catch
+            catch (Exception ex)
             {
-                return Json("❌ Lỗi AI, thử lại sau");
+                return Json($"❌ Lỗi hệ thống: {ex.Message}");
             }
-
         }
 
         // =====================================================
@@ -150,6 +137,9 @@ namespace CINEMA.Controllers
         // =====================================================
         public static string RemoveVietnameseTone(string text)
         {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
+
             string[] arr1 = {
                 "á","à","ả","ã","ạ","ă","ắ","ằ","ẳ","ẵ","ặ","â","ấ","ầ","ẩ","ẫ","ậ",
                 "đ",

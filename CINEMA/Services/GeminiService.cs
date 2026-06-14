@@ -1,37 +1,50 @@
-﻿using System.Net.Http;
-using System.Text;
+﻿using System.Text;
 using Newtonsoft.Json;
 
-public class GeminiService
+namespace CINEMA.Services // Đổi namespace cho khớp với dự án của bạn nếu cần
 {
-    private readonly string apiKey = "AIzaSyCVK0Bq53zFrx0BPhev9q1ubzmqPvqpm2c";
-
-    public async Task<string> Ask(string message)
+    public class GeminiService
     {
-        var client = new HttpClient();
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _config;
 
-        var body = new
+        public GeminiService(HttpClient httpClient, IConfiguration config)
         {
-            contents = new[]
+            _httpClient = httpClient;
+            _config = config;
+        }
+
+        public async Task<string> Ask(string message)
+        {
+            try
             {
-                new
+                var apiKey = _config["GeminiApiKey"];
+
+                // Dùng model gemini-1.5-flash cho tốc độ phản hồi nhanh nhất
+                var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={"keyAPI"}";
+                // Tạo cấu trúc dữ liệu JSON đúng chuẩn mà Google yêu cầu
+                var requestBody = new
                 {
-                    parts = new[]
+                    contents = new[]
                     {
-                        new { text = message }
+                        new { parts = new[] { new { text = message } } }
                     }
-                }
+                };
+
+                var jsonContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+
+                // Gửi request lên Google
+                var response = await _httpClient.PostAsync(url, jsonContent);
+                var rawJson = await response.Content.ReadAsStringAsync();
+
+                return rawJson;
             }
-        };
-
-        var json = JsonConvert.SerializeObject(body);
-
-        var response = await client.PostAsync(
-      $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={apiKey}",
-              new StringContent(json, Encoding.UTF8, "application/json")
-        );
-
-        var result = await response.Content.ReadAsStringAsync();
-        return result;
+            catch (Exception ex)
+            {
+                // In ra lỗi trên console để dễ debug
+                Console.WriteLine($"Lỗi gọi Gemini API: {ex.Message}");
+                return "{}"; // Trả về chuỗi rỗng để controller tự bắt lỗi
+            }
+        }
     }
 }
