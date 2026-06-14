@@ -1,0 +1,52 @@
+﻿body {
+}
+/* Tùy chỉnh bảng */
+.custom-table th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    letter-spacing: 0.5px;
+}
+
+.custom-table td {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    vertical-align: middle;
+}
+
+/* Biểu tượng tròn trên header */
+.icon-shape {
+    width: 45px;
+    height: 45px;
+}
+
+/* Nút thao tác (Dùng chung chuẩn toàn dự án) */
+.action-btn {
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    background-color: #f8f9fa;
+    border: 1px solid transparent;
+}
+
+    .action-btn:hover {
+        transform: translateY(-2px);
+        background-color: #ffffff;
+        border-color: #dee2e6;
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
+    }
+
+/* Hiệu ứng zoom nhẹ cho ảnh popup */
+.custom-table img {
+    transition: transform 0.3s ease;
+}
+
+    .custom-table img:hover {
+        transform: scale(1.05);
+    }

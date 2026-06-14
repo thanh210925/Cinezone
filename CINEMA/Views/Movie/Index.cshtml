@@ -2,148 +2,71 @@
 @{
     ViewData["Title"] = "Quản lý phim";
     Layout = "_AdminLayout";
-
     var today = DateTime.Today;
-
-    var nowShowing = Model?
-        .Where(m => m.IsActive == true && m.ReleaseDate.HasValue &&
-               m.ReleaseDate.Value.ToDateTime(TimeOnly.MinValue) <= today)
-        .ToList() ?? new();
-
-    var comingSoon = Model?
-        .Where(m => m.ReleaseDate.HasValue &&
-               m.ReleaseDate.Value.ToDateTime(TimeOnly.MinValue) > today)
-        .ToList() ?? new();
-
-    var stopped = Model?
-        .Where(m => m.IsActive == false)
-        .ToList() ?? new();
+    var nowShowing = Model?.Where(m => m.IsActive == true && m.ReleaseDate?.ToDateTime(TimeOnly.MinValue) <= today).ToList() ?? new();
+    var comingSoon = Model?.Where(m => m.ReleaseDate?.ToDateTime(TimeOnly.MinValue) > today).ToList() ?? new();
+    var stopped = Model?.Where(m => m.IsActive == false).ToList() ?? new();
 }
 
 <div class="container-fluid py-4">
-
-    <!-- HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold text-dark mb-0">🎬 Quản lý phim</h2>
-            <small class="text-muted">Quản lý toàn bộ phim</small>
+            <h4 class="fw-bold text-primary mb-0 d-flex align-items-center">
+                <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                    <i class="bi bi-film fs-5"></i>
+                </div>
+                Quản lý phim
+            </h4>
         </div>
-
-        <a asp-action="Create" class="btn btn-success shadow-sm px-4">
-            <i class="bi bi-plus-circle me-2"></i> Thêm phim
+        <a asp-action="Create" class="btn btn-primary rounded-pill px-4 shadow-sm fw-medium">
+            <i class="bi bi-plus-lg me-1"></i> Thêm phim mới
         </a>
     </div>
 
-    <!-- STATS -->
-    <div class="row mb-4 g-3">
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0 rounded-4 p-3">
-                <h5 class="text-success">@nowShowing.Count</h5>
-                <small class="text-muted">Đang chiếu</small>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0 rounded-4 p-3">
-                <h5 class="text-warning">@comingSoon.Count</h5>
-                <small class="text-muted">Sắp chiếu</small>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card shadow-sm border-0 rounded-4 p-3">
-                <h5 class="text-danger">@stopped.Count</h5>
-                <small class="text-muted">Ngừng chiếu</small>
-            </div>
-        </div>
-    </div>
-
-    <!-- TOAST -->
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="toast-container position-fixed top-0 end-0 p-4" style="z-index:9999;">
-            <div id="successToast" class="toast show text-bg-success border-0 shadow-lg rounded-4">
-                <div class="d-flex align-items-center p-3">
-                    <i class="bi bi-check-circle-fill fs-4 me-2"></i>
-                    <div class="fw-semibold">
-                        @TempData["SuccessMessage"]
-                    </div>
-                    <button class="btn-close btn-close-white ms-auto" data-bs-dismiss="toast"></button>
+    <div class="row g-3 mb-4">
+        @foreach (var item in new[] {
+            new { Title = "Đang chiếu", Count = nowShowing.Count, Color = "success" },
+            new { Title = "Sắp chiếu", Count = comingSoon.Count, Color = "warning" },
+            new { Title = "Ngừng chiếu", Count = stopped.Count, Color = "danger" }
+        })
+        {
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                    <div class="text-@item.Color fw-bold fs-4">@item.Count</div>
+                    <small class="text-muted text-uppercase fw-bold" style="letter-spacing: 1px;">@item.Title</small>
                 </div>
             </div>
-        </div>
-    }
-
-    <!-- ================= PHIM ĐANG CHIẾU ================= -->
-    <div class="card shadow-sm border-0 rounded-4 mb-4">
-        <div class="card-header bg-success text-white fw-semibold d-flex justify-content-between">
-            🎬 Phim đang chiếu
-            <span class="badge bg-light text-dark">@nowShowing.Count</span>
+        }
+    </div>
+    <!-- TABS -->
+    <div class="card shadow-sm border-0 rounded-4">
+        <!-- Thêm d-flex và justify-content-center để căn giữa -->
+        <div class="card-header bg-white pt-4 px-4 border-0 d-flex justify-content-center">
+            <!-- Thêm gap-3 (hoặc gap-4) để các nút cách đều nhau -->
+            <ul class="nav nav-pills gap-3" id="movieTabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active rounded-pill px-4 fw-medium" data-bs-toggle="pill" data-bs-target="#nowShowing" type="button">
+                        <i class="bi bi-play-circle me-1"></i> Đang chiếu
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link rounded-pill px-4 fw-medium" data-bs-toggle="pill" data-bs-target="#comingSoon" type="button">
+                        <i class="bi bi-rocket-takeoff me-1"></i> Sắp chiếu
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link rounded-pill px-4 fw-medium" data-bs-toggle="pill" data-bs-target="#stopped" type="button">
+                        <i class="bi bi-stop-circle me-1"></i> Ngừng chiếu
+                    </button>
+                </li>
+            </ul>
         </div>
 
         <div class="card-body p-0">
-            @if (nowShowing.Count == 0)
-            {
-                <div class="text-center py-4 text-muted">Không có dữ liệu</div>
-            }
-            else
-            {
-                @Html.Partial("_MovieTable", nowShowing)
-            }
+            <div class="tab-content" id="movieTabsContent">
+                <div class="tab-pane fade show active" id="nowShowing">@Html.Partial("_MovieTable", nowShowing)</div>
+                <div class="tab-pane fade" id="comingSoon">@Html.Partial("_MovieTableComingSoon", comingSoon)</div>
+                <div class="tab-pane fade" id="stopped">@Html.Partial("_MovieTableStopped", stopped)</div>
+            </div>
         </div>
     </div>
-
-    <!-- ================= PHIM SẮP CHIẾU ================= -->
-    <div class="card shadow-sm border-0 rounded-4 mb-4">
-        <div class="card-header bg-warning text-dark fw-semibold d-flex justify-content-between">
-            🚀 Phim sắp chiếu
-            <span class="badge bg-light text-dark">@comingSoon.Count</span>
-        </div>
-
-        <div class="card-body p-0">
-            @if (comingSoon.Count == 0)
-            {
-                <div class="text-center py-4 text-muted">Không có dữ liệu</div>
-            }
-            else
-            {
-                @Html.Partial("_MovieTableComingSoon", comingSoon)
-            }
-        </div>
-    </div>
-
-    <!-- ================= PHIM NGỪNG CHIẾU ================= -->
-    <div class="card shadow-sm border-0 rounded-4 mb-4">
-        <div class="card-header bg-danger text-white fw-semibold d-flex justify-content-between">
-            🛑 Phim ngừng chiếu
-            <span class="badge bg-light text-dark">@stopped.Count</span>
-        </div>
-
-        <div class="card-body p-0">
-            @if (stopped.Count == 0)
-            {
-                <div class="text-center py-4 text-muted">Không có dữ liệu</div>
-            }
-            else
-            {
-                @Html.Partial("_MovieTableStopped", stopped)
-            }
-        </div>
-    </div>
-
-</div>
-
-@section Scripts {
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const toast = document.getElementById("successToast");
-            if (toast) {
-                setTimeout(() => {
-                    toast.style.opacity = "0";
-                    toast.style.transform = "translateX(50px)";
-                    setTimeout(() => toast.remove(), 400);
-                }, 5000);
-            }
-        });
-    </script>
-}

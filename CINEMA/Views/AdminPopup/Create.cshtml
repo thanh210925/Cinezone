@@ -1,78 +1,126 @@
 ﻿@model CINEMA.Models.Popup
-
 @{
     ViewData["Title"] = "Thêm Popup";
+    Layout = "_AdminLayout";
 }
 
-<h2>Thêm Popup Quảng Cáo</h2>
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item"><a asp-action="Index" class="text-decoration-none">Quản lý Popup</a></li>
+            <li class="breadcrumb-item active">Thêm mới</li>
+        </ol>
+    </nav>
 
-<form asp-action="Create" method="post">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4">
 
-    <!-- Tiêu đề -->
-    <div class="mb-3">
-        <label class="form-label">Tiêu đề</label>
-        <input asp-for="Title" class="form-control"
-               placeholder="Ví dụ: Giảm giá 50% cuối tuần" />
+                <!-- HEADER -->
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-3 px-4 p-md-5 pb-md-0">
+                    <h4 class="fw-bold text-primary mb-0 d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                            <i class="bi bi-megaphone fs-5"></i>
+                        </div>
+                        Thêm Popup Quảng Cáo
+                    </h4>
+                    <p class="text-muted ms-5 ps-2 mt-1 mb-0">Điền thông tin để hiển thị thông báo, khuyến mãi đến khách hàng.</p>
+                </div>
+
+                <!-- BODY / FORM -->
+                <div class="card-body p-4 p-md-5">
+                    <form asp-action="Create" method="post">
+
+                        <div class="row g-4">
+                            <!-- Tiêu đề -->
+                            <div class="col-12">
+                                <label asp-for="Title" class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-type text-secondary me-1"></i> Tiêu đề Popup <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="Title" class="form-control px-3 py-2" placeholder="Ví dụ: Giảm giá 50% cuối tuần" required />
+                                <span asp-validation-for="Title" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Mô tả -->
+                            <div class="col-12">
+                                <label asp-for="Description" class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-card-text text-secondary me-1"></i> Mô tả chi tiết
+                                </label>
+                                <textarea asp-for="Description" class="form-control px-3 py-2" rows="3" placeholder="Ví dụ: Ưu đãi đặc biệt cho khách đặt vé trước qua website..."></textarea>
+                                <span asp-validation-for="Description" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Ảnh -->
+                            <div class="col-md-6">
+                                <label asp-for="ImageUrl" class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-image text-secondary me-1"></i> Link ảnh minh họa
+                                </label>
+                                <input asp-for="ImageUrl" class="form-control px-3 py-2" placeholder="VD: /images/popup-sale.jpg" />
+                                <span asp-validation-for="ImageUrl" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Link nút -->
+                            <div class="col-md-6">
+                                <label asp-for="ButtonLink" class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-link-45deg text-secondary me-1"></i> Link điều hướng (Nút bấm)
+                                </label>
+                                <input asp-for="ButtonLink" class="form-control px-3 py-2" placeholder="VD: /Home/Schedule" />
+                                <span asp-validation-for="ButtonLink" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Ngày bắt đầu -->
+                            <div class="col-md-6">
+                                <label asp-for="StartDate" class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-calendar-check text-success me-1"></i> Thời gian bắt đầu
+                                </label>
+                                <input asp-for="StartDate" type="datetime-local" class="form-control px-3 py-2" />
+                                <span asp-validation-for="StartDate" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Ngày kết thúc -->
+                            <div class="col-md-6">
+                                <label asp-for="EndDate" class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-calendar-x text-danger me-1"></i> Thời gian kết thúc
+                                </label>
+                                <input asp-for="EndDate" type="datetime-local" class="form-control px-3 py-2" />
+                                <span asp-validation-for="EndDate" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Switch Hiển thị -->
+                            <div class="col-12 mt-4">
+                                <div class="p-3 bg-light rounded-3 border d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1 fw-bold text-dark">Trạng thái hoạt động</h6>
+                                        <small class="text-muted">Bật công tắc này để Popup lập tức xuất hiện trên Website</small>
+                                    </div>
+                                    <div class="form-check form-switch fs-4 mb-0">
+                                        <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" checked>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BUTTONS -->
+                        <div class="d-flex gap-2 mt-5 pt-4 border-top">
+                            <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm fw-medium">
+                                <i class="bi bi-floppy me-1"></i> Lưu Popup
+                            </button>
+                            <a asp-action="Index" class="btn btn-light border rounded-pill px-4 shadow-sm text-secondary fw-medium">
+                                <i class="bi bi-x-circle me-1"></i> Hủy
+                            </a>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 
-    <!-- Mô tả -->
-    <div class="mb-3">
-        <label class="form-label">Mô tả</label>
-        <textarea asp-for="Description"
-                  class="form-control"
-                  rows="3"
-                  placeholder="Ví dụ: Ưu đãi đặc biệt cho khách đặt vé"></textarea>
-    </div>
-
-    <!-- Ảnh -->
-    <div class="mb-3">
-        <label class="form-label">Link ảnh popup</label>
-        <input asp-for="ImageUrl"
-               class="form-control"
-               placeholder="/images/popup-sale.jpg" />
-    </div>
-
-    <!-- Link -->
-    <div class="mb-3">
-        <label class="form-label">Link nút</label>
-        <input asp-for="ButtonLink"
-               class="form-control"
-               placeholder="/Home/Schedule" />
-    </div>
-
-    <!-- Ngày bắt đầu -->
-    <div class="mb-3">
-        <label class="form-label">Ngày bắt đầu</label>
-        <input asp-for="StartDate"
-               type="datetime-local"
-               class="form-control" />
-    </div>
-
-    <!-- Ngày kết thúc -->
-    <div class="mb-3">
-        <label class="form-label">Ngày kết thúc</label>
-        <input asp-for="EndDate"
-               type="datetime-local"
-               class="form-control" />
-    </div>
-
-    <!-- Hiển thị -->
-    <div class="form-check mb-3">
-        <input asp-for="IsActive"
-               class="form-check-input" />
-
-        <label asp-for="IsActive"
-               class="form-check-label">
-            Hiển thị popup
-        </label>
-    </div>
-
-    <button type="submit" class="btn btn-success">
-        Thêm Popup
-    </button>
-
-    <a asp-action="Index" class="btn btn-secondary">
-        Quay lại
-    </a>
-
-</form>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

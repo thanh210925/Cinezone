@@ -6,83 +6,171 @@
     var auditoriums = ViewBag.Auditoriums as List<CINEMA.Models.Auditorium>;
 }
 
-<div class="container mt-4">
-    <h2 class="fw-bold mb-4">✏️ Sửa lịch chiếu</h2>
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item"><a asp-action="Index" class="text-decoration-none">Quản lý lịch chiếu</a></li>
+            <li class="breadcrumb-item active">Sửa suất chiếu #@Model.ShowtimeId</li>
+        </ol>
+    </nav>
 
-    <form asp-action="Edit" method="post" class="mt-3">
-        <input type="hidden" asp-for="ShowtimeId" />
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4">
 
-        <div class="row">
-            <!-- Cột trái -->
-            <div class="col-md-6">
-
-                <div class="mb-3">
-                    <label class="form-label">Phim</label>
-                    <select class="form-select" asp-for="MovieId">
-                        @foreach (var m in movies)
-                        {
-                            <option value="@m.MovieId" selected="@(m.MovieId == Model.MovieId)">
-                                @m.Title
-                            </option>
-                        }
-                    </select>
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-3 px-4 p-md-5 pb-md-0">
+                    <h4 class="fw-bold text-primary mb-0 d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                            <i class="bi bi-pencil-square fs-5"></i>
+                        </div>
+                        Cập nhật lịch chiếu
+                    </h4>
+                    <p class="text-muted ms-5 ps-2 mt-1 mb-0">Chỉnh sửa thông tin chi tiết cho suất chiếu đang chọn.</p>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Ngày giờ bắt đầu</label>
-                    <input type="datetime-local" class="form-control"
-                           asp-for="StartTime"
-                           value="@Model.StartTime?.ToString("yyyy-MM-ddTHH:mm")" />
+                <div class="card-body p-4 p-md-5">
+                    <form asp-action="Edit" method="post" id="editShowtimeForm">
+                        <input type="hidden" asp-for="ShowtimeId" />
+
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label asp-for="MovieId" class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-film text-secondary me-1"></i> Phim chiếu <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select px-3 py-2 shadow-sm" asp-for="MovieId" id="movieSelect" required>
+                                    <option value="">-- Chọn phim --</option>
+                                    @if (movies != null)
+                                    {
+                                        foreach (var m in movies)
+                                        {
+                                            // asp-for sẽ tự động match value để chọn đúng phim, không cần ghi selected thủ công
+                                            <option value="@m.MovieId" data-duration="@m.Duration">@m.Title (@m.Duration phút)</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="MovieId" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="AuditoriumId" class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-easel text-secondary me-1"></i> Phòng chiếu <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select px-3 py-2 shadow-sm" asp-for="AuditoriumId" required>
+                                    <option value="">-- Chọn phòng --</option>
+                                    @if (auditoriums != null)
+                                    {
+                                        foreach (var r in auditoriums)
+                                        {
+                                            <option value="@r.AuditoriumId">@r.Name</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="AuditoriumId" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="StartTime" class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-calendar-check text-success me-1"></i> Ngày giờ bắt đầu
+                                </label>
+                                <input type="datetime-local" class="form-control px-3 py-2 shadow-sm" id="startTimeInput"
+                                       asp-for="StartTime"
+                                       value="@Model.StartTime?.ToString("yyyy-MM-ddTHH:mm")" required />
+                                <span asp-validation-for="StartTime" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="EndTime" class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-calendar-x text-danger me-1"></i> Ngày giờ kết thúc
+                                </label>
+                                <input type="datetime-local" class="form-control px-3 py-2 shadow-sm bg-light" id="endTimeInput"
+                                       asp-for="EndTime"
+                                       value="@Model.EndTime?.ToString("yyyy-MM-ddTHH:mm")" readonly required />
+                                <span asp-validation-for="EndTime" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="BasePrice" class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-cash-stack text-secondary me-1"></i> Giá vé cơ bản (₫)
+                                </label>
+                                <input type="number" class="form-control px-3 py-2 shadow-sm" asp-for="BasePrice" required />
+                                <span asp-validation-for="BasePrice" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="Language" class="form-label fw-semibold text-dark">
+                                    <i class="bi bi-translate text-secondary me-1"></i> Ngôn ngữ
+                                </label>
+                                <input type="text" class="form-control px-3 py-2 shadow-sm" asp-for="Language" placeholder="VD: Vietsub" required />
+                                <span asp-validation-for="Language" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-12 mt-4">
+                                <div class="p-3 bg-light rounded-3 border d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1 fw-bold text-dark">Trạng thái suất chiếu</h6>
+                                        <small class="text-muted">Cho phép suất chiếu này hiển thị cho khách hàng đặt vé</small>
+                                    </div>
+                                    <div class="form-check form-switch fs-4 mb-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" name="IsActive" value="true" @(Model?.IsActive == true ? "checked" : "") />
+                                        <input type="hidden" name="IsActive" value="false" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-5 pt-4 border-top">
+                            <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm fw-medium text-nowrap">
+                                <i class="bi bi-floppy me-1"></i> Lưu thay đổi
+                            </button>
+                            <a asp-action="Index" class="btn btn-light border rounded-pill px-4 shadow-sm text-secondary fw-medium text-nowrap">
+                                <i class="bi bi-arrow-left me-1"></i> Quay lại
+                            </a>
+                        </div>
+                    </form>
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Giá vé cơ bản</label>
-                    <input type="number" class="form-control" asp-for="BasePrice" />
-                </div>
-
-                <div class="form-check mb-3">
-                    <input type="checkbox" class="form-check-input"
-                           name="IsActive" value="true" @(Model?.IsActive == true ? "checked" : "") />
-                    <input type="hidden" name="IsActive" value="false" />
-                    <label class="form-check-label">Đang chiếu</label>
-                </div>
-
-            </div>
-
-            <!-- Cột phải -->
-            <div class="col-md-6">
-
-                <div class="mb-3">
-                    <label class="form-label">Rạp</label>
-                    <select class="form-select" asp-for="AuditoriumId">
-                        @foreach (var r in auditoriums)
-                        {
-                            <option value="@r.AuditoriumId" selected="@(r.AuditoriumId == Model.AuditoriumId)">
-                                @r.Name
-                            </option>
-                        }
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Ngày giờ kết thúc</label>
-                    <input type="datetime-local" class="form-control"
-                           asp-for="EndTime"
-                           value="@Model.EndTime?.ToString("yyyy-MM-ddTHH:mm")" />
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Ngôn ngữ</label>
-                    <input type="text" class="form-control" asp-for="Language" />
-                </div>
-
             </div>
         </div>
-
-        <div class="mt-3">
-            <button type="submit" class="btn btn-success">💾 Lưu thay đổi</button>
-            <a asp-action="Index" class="btn btn-secondary">⬅ Quay lại</a>
-        </div>
-
-    </form>
+    </div>
 </div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const movieSelect = document.getElementById("movieSelect");
+            const startTimeInput = document.getElementById("startTimeInput");
+            const endTimeInput = document.getElementById("endTimeInput");
+
+            // Lắng nghe sự kiện thay đổi
+            movieSelect.addEventListener("change", autoCalculateEndTime);
+            startTimeInput.addEventListener("change", autoCalculateEndTime);
+
+            function autoCalculateEndTime() {
+                let selectedOption = movieSelect.options[movieSelect.selectedIndex];
+                let durationStr = selectedOption.getAttribute("data-duration");
+                let startTimeVal = startTimeInput.value;
+
+                if (durationStr && startTimeVal) {
+                    let durationMinutes = parseInt(durationStr);
+                    let startTime = new Date(startTimeVal);
+
+                    // Cộng phút
+                    startTime.setMinutes(startTime.getMinutes() + durationMinutes);
+
+                    // Format lại (YYYY-MM-DDThh:mm)
+                    let year = startTime.getFullYear();
+                    let month = String(startTime.getMonth() + 1).padStart(2, '0');
+                    let day = String(startTime.getDate()).padStart(2, '0');
+                    let hours = String(startTime.getHours()).padStart(2, '0');
+                    let minutes = String(startTime.getMinutes()).padStart(2, '0');
+
+                    endTimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+                }
+            }
+        });
+    </script>
+}

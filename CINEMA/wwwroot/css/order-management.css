@@ -1,0 +1,84 @@
+﻿/* --- Style cho Tab Navigation chuẩn theo thiết kế --- */
+.nav-pills .nav-link {
+    color: #0d6efd; /* Màu chữ xanh dương cho tab chưa chọn */
+    background-color: transparent; /* Nền trong suốt */
+    border: none;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+}
+
+    /* Hiệu ứng hover cho tab chưa chọn */
+    .nav-pills .nav-link:hover:not(.active) {
+        background-color: #f1f5f9;
+        color: #0b5ed7;
+    }
+
+    /* Tab đang được chọn (Active) */
+    .nav-pills .nav-link.active {
+        background: linear-gradient(90deg, #0d6efd 0%, #0084ff 100%);
+        color: white;
+        box-shadow: 0 4px 10px rgba(13, 110, 253, 0.25);
+    }
+
+/* --- Stats Cards --- */
+.card .fs-4 {
+    font-family: 'Segoe UI', sans-serif;
+    margin-bottom: 2px;
+}
+
+.card small {
+    letter-spacing: 0.5px;
+}
+
+/* --- Icon Shape (Tròn chứa icon tiêu đề) --- */
+.icon-shape {
+    width: 45px;
+    height: 45px;
+}body {
+}
+/* --- Ticket Card Style (Tạo cảm giác giống cuống vé) --- */
+.ticket-card {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid #e2e8f0 !important;
+}
+
+/* Nét đứt chia cắt phần thông tin phim và phần số ghế */
+.border-dashed {
+    border-style: dashed !important;
+    border-color: #cbd5e1 !important;
+}
+
+/* --- Tùy chỉnh Table Combo --- */
+.custom-table th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 1rem;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.custom-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* --- Hiệu ứng chung --- */
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.05) !important;
+    }
+
+/* Điều chỉnh lại padding cho màn hình nhỏ */
+@media (max-width: 768px) {
+    .ticket-seat-zone {
+        border-start: none !important;
+        border-top: 2px dashed #cbd5e1 !important;
+        padding-top: 1.5rem !important;
+        margin-top: 0.5rem !important;
+    }
+}

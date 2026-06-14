@@ -1,0 +1,170 @@
+﻿/* Tùy chỉnh Tiêu đề bảng */
+.custom-table th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    border-bottom: 2px solid #f1f3f5;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+/* Hiệu ứng Hover cho hàng của bảng */
+.custom-table tbody tr {
+    transition: all 0.2s ease-in-out;
+}
+
+    .custom-table tbody tr:hover {
+        background-color: #f8f9fa;
+        transform: translateY(-1px);
+        box-shadow: inset 4px 0 0 0 #0d6efd; /* Điểm nhấn viền trái khi hover */
+    }
+
+/* Tùy chỉnh nút bấm thao tác (Action buttons) */
+.action-btn {
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    background-color: #f8f9fa;
+    border: 1px solid transparent;
+}
+
+    .action-btn:hover {
+        transform: scale(1.1);
+        background-color: #ffffff;
+        border-color: #dee2e6;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+/* Tùy chỉnh Text Truncate cho địa chỉ dài */
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Hiệu ứng cho nút thêm mới */
+.btn-add {
+    transition: all 0.3s ease;
+}
+
+    .btn-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 .5rem 1rem rgba(13, 110, 253, .15) !important;
+    }
+
+/* --- Tùy chỉnh ô nhập liệu (Inputs) --- */
+.custom-input {
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    transition: all 0.2s ease-in-out;
+    background-color: #ffffff;
+}
+
+    .custom-input:focus {
+        border-color: #ffc107; /* Màu cam/vàng chuẩn của btn-warning */
+        box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.15); /* Đổ bóng nhẹ khi đang gõ */
+        background-color: #fffdf7;
+    }
+
+/* --- Tùy chỉnh Nút gạt (Toggle Switch) cho trạng thái --- */
+.switch-wrapper .form-check-input {
+    width: 3.2em;
+    height: 1.6em;
+    border-radius: 2em;
+    background-color: #dee2e6;
+    border-color: #ced4da;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+    .switch-wrapper .form-check-input:checked {
+        background-color: #ffc107;
+        border-color: #ffc107;
+    }
+
+/* --- Tùy chỉnh Nút bấm (Buttons) --- */
+.custom-btn {
+    border-radius: 8px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s;
+}
+
+    .custom-btn:hover {
+        transform: translateY(-2px); /* Hiệu ứng nảy nút lên nhẹ khi hover */
+        box-shadow: 0 6px 15px rgba(255, 193, 7, 0.3) !important;
+        background-color: #ffca2c;
+    }
+
+.custom-btn-outline {
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    transition: all 0.2s ease;
+}
+
+    .custom-btn-outline:hover {
+        background-color: #e2e6ea;
+        color: #212529 !important;
+    }
+
+/* --- Tiện ích nhỏ --- */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.form-section {
+    transition: background-color 0.3s ease;
+}
+
+    .form-section:hover {
+        background-color: #f1f4f8 !important; /* Đổi màu nền nhẹ khu vực form khi rê chuột */
+    }
+/* --- Tùy chỉnh ô nhập liệu (Inputs) --- */
+.custom-input {
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    transition: all 0.2s ease-in-out;
+    background-color: #ffffff;
+}
+
+    .custom-input:focus {
+        border-color: #198754; /* Màu xanh lá chuẩn của btn-success */
+        box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.15); /* Đổ bóng nhẹ khi đang gõ */
+        background-color: #f8fff9; /* Nền xanh rất nhạt để báo hiệu đang focus */
+    }
+
+/* --- Tùy chỉnh Nút bấm (Buttons) --- */
+.custom-btn {
+    border-radius: 8px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s;
+}
+
+    .custom-btn:hover {
+        transform: translateY(-2px); /* Hiệu ứng nảy nút lên nhẹ khi hover */
+        box-shadow: 0 6px 15px rgba(25, 135, 84, 0.3) !important;
+        background-color: #157347;
+    }
+
+.custom-btn-outline {
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    transition: all 0.2s ease;
+}
+
+    .custom-btn-outline:hover {
+        background-color: #e2e6ea;
+        color: #212529 !important;
+    }
+
+/* --- Tiện ích nhỏ --- */
+.form-section {
+    transition: background-color 0.3s ease;
+}
+
+    .form-section:hover {
+        background-color: #f1f4f8 !important; /* Đổi màu nền nhẹ khu vực form khi rê chuột */
+    }

@@ -4,706 +4,456 @@
     Layout = "_AdminLayout";
 }
 
-<div class="container mt-4">
+@section Styles {
+    <link rel="stylesheet" href="~/css/revenue-dashboard.css" />
+}
 
-    <h2 class="fw-bold mb-4 text-center text-gradient">📊 Thống kê doanh thu</h2>
+<div class="container-fluid py-4">
 
-    <!-- ================= FILTER ================= -->
-    <form method="get" class="row g-3 mb-4 justify-content-center">
-        <div class="col-md-3">
-            <label class="form-label fw-semibold">Từ ngày</label>
-            <input type="date" name="from" class="form-control"
-                   value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
-        </div>
-        <div class="col-md-3">
-            <label class="form-label fw-semibold">Đến ngày</label>
-            <input type="date" name="to" class="form-control"
-                   value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary w-100 fw-semibold">Lọc</button>
-        </div>
-    </form>
-
-    <!-- ================= DASHBOARD ================= -->
-    <div class="row mb-3 justify-content-center">
-        <div class="col-md-6">
-            <div class="card-box">
-                <div class="label">📅 Khoảng lọc</div>
-                <div class="sub fw-semibold">
-                    @if (Model.FromDate.HasValue || Model.ToDate.HasValue)
-                    {
-                        <span>@Model.FromDate?.ToString("dd/MM/yyyy") - @Model.ToDate?.ToString("dd/MM/yyyy")</span>
-                    }
-                    else
-                    {
-                        <span>Toàn thời gian</span>
-                    }
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h4 class="fw-bold text-primary mb-0 d-flex align-items-center">
+                <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                    <i class="bi bi-bar-chart-fill fs-5"></i>
                 </div>
-            </div>
+                Báo cáo doanh thu
+            </h4>
+            <p class="text-muted ms-5 ps-2 mb-0 mt-1">
+                @if (Model.FromDate.HasValue || Model.ToDate.HasValue)
+                {
+                    <span>Đang lọc: <strong>@Model.FromDate?.ToString("dd/MM/yyyy") - @Model.ToDate?.ToString("dd/MM/yyyy")</strong></span>
+                }
+                else
+                {
+                    <span>Đang xem: <strong>Toàn thời gian</strong></span>
+                }
+            </p>
+        </div>
+
+        <div class="bg-white p-2 rounded-pill shadow-sm border">
+            <form method="get" class="d-flex align-items-center m-0">
+                <div class="d-flex align-items-center px-3 border-end">
+                    <label class="text-muted small me-2 text-nowrap">Từ ngày</label>
+                    <input type="date" name="from" class="form-control form-control-sm border-0 bg-transparent shadow-none" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+                </div>
+                <div class="d-flex align-items-center px-3 border-end">
+                    <label class="text-muted small me-2 text-nowrap">Đến ngày</label>
+                    <input type="date" name="to" class="form-control form-control-sm border-0 bg-transparent shadow-none" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+                </div>
+                <div class="px-2">
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-medium text-nowrap">
+                        <i class="bi bi-funnel me-1"></i> Lọc
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
-    <!-- NAVBAR THỐNG KÊ -->
-    <ul class="nav nav-pills justify-content-center mb-4 dashboard-nav">
 
-        <li class="nav-item">
-            <a class="nav-link active"
-               data-bs-toggle="tab"
-               href="#tongquan">
-                📈 Tổng Quan
-            </a>
-        </li>
+    <div class="d-flex justify-content-center mb-4">
+        <ul class="nav nav-pills gap-2 p-1 bg-white border rounded-pill shadow-sm" id="dashboardTabs" role="tablist">
+            <li class="nav-item"><button class="nav-link active rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#tongquan" type="button"><i class="bi bi-graph-up me-1"></i> Tổng Quan</button></li>
+            <li class="nav-item"><button class="nav-link rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#phim" type="button"><i class="bi bi-film me-1"></i> Theo Phim</button></li>
+            <li class="nav-item"><button class="nav-link rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#suatchieu" type="button"><i class="bi bi-calendar-event me-1"></i> Suất Chiếu</button></li>
+            <li class="nav-item"><button class="nav-link rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#combo" type="button"><i class="bi bi-cup-straw me-1"></i> Combo</button></li>
+            <li class="nav-item"><button class="nav-link rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#voucher" type="button"><i class="bi bi-ticket-perforated me-1"></i> Voucher</button></li>
+            <li class="nav-item"><button class="nav-link rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#chitiet" type="button"><i class="bi bi-list-columns-reverse me-1"></i> Chi Tiết Bảng</button></li>
+        </ul>
+    </div>
 
+    <div class="tab-content" id="dashboardTabsContent">
 
-
-        <li class="nav-item">
-            <a class="nav-link"
-               data-bs-toggle="tab"
-               href="#phim">
-                🎬 Theo Phim
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link"
-               data-bs-toggle="tab"
-               href="#suatchieu">
-                🎬 Suất Chiếu
-            </a>
-        </li>
-
-        <li class="nav-item">
-            <a class="nav-link"
-               data-bs-toggle="tab"
-               href="#combo">
-                🥤 Combo
-            </a>
-        </li>
-
-        <li class="nav-item">
-            <a class="nav-link"
-               data-bs-toggle="tab"
-               href="#chitiet">
-                📋 Chi Tiết
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link"
-               data-bs-toggle="tab"
-               href="#voucher">
-                🎟 Voucher
-            </a>
-        </li>
-    <div class="tab-content">
-
-        <!-- ================= TỔNG QUAN ================= -->
         <div class="tab-pane fade show active" id="tongquan">
 
-            <!-- Card doanh thu -->
-            <div class="row g-3 mb-4 justify-content-center">
-                <div class="col-md-3">
-                    <div class="card-box">
-                        <div class="label">Hôm nay</div>
-                        <div class="value text-success">
-                            @Model.TodayRevenue.ToString("N0") ₫
-                        </div>
-                        <div class="sub">
-                            @Model.TodayTickets vé
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-3">
-                    <div class="card-box">
-                        <div class="label">Tháng</div>
-                        <div class="value text-success">
-                            @Model.MonthRevenue.ToString("N0") ₫
-                        </div>
-                        <div class="sub">
-                            @Model.MonthTickets vé
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-3">
-                    <div class="card-box">
-                        <div class="label">Tổng</div>
-                        <div class="value text-danger">
-                            @Model.TotalRevenue.ToString("N0") ₫
-                        </div>
-                        <div class="sub">
-                            @Model.TotalTickets vé
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Card trạng thái đơn -->
-            <div class="row g-3 mb-4 justify-content-center">
-
-                <div class="col-md-2">
-                    <div class="card-box border-success">
-                        <div class="label">Đã thanh toán</div>
-                        <div class="value text-success">
-                            @Model.PaidOrders
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-2">
-                    <div class="card-box border-warning">
-                        <div class="label">Đang chờ</div>
-                        <div class="value text-warning">
-                            @Model.PendingOrders
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-2">
-                    <div class="card-box border-danger">
-                        <div class="label">Đã hủy</div>
-                        <div class="value text-danger">
-                            @Model.CancelledOrders
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Biểu đồ -->
-            <div class="row g-4">
-
-                <div class="col-md-8">
-                    <div class="chart-box">
-                        <h5>📅 Doanh thu theo ngày</h5>
-                        <canvas id="revenueByDateChart"></canvas>
-                    </div>
-                </div>
-
+            <div class="row g-3 mb-4">
                 <div class="col-md-4">
-                    <div class="chart-box">
-                        <h5>🎬 Top phim</h5>
-                        <canvas id="revenueByMovieChart"></canvas>
+                    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 border-bottom border-4 border-info">
+                        <div class="text-muted text-uppercase fw-bold small mb-2"><i class="bi bi-calendar-day me-1"></i> Doanh thu hôm nay</div>
+                        <div class="text-dark fw-bold fs-3 mb-1">@Model.TodayRevenue.ToString("N0") ₫</div>
+                        <span class="badge bg-info-subtle text-info rounded-pill px-3">@Model.TodayTickets vé bán ra</span>
                     </div>
                 </div>
-
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 border-bottom border-4 border-primary">
+                        <div class="text-muted text-uppercase fw-bold small mb-2"><i class="bi bi-calendar-month me-1"></i> Doanh thu tháng này</div>
+                        <div class="text-dark fw-bold fs-3 mb-1">@Model.MonthRevenue.ToString("N0") ₫</div>
+                        <span class="badge bg-primary-subtle text-primary rounded-pill px-3">@Model.MonthTickets vé bán ra</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 border-bottom border-4 border-success">
+                        <div class="text-muted text-uppercase fw-bold small mb-2"><i class="bi bi-cash-stack me-1"></i> Tổng doanh thu</div>
+                        <div class="text-success fw-bold fs-3 mb-1">@Model.TotalRevenue.ToString("N0") ₫</div>
+                        <span class="badge bg-success-subtle text-success rounded-pill px-3">@Model.TotalTickets vé bán ra</span>
+                    </div>
+                </div>
             </div>
 
-            <div class="row g-4 mt-4">
-
-                <div class="col-md-6">
-                    <div class="chart-box">
-                        <h5>📆 Theo tháng</h5>
-                        <canvas id="revenueByMonthChart"></canvas>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white d-flex flex-row align-items-center">
+                        <div class="bg-success-subtle text-success rounded-circle d-flex justify-content-center align-items-center me-3" style="width:50px;height:50px;"><i class="bi bi-check-lg fs-4"></i></div>
+                        <div>
+                            <div class="text-muted small fw-bold text-uppercase">Đã thanh toán</div>
+                            <div class="fw-bold fs-5 text-dark">@Model.PaidOrders đơn</div>
+                        </div>
                     </div>
                 </div>
-
-                <div class="col-md-6">
-                    <div class="chart-box">
-                        <h5>📊 Theo năm</h5>
-                        <canvas id="revenueByYearChart"></canvas>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white d-flex flex-row align-items-center">
+                        <div class="bg-warning-subtle text-warning rounded-circle d-flex justify-content-center align-items-center me-3" style="width:50px;height:50px;"><i class="bi bi-hourglass-split fs-4"></i></div>
+                        <div>
+                            <div class="text-muted small fw-bold text-uppercase">Đang chờ</div>
+                            <div class="fw-bold fs-5 text-dark">@Model.PendingOrders đơn</div>
+                        </div>
                     </div>
                 </div>
-
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white d-flex flex-row align-items-center">
+                        <div class="bg-danger-subtle text-danger rounded-circle d-flex justify-content-center align-items-center me-3" style="width:50px;height:50px;"><i class="bi bi-x-lg fs-4"></i></div>
+                        <div>
+                            <div class="text-muted small fw-bold text-uppercase">Đã hủy</div>
+                            <div class="fw-bold fs-5 text-dark">@Model.CancelledOrders đơn</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                        <h6 class="fw-bold text-dark mb-4">📅 Doanh thu & Số vé theo ngày</h6>
+                        <div class="chart-container" style="position: relative; height:300px;"><canvas id="revenueByDateChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                        <h6 class="fw-bold text-dark mb-4">🎬 Tỷ trọng doanh thu phim</h6>
+                        <div class="chart-container" style="position: relative; height:300px;"><canvas id="revenueByMovieChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 p-4">
+                        <h6 class="fw-bold text-dark mb-4">📆 Theo tháng</h6>
+                        <div class="chart-container" style="position: relative; height:250px;"><canvas id="revenueByMonthChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 p-4">
+                        <h6 class="fw-bold text-dark mb-4">📊 Theo năm</h6>
+                        <div class="chart-container" style="position: relative; height:250px;"><canvas id="revenueByYearChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- ================= DOANH THU VÉ ================= -->
-        <div class="tab-pane fade" id="ve">
-
-            <div class="chart-box">
-                <h5>📅 Doanh thu theo ngày</h5>
-                <canvas id="revenueByDateChart"></canvas>
-            </div>
-
-            <div class="row g-4 mt-4">
-
-                <div class="col-md-6">
-                    <div class="chart-box">
-                        <h5>📆 Theo tháng</h5>
-                        <canvas id="revenueByMonthChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <div class="chart-box">
-                        <h5>📊 Theo năm</h5>
-                        <canvas id="revenueByYearChart"></canvas>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- ================= THEO PHIM ================= -->
         <div class="tab-pane fade" id="phim">
-            <div class="chart-box">
-                <h5>🎬 Top phim doanh thu</h5>
-                <div class="row g-3 mb-4 justify-content-center">
-                    <div class="col-md-3">
-                        <div class="card-box border-info">
-                            <div class="label">Đang chiếu / Sắp chiếu</div>
-                            <div class="value text-info">@Model.NowShowingCount / @Model.ComingSoonCount</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card-box border-primary">
-                            <div class="label">Top bán chạy nhất</div>
-                            <div class="value text-primary" style="font-size:16px">@Model.TopSellingMovie</div>
-                            <div class="sub">@Model.TopSellingTickets vé</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card-box border-danger">
-                            <div class="label">Bán ít nhất</div>
-                            <div class="value text-danger" style="font-size:14px">@Model.LeastSellingMovie</div>
-                            <div class="sub">@Model.LeastSellingTickets vé</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card-box border-secondary">
-                            <div class="label">Top doanh thu</div>
-                            <div class="value text-secondary" style="font-size:16px">@Model.TopRevenueMovie</div>
-                            <div class="sub">@Model.TopRevenueAmount.ToString("N0") ₫</div>
-                        </div>
-                    </div>
-                    <div class="row g-3 mb-4 justify-content-center">
-                        <div class="col-md-3"><div class="card-box border-primary"><div class="label">AOV Hôm nay</div><div class="value text-primary">@Model.AvgOrderValueToday.ToString("N0") ₫</div></div></div>
-                        <div class="col-md-3"><div class="card-box border-primary"><div class="label">AOV Tháng này</div><div class="value text-primary">@Model.AvgOrderValueMonth.ToString("N0") ₫</div></div></div>
-                        <div class="col-md-3"><div class="card-box border-primary"><div class="label">AOV Quý này</div><div class="value text-primary">@Model.AvgOrderValueQuarter.ToString("N0") ₫</div></div></div>
-                        <div class="col-md-3"><div class="card-box border-primary"><div class="label">AOV Năm nay</div><div class="value text-primary">@Model.AvgOrderValueYear.ToString("N0") ₫</div></div></div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                        <div class="text-muted small fw-bold text-uppercase mb-1">Đang/Sắp chiếu</div>
+                        <div class="text-info fw-bold fs-4">@Model.NowShowingCount / @Model.ComingSoonCount</div>
                     </div>
                 </div>
-                <div class="row g-4">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <div class="chart-box">
-                                <h5>📊 So sánh doanh thu theo Phim</h5>
-                                <canvas id="movieRevenueChart"></canvas>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                        <div class="text-muted small fw-bold text-uppercase mb-1">Phim bán chạy nhất</div>
+                        <div class="text-primary fw-bold text-truncate" title="@Model.TopSellingMovie">@Model.TopSellingMovie</div>
+                        <small class="text-muted">@Model.TopSellingTickets vé</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                        <div class="text-muted small fw-bold text-uppercase mb-1">Phim bán chậm nhất</div>
+                        <div class="text-danger fw-bold text-truncate" title="@Model.LeastSellingMovie">@Model.LeastSellingMovie</div>
+                        <small class="text-muted">@Model.LeastSellingTickets vé</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                        <div class="text-muted small fw-bold text-uppercase mb-1">Top Doanh thu</div>
+                        <div class="text-success fw-bold text-truncate" title="@Model.TopRevenueMovie">@Model.TopRevenueMovie</div>
+                        <small class="text-muted">@Model.TopRevenueAmount.ToString("N0") ₫</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-header bg-white border-bottom-0 pt-4 px-4"><h6 class="fw-bold text-dark mb-0">💰 Giá trị trung bình đơn hàng (AOV)</h6></div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row text-center g-3">
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <small class="text-muted fw-bold d-block mb-1 text-uppercase">Hôm nay</small>
+                                <span class="fw-bold text-dark fs-5">@Model.AvgOrderValueToday.ToString("N0") ₫</span>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="chart-box">
-                                <h5>🎟️ So sánh số vé đã bán</h5>
-                                <canvas id="ticketComparisonChart"></canvas>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <small class="text-muted fw-bold d-block mb-1 text-uppercase">Tháng này</small>
+                                <span class="fw-bold text-dark fs-5">@Model.AvgOrderValueMonth.ToString("N0") ₫</span>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="chart-box">
-                                <h5>💰 Biểu đồ so sánh giá trị đơn (AOV)</h5>
-                                <div class="chart-container" style="height: 300px;"><canvas id="aovChart"></canvas></div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <small class="text-muted fw-bold d-block mb-1 text-uppercase">Quý này</small>
+                                <span class="fw-bold text-dark fs-5">@Model.AvgOrderValueQuarter.ToString("N0") ₫</span>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="chart-box">
-                                <h5>📊 So sánh doanh thu 2 tháng gần nhất</h5>
-                                <div class="chart-container" style="height: 300px;"><canvas id="monthCompareChart"></canvas></div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <small class="text-muted fw-bold d-block mb-1 text-uppercase">Năm nay</small>
+                                <span class="fw-bold text-dark fs-5">@Model.AvgOrderValueYear.ToString("N0") ₫</span>
                             </div>
                         </div>
                     </div>
                 </div>
-                <canvas id="revenueByMovieChart"></canvas>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                        <h6 class="fw-bold text-dark mb-4">📊 Doanh thu theo Phim</h6>
+                        <div class="chart-container" style="position: relative; height:300px;"><canvas id="movieRevenueChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                        <h6 class="fw-bold text-dark mb-4">🎟️ Số lượng vé đã bán</h6>
+                        <div class="chart-container" style="position: relative; height:300px;"><canvas id="ticketComparisonChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                        <h6 class="fw-bold text-dark mb-4">💰 Biểu đồ Giá trị đơn (AOV)</h6>
+                        <div class="chart-container" style="position: relative; height:300px;"><canvas id="aovChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                        <h6 class="fw-bold text-dark mb-4">📊 So sánh doanh thu 2 tháng gần nhất</h6>
+                        <div class="chart-container" style="position: relative; height:300px;"><canvas id="monthCompareChart"></canvas></div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="tab-pane fade" id="suatchieu">
-
-            <div class="chart-box">
-
-                <h5>🎬 Doanh thu theo suất chiếu</h5>
-
-                <canvas id="showtimeRevenueChart"></canvas>
-
+            <div class="card shadow-sm border-0 rounded-4 mb-4 p-4">
+                <h6 class="fw-bold text-dark mb-4">🎬 Doanh thu theo suất chiếu</h6>
+                <div class="chart-container" style="position: relative; height:350px;"><canvas id="showtimeRevenueChart"></canvas></div>
             </div>
 
-            <div class="chart-box mt-4">
-
-                <table class="table table-striped table-hover">
-
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Mã SC</th>
-                            <th>Phim</th>
-                            <th>Thời gian</th>
-                            <th>Vé bán</th>
-                            <th>Doanh thu</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-
-                        @foreach (var item in Model.ShowtimeStatistics)
-                        {
-                            <tr>
-
-                                <td>#@item.ShowtimeId</td>
-
-                                <td>@item.MovieName</td>
-
-                                <td>
-                                    @item.StartTime.ToString("dd/MM/yyyy HH:mm")
-                                </td>
-
-                                <td>@item.TicketCount</td>
-
-                                <td class="fw-bold text-success">
-                                    @item.Revenue.ToString("N0") ₫
-                                </td>
-
-                            </tr>
-                        }
-
-                    </tbody>
-
-                </table>
-
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white pt-4 px-4 border-0">
+                    <h6 class="fw-bold text-dark mb-0">📋 Bảng thống kê suất chiếu</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover custom-table align-middle mb-0">
+                            <thead class="table-light text-secondary">
+                                <tr>
+                                    <th class="ps-4">Mã SC</th>
+                                    <th>Phim</th>
+                                    <th class="text-center">Thời gian</th>
+                                    <th class="text-center">Vé bán</th>
+                                    <th class="text-end pe-4">Doanh thu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.ShowtimeStatistics)
+                                {
+                                    <tr>
+                                        <td class="ps-4 fw-bold text-primary">#@item.ShowtimeId</td>
+                                        <td class="fw-medium">@item.MovieName</td>
+                                        <td class="text-center text-muted small"><i class="bi bi-clock me-1"></i> @item.StartTime.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td class="text-center"><span class="badge bg-light text-dark border px-3">@item.TicketCount</span></td>
+                                        <td class="text-end pe-4 fw-bold text-success">@item.Revenue.ToString("N0") ₫</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-
         </div>
 
-        <!-- COMBO -->
         <div class="tab-pane fade" id="combo">
-
-            <!-- GIỮ NGUYÊN TOÀN BỘ PHẦN COMBO CỦA BẠN -->
-
-            <h4 class="text-center mb-4">
-                🥤 THỐNG KÊ COMBO BẮP NƯỚC
-            </h4>
-
-            <div class="row text-center mb-4">
-                <!-- ================= KPI CARDS ================= -->
-                <div class="row g-3 mt-2">
-
-                    <!-- ================= CARD 1 ================= -->
-                    <div class="col-md-4">
-                        <div class="kpi-card revenue">
-                            <div class="kpi-header">
-                                <span>💰 Doanh Thu Combo</span>
-                            </div>
-
-                            <div class="kpi-value text-success">
-                                @Model.ComboRevenue.ToString("N0") ₫
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ================= CARD 2 ================= -->
-                    <div class="col-md-4">
-                        <div class="kpi-card sold">
-                            <div class="kpi-header">
-                                <span>📦 Đã Bán</span>
-                            </div>
-
-                            <div class="kpi-value text-primary">
-                                @Model.ComboSold
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ================= CARD 3 ================= -->
-                    <div class="col-md-4">
-                        <div class="kpi-card best">
-                            <div class="kpi-header">
-                                <span>🔥 Bán Chạy Nhất</span>
-                            </div>
-
-                            <div class="kpi-value text-danger">
-                                @Model.BestSellingCombo
-                            </div>
-
-                            <small class="text-muted">
-                                @Model.BestSellingQuantity lượt bán
-                            </small>
-                        </div>
-                    </div>
-
-                    <!-- ================= WORST COMBO (FULL WIDTH) ================= -->
-                    <div class="col-md-12">
-                        <div class="kpi-alert">
-
-                            <div>
-                                <h5>⚠️ Combo cần cải thiện</h5>
-                                <h4 class="mb-0">@Model.WorstSellingCombo</h4>
-                                <small class="text-muted">Doanh số thấp nhất</small>
-                            </div>
-
-                            <div class="kpi-badge">
-                                @Model.WorstSellingQuantity
-                            </div>
-
-                        </div>
-                    </div>
-
-                    <!-- ================= KPI 4 ================= -->
-                    <div class="col-md-4">
-                        <div class="kpi-card soft blue">
-                            <div class="kpi-header">
-                                📦 Tỷ lệ đơn có combo
-                            </div>
-
-                            <div class="kpi-value text-primary">
-                                @Model.ComboAttachRate %
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ================= KPI 5 ================= -->
-                    <div class="col-md-4">
-                        <div class="kpi-card soft green">
-                            <div class="kpi-header">
-                                💰 Tỷ trọng doanh thu combo
-                            </div>
-
-                            <div class="kpi-value text-success">
-                                @Model.ComboRevenueRate %
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ================= KPI 6 ================= -->
-                    <div class="col-md-4">
-                        <div class="kpi-card soft yellow">
-                            <div class="kpi-header">
-                                🧾 Chi tiêu / đơn
-                            </div>
-
-                            <div class="kpi-value text-warning">
-                                @Model.AverageComboPerOrder.ToString("N0") ₫
-                            </div>
-                        </div>
-                    </div>
-
+            <div class="alert alert-danger border-0 shadow-sm rounded-4 d-flex justify-content-between align-items-center p-4 mb-4">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i> Combo cần cải thiện: @Model.WorstSellingCombo</h5>
+                    <p class="mb-0 text-danger opacity-75">Sản phẩm này có lượt bán thấp nhất trong kỳ báo cáo.</p>
                 </div>
-
-                <!-- ================= COMBO SECTION ================= -->
-                <div class="row g-4 mt-2">
-
-                    <!-- TOP BÁN CHẠY -->
-                    <div class="col-md-4">
-                        <div class="chart-card chart-blue">
-                            <h5>🔥 Top 5 combo bán chạy</h5>
-                            <canvas id="topComboChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- TOP DOANH THU -->
-                    <div class="col-md-4">
-                        <div class="chart-card chart-green">
-                            <h5>💰 Top 5 doanh thu</h5>
-                            <canvas id="topRevenueComboChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- THEO THÁNG -->
-                    <div class="col-md-4">
-                        <div class="chart-card chart-orange">
-                            <h5>📊 Combo theo tháng</h5>
-                            <canvas id="comboByMonthChart"></canvas>
-                        </div>
-                    </div>
-
+                <div class="bg-white text-danger rounded-3 px-4 py-2 fw-bold shadow-sm fs-5">
+                    @Model.WorstSellingQuantity <small class="text-muted fw-normal fs-6">lượt bán</small>
                 </div>
+            </div>
 
-
-                <div class="row g-4 mt-4">
-
-                    <!-- PIE -->
-                    <div class="col-md-5">
-                        <div class="chart-card chart-purple">
-                            <h5>🥧 Tỷ lệ combo</h5>
-                            <canvas id="comboPieChart"></canvas>
-                        </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-success-subtle">
+                        <div class="text-success text-uppercase fw-bold small mb-2"><i class="bi bi-cash-coin me-1"></i> Doanh thu Combo</div>
+                        <div class="text-success fw-bold fs-3">@Model.ComboRevenue.ToString("N0") ₫</div>
                     </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-primary-subtle">
+                        <div class="text-primary text-uppercase fw-bold small mb-2"><i class="bi bi-box-seam me-1"></i> Đã bán ra</div>
+                        <div class="text-primary fw-bold fs-3">@Model.ComboSold <small class="fs-6 fw-normal">lượt</small></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-warning-subtle">
+                        <div class="text-warning-emphasis text-uppercase fw-bold small mb-2"><i class="bi bi-fire me-1"></i> Bán chạy nhất</div>
+                        <div class="text-warning-emphasis fw-bold fs-4 text-truncate" title="@Model.BestSellingCombo">@Model.BestSellingCombo</div>
+                        <small class="text-warning-emphasis">@Model.BestSellingQuantity lượt bán</small>
+                    </div>
+                </div>
+            </div>
 
-                    <!-- TABLE -->
-                    <div class="col-md-7">
-                        <div class="table-card">
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 border-start border-4 border-info h-100">
+                        <small class="text-muted fw-bold text-uppercase mb-1">Tỷ lệ đơn có Combo</small>
+                        <h4 class="fw-bold text-dark mb-0">@Model.ComboAttachRate %</h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 border-start border-4 border-success h-100">
+                        <small class="text-muted fw-bold text-uppercase mb-1">Tỷ trọng doanh thu</small>
+                        <h4 class="fw-bold text-dark mb-0">@Model.ComboRevenueRate %</h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 border-start border-4 border-warning h-100">
+                        <small class="text-muted fw-bold text-uppercase mb-1">Chi tiêu trung bình/Đơn</small>
+                        <h4 class="fw-bold text-dark mb-0">@Model.AverageComboPerOrder.ToString("N0") ₫</h4>
+                    </div>
+                </div>
+            </div>
 
-                            <h5 class="mb-3">📋 Thống kê chi tiết combo</h5>
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                        <h6 class="fw-bold text-dark mb-4">🔥 Top 5 combo bán chạy</h6>
+                        <div class="chart-container" style="position: relative; height:250px;"><canvas id="topComboChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                        <h6 class="fw-bold text-dark mb-4">💰 Top 5 combo doanh thu</h6>
+                        <div class="chart-container" style="position: relative; height:250px;"><canvas id="topRevenueComboChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                        <h6 class="fw-bold text-dark mb-4">🥧 Cơ cấu doanh thu</h6>
+                        <div class="chart-container" style="position: relative; height:250px;"><canvas id="comboPieChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                            <div class="table-responsive">
-                                <table class="table table-hover table-bordered align-middle">
+        <div class="tab-pane fade" id="voucher">
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100 text-center">
+                        <div class="text-muted text-uppercase fw-bold small mb-2">Tổng giảm giá</div>
+                        <div class="text-danger fw-bold fs-3">@Model.TotalDiscountAmount.ToString("N0") ₫</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100 text-center">
+                        <div class="text-muted text-uppercase fw-bold small mb-2">Voucher dùng nhiều nhất</div>
+                        <div class="text-primary fw-bold fs-3">@Model.BestVoucher</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100 text-center">
+                        <div class="text-muted text-uppercase fw-bold small mb-2">Lượt sử dụng tối đa</div>
+                        <div class="text-success fw-bold fs-3">@Model.BestVoucherUsage <small class="fs-6 fw-normal text-muted">lượt</small></div>
+                    </div>
+                </div>
+            </div>
 
-                                    <thead class="table-dark">
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card shadow-sm border-0 rounded-4 p-4 h-100">
+                        <h6 class="fw-bold text-dark mb-4">🎟 Top Voucher được sử dụng</h6>
+                        <div class="chart-container" style="position: relative; height:350px;"><canvas id="voucherChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card shadow-sm border-0 rounded-4 h-100">
+                        <div class="card-header bg-white pt-4 px-4 border-0">
+                            <h6 class="fw-bold text-dark mb-0">📋 Chi tiết Voucher</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive" style="max-height: 350px;">
+                                <table class="table table-hover custom-table align-middle mb-0">
+                                    <thead class="table-light text-secondary sticky-top">
                                         <tr>
-                                            <th>Combo</th>
-                                            <th>Số lượng</th>
-                                            <th>Doanh thu</th>
-                                            <th>%</th>
+                                            <th class="ps-4">Mã Code</th>
+                                            <th class="text-center">Đã dùng</th>
+                                            <th class="text-end pe-4">Tổng giảm</th>
                                         </tr>
                                     </thead>
-
                                     <tbody>
-                                        @foreach (var combo in Model.ComboStatistics)
+                                        @foreach (var item in Model.VoucherStatistics)
                                         {
                                             <tr>
-                                                <td><b>@combo.ComboName</b></td>
-                                                <td>@combo.QuantitySold</td>
-                                                <td class="text-success fw-bold">
-                                                    @combo.Revenue.ToString("N0") ₫
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-primary fs-6">
-                                                        @combo.Percentage %
-                                                    </span>
-                                                </td>
+                                                <td class="ps-4"><span class="badge bg-light text-dark border py-2 px-3 fw-bold">@item.VoucherCode</span></td>
+                                                <td class="text-center fw-medium">@item.UsedCount</td>
+                                                <td class="text-end pe-4 text-danger fw-bold">@item.TotalDiscount.ToString("N0") ₫</td>
                                             </tr>
                                         }
                                     </tbody>
-
                                 </table>
                             </div>
-
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
-        <!-- CHI TIẾT -->
+
         <div class="tab-pane fade" id="chitiet">
-
-            <div class="chart-box">
-
-                <h5>📋 Thống kê chi tiết Combo</h5>
-
-                <table class="table table-striped table-hover">
-
-                    <thead>
-                        <tr>
-                            <th>Tên Combo</th>
-                            <th>Số lượng bán</th>
-                            <th>Doanh thu</th>
-                            <th>Tỷ lệ</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-
-                        @foreach (var combo in Model.ComboStatistics)
-                        {
-                            <tr>
-                                <td>@combo.ComboName</td>
-                                <td>@combo.QuantitySold</td>
-                                <td>@combo.Revenue.ToString("N0") ₫</td>
-                                <td>@combo.Percentage %</td>
-                            </tr>
-                        }
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </div>
-        <div class="tab-pane fade" id="voucher">
-
-            <div class="row g-3 mb-4">
-
-                <div class="col-md-4">
-                    <div class="card-box">
-                        <div class="label">
-                            Tổng giảm giá
-                        </div>
-
-                        <div class="value text-danger">
-                            @Model.TotalDiscountAmount.ToString("N0") ₫
-                        </div>
-                    </div>
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white pt-4 px-4 border-0">
+                    <h6 class="fw-bold text-dark mb-0">📋 Thống kê chi tiết Combo</h6>
                 </div>
-
-                <div class="col-md-4">
-                    <div class="card-box">
-                        <div class="label">
-                            Voucher phổ biến nhất
-                        </div>
-
-                        <div class="value text-primary">
-                            @Model.BestVoucher
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="card-box">
-                        <div class="label">
-                            Lượt sử dụng
-                        </div>
-
-                        <div class="value text-success">
-                            @Model.BestVoucherUsage
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-                <div class="card shadow border-0 mt-4 w-100">
-
-                    <div class="card-header">
-                        <h4 class="mb-0 fw-bold">
-                            🎟 Top Voucher được sử dụng nhiều nhất
-                        </h4>
-                    </div>
-
-                    <div class="card-body">
-
-                        <div style="height:450px;">
-                            <canvas id="voucherChart"></canvas>
-                        </div>
-
-                    </div>
-
-                </div>
-
-            <div class="card shadow border-0 mt-4">
-
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        📋 Chi tiết Voucher
-                    </h5>
-                </div>
-
-                <div class="card-body">
-
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Mã Voucher</th>
-                                <th>Lượt dùng</th>
-                                <th>Tổng giảm giá</th>
-                                <th>Tỷ lệ</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            @foreach (var item in Model.VoucherStatistics)
-                            {
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover custom-table align-middle mb-0">
+                            <thead class="table-light text-secondary">
                                 <tr>
-                                    <td>@item.VoucherCode</td>
-                                    <td>@item.UsedCount</td>
-                                    <td>@item.TotalDiscount.ToString("N0") ₫</td>
-                                    <td>@item.UsageRate %</td>
+                                    <th class="ps-4">Tên Combo</th>
+                                    <th class="text-center">Số lượng bán</th>
+                                    <th class="text-center">Tỷ lệ</th>
+                                    <th class="text-end pe-4">Doanh thu</th>
                                 </tr>
-                            }
-                        </tbody>
-
-                    </table>
-
+                            </thead>
+                            <tbody>
+                                @foreach (var combo in Model.ComboStatistics)
+                                {
+                                    <tr>
+                                        <td class="ps-4 fw-bold text-dark">@combo.ComboName</td>
+                                        <td class="text-center"><span class="badge bg-light text-dark border px-3">@combo.QuantitySold</span></td>
+                                        <td class="text-center text-muted">@combo.Percentage %</td>
+                                        <td class="text-end pe-4 fw-bold text-success">@combo.Revenue.ToString("N0") ₫</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-
             </div>
-
         </div>
-        </div>
+    </div>
+</div>
 
-
-    <!-- ================= JS ================= -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+@section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // Dữ liệu từ Model
         const labelsByDate = @Html.Raw(Json.Serialize(Model.LabelsByDate));
         const revenueByDate = @Html.Raw(Json.Serialize(Model.RevenueByDate));
         const ticketCountByDate = @Html.Raw(Json.Serialize(Model.TicketCountByDate));
@@ -719,218 +469,76 @@
         const movieLabels = @Html.Raw(Json.Serialize(Model.MovieLabels));
         const revenueByMovie = @Html.Raw(Json.Serialize(Model.RevenueByMovie));
         const ticketData = @Html.Raw(Json.Serialize(Model.TicketsByMovie));
-        const showtimeLabels =
-        @Html.Raw(Json.Serialize(Model.ShowtimeLabels));
 
-        const revenueByShowtime =
-        @Html.Raw(Json.Serialize(Model.RevenueByShowtime));
+        const showtimeLabels = @Html.Raw(Json.Serialize(Model.ShowtimeLabels));
+        const revenueByShowtime = @Html.Raw(Json.Serialize(Model.RevenueByShowtime));
 
-        const comboPieLabels =
-        @Html.Raw(Json.Serialize(Model.ComboPieLabels));
+        const comboPieLabels = @Html.Raw(Json.Serialize(Model.ComboPieLabels));
+        const comboPieValues = @Html.Raw(Json.Serialize(Model.ComboPieValues));
 
-        const comboPieValues =
-        @Html.Raw(Json.Serialize(Model.ComboPieValues));
-
-
-        function createChart(id, labels, data1, data2) {
+        // Hàm tạo Line/Bar Chart tổng quát
+        function createMixedChart(id, labels, data1, data2) {
         new Chart(document.getElementById(id), {
         type: 'bar',
         data: {
         labels: labels,
         datasets: [
-        {
-        label: 'Doanh thu',
-        data: data1,
-        yAxisID: 'y'
-        },
-        {
-        label: 'Số vé',
-        data: data2,
-        type: 'line',
-        yAxisID: 'y1'
-        }
+        { label: 'Doanh thu', data: data1, yAxisID: 'y', backgroundColor: 'rgba(13, 110, 253, 0.8)', borderRadius: 4, maxBarThickness: 50 }, // Thêm giới hạn độ rộng cột
+        { label: 'Số vé', data: data2, type: 'line', yAxisID: 'y1', borderColor: '#ffc107', borderWidth: 2, tension: 0.3 }
         ]
         },
-        options: {
-        responsive: true
-        }
+        options: { responsive: true, maintainAspectRatio: false }
         });
         }
 
-        createChart("revenueByDateChart", labelsByDate, revenueByDate, ticketCountByDate);
-        createChart("revenueByMonthChart", labelsByMonth, revenueByMonth, ticketCountByMonth);
-        createChart("revenueByYearChart", labelsByYear, revenueByYear, ticketCountByYear);
+        // Render Biểu đồ Tổng Quan
+        createMixedChart("revenueByDateChart", labelsByDate, revenueByDate, ticketCountByDate);
+        createMixedChart("revenueByMonthChart", labelsByMonth, revenueByMonth, ticketCountByMonth);
+        createMixedChart("revenueByYearChart", labelsByYear, revenueByYear, ticketCountByYear);
 
         new Chart(document.getElementById("revenueByMovieChart"), {
-        type: 'pie',
+        type: 'doughnut',
         data: {
         labels: movieLabels,
-        datasets: [{ data: revenueByMovie }]
-        }
+        datasets: [{ data: revenueByMovie, hoverOffset: 4 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
 
-        new Chart(document.getElementById("comboPieChart"), {
-
-        type: 'pie',
-
-        data: {
-
-        labels: comboPieLabels,
-
-        datasets: [{
-        data: comboPieValues
-        }]
-        }
-
-        });
-        new Chart(
-        document.getElementById("showtimeRevenueChart"),
-        {
+        // Render Biểu đồ Theo Phim
+        new Chart(document.getElementById("movieRevenueChart"), {
         type: 'bar',
         data: {
-        labels: showtimeLabels,
-        datasets: [{
-        label: 'Doanh thu',
-        data: revenueByShowtime,
-        maxBarThickness: 60,
-        borderRadius: 6
-        }]
+        labels: movieLabels,
+        datasets: [{ label: 'Doanh thu (₫)', data: revenueByMovie, backgroundColor: '#198754', borderRadius: 4, maxBarThickness: 50 }]
         },
-        options: {
-        responsive: true,
-        maintainAspectRatio: false
-        }
-        }
-
-        );
-
-        new Chart(document.getElementById('comboPie'), {
-        type: 'pie',
-        data: {
-        labels: @Html.Raw(Json.Serialize(Model.ComboPieLabels)),
-        datasets: [{
-        data: @Html.Raw(Json.Serialize(Model.ComboPieValues))
-        }]
-        }
+        options: { responsive: true, maintainAspectRatio: false }
         });
 
-        const ctx = document.getElementById('topComboChart');
-
-        new Chart(ctx, {
+        new Chart(document.getElementById("ticketComparisonChart"), {
         type: 'bar',
         data: {
-        labels: @Html.Raw(Json.Serialize(Model.TopComboLabels)),
-        datasets: [{
-        label: 'Số lượng bán',
-        data: @Html.Raw(Json.Serialize(Model.TopComboValues)),
-        borderWidth: 1
-        }]
+        labels: movieLabels,
+        datasets: [{ label: 'Số lượng vé', data: ticketData, backgroundColor: '#0dcaf0', borderRadius: 4, maxBarThickness: 50 }]
         },
-        options: {
-        responsive: true,
-        plugins: {
-        legend: {
-        display: false
-        },
-        title: {
-        display: false
-        }
-        },
-        scales: {
-        y: {
-        beginAtZero: true
-        }
-        }
-        }
-        });
-        const revenueCtx = document.getElementById('topRevenueComboChart');
-
-        new Chart(revenueCtx, {
-        type: 'bar',
-        data: {
-        labels: @Html.Raw(Json.Serialize(Model.TopRevenueComboLabels)),
-        datasets: [{
-        label: 'Doanh thu (VNĐ)',
-        data: @Html.Raw(Json.Serialize(Model.TopRevenueComboValues)),
-        borderWidth: 1
-        }]
-        },
-        options: {
-        responsive: true,
-        plugins: {
-        legend: {
-        display: false
-        },
-        tooltip: {
-        callbacks: {
-        label: function (context) {
-        return context.raw.toLocaleString('vi-VN') + ' ₫';
-        }
-        }
-        }
-        },
-        scales: {
-        y: {
-        beginAtZero: true,
-        ticks: {
-        callback: function (value) {
-        return value.toLocaleString('vi-VN');
-        }
-        }
-        }
-        }
-        }
-        });
-        document.addEventListener("DOMContentLoaded", function () {
-
-        const ctx = document.getElementById('comboByMonthChart');
-
-        new Chart(ctx, {
-        type: 'bar',
-        data: {
-        labels: @Html.Raw(Json.Serialize(Model.ComboLabelsByMonth)),
-        datasets: [
-        {
-        label: 'Doanh thu combo (VNĐ)',
-        data: @Html.Raw(Json.Serialize(Model.ComboRevenueByMonth)),
-        type: 'bar'
-        }
-
-        ]
-        }
+        options: { responsive: true, maintainAspectRatio: false }
         });
 
-        });
-        // 4. Biểu đồ Giá trị trung bình đơn (AOV)
         new Chart(document.getElementById("aovChart"), {
         type: 'bar',
         data: {
         labels: ['Hôm nay', 'Tháng này', 'Quý này', 'Năm nay'],
         datasets: [{
-        label: 'Giá trị đơn trung bình (VND)',
-        data: [
-        @Model.AvgOrderValueToday,
-        @Model.AvgOrderValueMonth,
-        @Model.AvgOrderValueQuarter,
-        @Model.AvgOrderValueYear
-        ],
-        backgroundColor: [
-        'rgba(255, 99, 132, 0.7)',
-        'rgba(54, 162, 235, 0.7)',
-        'rgba(255, 206, 86, 0.7)',
-        'rgba(75, 192, 192, 0.7)'
-        ],
-        borderWidth: 1
+        label: 'Giá trị trung bình (VND)',
+        data: [@Model.AvgOrderValueToday, @Model.AvgOrderValueMonth, @Model.AvgOrderValueQuarter, @Model.AvgOrderValueYear],
+        backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)'],
+        borderRadius: 4,
+        maxBarThickness: 50
         }]
         },
-        options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true } }
-        }
+        options: { responsive: true, maintainAspectRatio: false }
         });
 
-        // 5. Biểu đồ so sánh doanh thu 2 tháng gần nhất
         new Chart(document.getElementById("monthCompareChart"), {
         type: 'bar',
         data: {
@@ -938,319 +546,63 @@
         datasets: [{
         label: 'Doanh thu (VND)',
         data: [@Model.RevenueLastMonth, @Model.RevenueCurrentMonth],
-        backgroundColor: [
-        'rgba(142, 142, 147, 0.7)',
-        'rgba(40, 167, 69, 0.7)'
-        ],
-        borderColor: [
-        'rgba(142, 142, 147, 1)',
-        'rgba(40, 167, 69, 1)'
-        ],
-        borderWidth: 1
+        backgroundColor: ['rgba(108, 117, 125, 0.8)', 'rgba(25, 135, 84, 0.8)'],
+        borderRadius: 4,
+        maxBarThickness: 50
         }]
         },
-        options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-        y: {
-        beginAtZero: true,
-        title: { display: true, text: 'Số tiền (₫)' }
-        }
-        }
-        }
-        });
-        // Vẽ biểu đồ Doanh thu (Bar)
-        new Chart(document.getElementById("movieRevenueChart"), {
-        type: 'bar',
-        data: {
-        labels: movieLabels,
-        datasets: [{
-        label: 'Doanh thu (₫)',
-        data: revenueByMovie,
-        backgroundColor: '#0d6efd'
-        }]
-        },
-        options: { responsive: true }
+        options: { responsive: true, maintainAspectRatio: false }
         });
 
-        new Chart(document.getElementById("ticketComparisonChart").getContext('2d'), {
+        // Render Biểu đồ Suất chiếu (Đây chính là biểu đồ bị mập trong ảnh của bạn)
+        new Chart(document.getElementById("showtimeRevenueChart"), {
         type: 'bar',
         data: {
-        labels: movieLabels,
-        datasets: [{
-        label: 'Số lượng vé',
-        data: ticketData,
-        backgroundColor: '#36a2eb',
-        borderRadius: 5
-        }]
+        labels: showtimeLabels,
+        datasets: [{ label: 'Doanh thu (₫)', data: revenueByShowtime, backgroundColor: '#6f42c1', borderRadius: 4, maxBarThickness: 50 }]
         },
-        options: {
-        responsive: true,
-        scales: {
-        y: {
-        beginAtZero: true,
-        ticks: { stepSize: 1 }
-        }
-        }
-        }
+        options: { responsive: true, maintainAspectRatio: false }
         });
-        const voucherCtx =
-        document.getElementById('voucherChart');
 
+        // Render Biểu đồ Combo
+        new Chart(document.getElementById('topComboChart'), {
+        type: 'bar',
+        data: {
+        labels: @Html.Raw(Json.Serialize(Model.TopComboLabels)),
+        datasets: [{ label: 'Số lượng bán', data: @Html.Raw(Json.Serialize(Model.TopComboValues)), backgroundColor: '#0d6efd', borderRadius: 4, maxBarThickness: 50 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        new Chart(document.getElementById('topRevenueComboChart'), {
+        type: 'bar',
+        data: {
+        labels: @Html.Raw(Json.Serialize(Model.TopRevenueComboLabels)),
+        datasets: [{ label: 'Doanh thu (₫)', data: @Html.Raw(Json.Serialize(Model.TopRevenueComboValues)), backgroundColor: '#198754', borderRadius: 4, maxBarThickness: 50 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        new Chart(document.getElementById("comboPieChart"), {
+        type: 'pie',
+        data: {
+        labels: comboPieLabels,
+        datasets: [{ data: comboPieValues, hoverOffset: 4 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+
+        // Render Biểu đồ Voucher
+        const voucherCtx = document.getElementById('voucherChart');
         if (voucherCtx) {
         new Chart(voucherCtx, {
         type: 'bar',
         data: {
         labels: @Html.Raw(Json.Serialize(Model.VoucherLabels)),
-        datasets: [{
-        label: 'Lượt sử dụng',
-        data: @Html.Raw(Json.Serialize(Model.VoucherValues))
-        }]
-        }
+        datasets: [{ label: 'Lượt sử dụng', data: @Html.Raw(Json.Serialize(Model.VoucherValues)), backgroundColor: '#dc3545', borderRadius: 4, maxBarThickness: 50 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
         });
         }
-        </script>
-    <!-- ================= STYLE ================= -->
-    <style>
-        body {
-        background: linear-gradient(to right, #e3f2fd, #fde2e2);
-        }
-
-        .text-gradient {
-        background: linear-gradient(90deg, #007bff, #6610f2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        }
-
-        .card-box {
-        padding: 16px;
-        border-radius: 16px;
-        background: white;
-        text-align: center;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        transition: 0.3s;
-        }
-
-        .card-box:hover {
-        transform: translateY(-3px);
-        }
-
-        .label {
-        font-size: 13px;
-        color: #6c757d;
-        }
-
-        .value {
-        font-size: 22px;
-        font-weight: bold;
-        }
-
-        .sub {
-        font-size: 13px;
-        color: #999;
-        }
-
-        .border-success {
-        border-left: 5px solid #28a745;
-        }
-
-        .border-warning {
-        border-left: 5px solid #ffc107;
-        }
-
-        .border-danger {
-        border-left: 5px solid #dc3545;
-        }
-
-        .chart-box {
-        padding: 20px;
-        border-radius: 16px;
-        background: white;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-
-        canvas {
-        max-height: 350px;
-        height: auto !important;
-        }
-        /* Tạo hiệu ứng mượt mà khi hover vào chart-box giống như card-box */
-        .chart-box:hover {
-        transform: translateY(-3px);
-        transition: 0.3s;
-        }
-
-        /* Bổ sung cho bảng dữ liệu (Table) trong các tab */
-        .table-responsive {
-        overflow-x: auto;
-        }
-
-        /* Style cho tiêu đề trong chart-box */
-        .chart-box h5 {
-        color: #333;
-        font-weight: 700;
-        margin-bottom: 20px;
-        border-bottom: 2px solid #f0f0f0;
-        padding-bottom: 10px;
-        }
-
-        .combo-card {
-        background: #f8f9fa;
-        border-radius: 15px;
-        padding: 20px;
-        box-shadow: 0 3px 10px rgba(0,0,0,.08);
-        height: 100%;
-        }
-
-        .combo-title {
-        font-size: 14px;
-        color: #6c757d;
-        margin-bottom: 10px;
-        }
-
-        .combo-value {
-        font-size: 28px;
-        font-weight: 700;
-        }
-
-        .dashboard-nav {
-        margin-top: 15px;
-        }
-
-        .dashboard-nav .nav-link {
-        border-radius: 50px;
-        padding: 10px 22px;
-        margin: 0 6px;
-        font-weight: 600;
-        color: #555;
-        background: white;
-        transition: .3s;
-        }
-
-        .dashboard-nav .nav-link.active {
-        background: linear-gradient(135deg,#0d6efd,#6610f2);
-        color: white !important;
-        box-shadow: 0 5px 15px rgba(13,110,253,.3);
-        }
-
-        .kpi-card {
-        background: #fff;
-        border-radius: 16px;
-        padding: 18px;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-        transition: 0.25s ease;
-        height: 100%;
-        }
-
-        .kpi-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.12);
-        }
-
-        .kpi-header {
-        font-size: 14px;
-        color: #6c757d;
-        margin-bottom: 8px;
-        }
-
-        .kpi-value {
-        font-size: 26px;
-        font-weight: 700;
-        }
-
-        /* gradient soft cards */
-        .kpi-card.soft.blue {
-        background: linear-gradient(135deg,#e3f2fd,#ffffff);
-        }
-
-        .kpi-card.soft.green {
-        background: linear-gradient(135deg,#e8f5e9,#ffffff);
-        }
-
-        .kpi-card.soft.yellow {
-        background: linear-gradient(135deg,#fff8e1,#ffffff);
-        }
-
-        /* revenue / sold / best */
-        .kpi-card.revenue {
-        border-left: 5px solid #28a745;
-        }
-
-        .kpi-card.sold {
-        border-left: 5px solid #0d6efd;
-        }
-
-        .kpi-card.best {
-        border-left: 5px solid #dc3545;
-        }
-
-        /* worst card */
-        .kpi-alert {
-        background: #fff5f5;
-        border-left: 6px solid #dc3545;
-        border-radius: 16px;
-        padding: 18px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        }
-
-        .kpi-badge {
-        background: #dc3545;
-        color: white;
-        padding: 12px 16px;
-        border-radius: 12px;
-        font-weight: bold;
-        font-size: 18px;
-        }
-
-        .chart-card {
-        background: #fff;
-        border-radius: 18px;
-        padding: 20px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-        transition: 0.3s;
-        height: 380px; /* 🔥 BỰ HƠN */
-        }
-
-        .chart-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-        }
-
-        .chart-card h5 {
-        font-weight: 700;
-        margin-bottom: 15px;
-        }
-
-        /* ===== MÀU CARD ===== */
-        .chart-blue {
-        border-top: 5px solid #0d6efd;
-        }
-
-        .chart-green {
-        border-top: 5px solid #198754;
-        }
-
-        .chart-orange {
-        border-top: 5px solid #fd7e14;
-        }
-
-        .chart-purple {
-        border-top: 5px solid #6f42c1;
-        }
-
-        /* TABLE */
-        .table-card {
-        background: #fff;
-        border-radius: 18px;
-        padding: 20px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-        height: 380px;
-        overflow: auto;
-        }
-
-        .table-card h5 {
-        font-weight: 700;
-        }
-    </style>
+    </script>
+}

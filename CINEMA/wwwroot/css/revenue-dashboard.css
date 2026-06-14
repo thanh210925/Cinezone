@@ -1,0 +1,46 @@
+﻿body {
+}
+/* --- Tùy chỉnh Tab Navigation --- */
+.nav-pills .nav-link {
+    color: #6c757d;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+    .nav-pills .nav-link:hover:not(.active) {
+        background-color: #f8f9fa;
+        color: #0d6efd;
+    }
+
+    .nav-pills .nav-link.active {
+        background: linear-gradient(90deg, #0d6efd 0%, #0099ff 100%);
+        color: white;
+        box-shadow: 0 4px 10px rgba(13, 110, 253, 0.25);
+    }
+
+/* --- Tùy chỉnh Table dữ liệu --- */
+.custom-table th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding-top: 1.2rem;
+    padding-bottom: 1.2rem;
+    letter-spacing: 0.5px;
+}
+
+.custom-table td {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    vertical-align: middle;
+}
+
+/* --- Biểu tượng hình tròn --- */
+.icon-shape {
+    width: 45px;
+    height: 45px;
+}
+
+/* --- Responsive Chart Container --- */
+.chart-container {
+    width: 100%;
+}

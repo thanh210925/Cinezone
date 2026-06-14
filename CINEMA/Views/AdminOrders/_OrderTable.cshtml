@@ -2,54 +2,73 @@
 
 @if (Model == null || !Model.Any())
 {
-    <div class="alert alert-secondary text-center m-0 p-3">
-        Không có dữ liệu để hiển thị.
+    <div class="text-center py-5 text-muted bg-white">
+        <i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>
+        <h6 class="fw-medium">Không có dữ liệu đơn hàng</h6>
     </div>
 }
 else
 {
-    <table class="table table-bordered table-hover text-center align-middle mb-0">
-        <thead class="table-dark">
-            <tr>
-                <th>Mã đơn</th>
-                <th>Khách hàng</th>
-                <th>Ngày đặt</th>
-                <th>Tổng tiền</th>
-                <th>Trạng thái</th>
-                <th>Hành động</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var o in Model)
-            {
-                string badgeClass = o.Status switch
-                {
-                    "Đã thanh toán" => "success",
-                    "Đang chờ thanh toán" => "warning text-dark",
-                    "Thanh toán thất bại" => "secondary",
-                    "Đã hủy" => "danger",
-                    _ => "light text-dark"
-                };
-
+    <div class="table-responsive">
+        <table class="table table-hover align-middle custom-table mb-0">
+            <thead class="table-light text-secondary">
                 <tr>
-                    <td><strong>@("CZ" + o.OrderId.ToString("D6"))</strong></td>
-                    <td>@o.Customer?.FullName</td>
-                    <td>@o.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</td>
-                    <td class="text-danger fw-bold">@String.Format("{0:N0} ₫", o.TotalAmount)</td>
-                    <td><span class="badge bg-@badgeClass">@o.Status</span></td>
-                    <td>
-                        <a asp-action="Details" asp-route-id="@o.OrderId" class="btn btn-sm btn-info text-white">
-                            <i class="bi bi-eye"></i> Xem
-                        </a>
-                        <form asp-action="Delete" method="post" style="display:inline;">
-                            <input type="hidden" name="id" value="@o.OrderId" />
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Xóa đơn này?');">
-                                <i class="bi bi-trash"></i> Xóa
-                            </button>
-                        </form>
-                    </td>
+                    <th class="ps-4" width="12%">Mã đơn</th>
+                    <th width="22%">Khách hàng</th>
+                    <th class="text-center" width="18%">Ngày đặt</th>
+                    <th class="text-end" width="15%">Tổng tiền</th>
+                    <th class="text-center" width="18%">Trạng thái</th>
+                    <th class="text-center pe-4" width="15%">Thao tác</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var o in Model)
+                {
+                    // Chuyển đổi logic màu sắc sang phong cách subtle (màu nhạt, viền tinh tế)
+                    string badgeClass = o.Status switch
+                    {
+                        "Đã thanh toán" => "bg-success-subtle text-success border-success-subtle",
+                        "Đang chờ thanh toán" => "bg-warning-subtle text-warning border-warning-subtle",
+                        "Thanh toán thất bại" => "bg-secondary-subtle text-secondary border-secondary-subtle",
+                        "Đã hủy" => "bg-danger-subtle text-danger border-danger-subtle",
+                        _ => "bg-light text-dark border-light"
+                    };
+
+                    <tr>
+                        <td class="ps-4">
+                            <span class="fw-bold text-primary">@("CZ" + o.OrderId.ToString("D6"))</span>
+                        </td>
+                        <td class="fw-medium text-dark">
+                            @o.Customer?.FullName
+                        </td>
+                        <td class="text-center text-muted small">
+                            <i class="bi bi-clock me-1"></i> @o.CreatedAt?.ToString("dd/MM/yyyy HH:mm")
+                        </td>
+                        <td class="text-end fw-bold text-danger">
+                            @String.Format("{0:N0} ₫", o.TotalAmount)
+                        </td>
+                        <td class="text-center">
+                            <span class="badge @badgeClass border rounded-pill px-3 py-1 fw-medium">
+                                @o.Status
+                            </span>
+                        </td>
+                        <td class="text-center pe-4">
+                            <div class="d-flex justify-content-center gap-2">
+                                <a asp-action="Details" asp-route-id="@o.OrderId" class="btn btn-light btn-sm text-info action-btn" data-bs-toggle="tooltip" title="Xem chi tiết">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <!-- Sửa form xóa để nút nằm ngang hàng và không làm vỡ layout -->
+                                <form asp-action="Delete" method="post" class="m-0" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đơn này?');">
+                                    <input type="hidden" name="id" value="@o.OrderId" />
+                                    <button type="submit" class="btn btn-light btn-sm text-danger action-btn" data-bs-toggle="tooltip" title="Xóa">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }

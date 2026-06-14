@@ -1,0 +1,30 @@
+﻿body {
+}
+/* Tận dụng các class CSS đã tạo từ các trang trước để đảm bảo tính thống nhất */
+.custom-table th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 1rem;
+}
+
+.action-btn {
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    background-color: #f8f9fa;
+}
+
+    .action-btn:hover {
+        transform: scale(1.1);
+        background-color: #ffffff;
+        box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+    }
+
+.badge {
+    font-weight: 500;
+}

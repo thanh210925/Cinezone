@@ -4,106 +4,144 @@
     Layout = "_AdminLayout";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="~/css/genre-management.css" />
+}
+
 <div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item active">Quản lý thể loại</li>
+        </ol>
+    </nav>
 
-    <!-- HEADER -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold text-primary mb-0">🎭 Quản lý Thể loại</h2>
-            <small class="text-muted">Danh sách thể loại và phim liên quan</small>
-        </div>
-
-        <a asp-action="Create" class="btn btn-success shadow-sm px-4">
-            <i class="bi bi-plus-circle me-2"></i> Thêm thể loại
-        </a>
-    </div>
-
-    <!-- TABLE -->
+    <!-- Card bọc nội dung -->
     <div class="card shadow-sm border-0 rounded-4">
+
+        <!-- Header với layout Flex phân bổ sang phải -->
+        <div class="card-header bg-white border-bottom-0 pt-4 pb-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <h4 class="fw-bold text-primary mb-0 d-flex align-items-center">
+                <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                    <i class="bi bi-mask fs-5"></i>
+                </div>
+                Danh sách thể loại phim
+            </h4>
+
+            <!-- Khu vực bên phải: Tìm kiếm + Nút Thêm -->
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <div class="input-group" style="width: 250px;">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="searchInput" class="form-control border-start-0"
+                           placeholder="Tìm kiếm..." onkeyup="filterTable()">
+                </div>
+                <a asp-action="Create" class="btn btn-primary rounded-pill px-4 shadow-sm fw-medium">
+                    <i class="bi bi-plus-lg me-1"></i> Thêm mới
+                </a>
+            </div>
+        </div>
+
         <div class="card-body p-0">
-
-            <table class="table align-middle mb-0 table-hover">
-
-                <thead class="table-dark">
-                    <tr>
-                        <th style="width:70px;">ID</th>
-                        <th style="width:200px;">Tên thể loại</th>
-                        <th>Mô tả</th>
-                        <th style="width:300px;">Phim</th>
-                        <th class="text-center" style="width:150px;">Thao tác</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        foreach (var g in Model)
-                        {
+            @if (Model != null && Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle custom-table mb-0">
+                        <thead class="table-light text-secondary">
                             <tr>
-                                <td class="fw-semibold text-muted">@g.GenreId</td>
-
-                                <td>
-                                    <span class="badge bg-primary fs-6">
-                                        @g.Name
-                                    </span>
-                                </td>
-
-                                <td class="text-muted">
-                                    @(string.IsNullOrEmpty(g.Description) ? "—" : g.Description)
-                                </td>
-
-                                <!-- PHIM -->
-                                <td>
-                                    @if (g.Movies != null && g.Movies.Any())
-                                    {
-                                        <div class="d-flex flex-wrap gap-1">
-                                            @foreach (var m in g.Movies)
-                                            {
-                                                <span class="badge bg-light text-dark border">
-                                                    🎬 @m.Title
-                                                </span>
-                                            }
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">Không có phim</span>
-                                    }
-                                </td>
-
-                                <!-- ACTION -->
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-2">
-
-                                        <a asp-action="Edit" asp-route-id="@g.GenreId"
-                                               class="btn btn-sm btn-warning">
-                                            ✏️
-                                        </a>
-
-                                        <a asp-action="Delete" asp-route-id="@g.GenreId"
-                                               class="btn btn-sm btn-danger"
-                                               onclick="return confirm('Xóa thể loại này?');">
-                                            🗑
-                                        </a>
-
-                                    </div>
-                                </td>
+                                <th class="text-center ps-4" width="8%">STT</th>
+                                <th width="20%">Tên thể loại</th>
+                                <th width="30%">Mô tả</th>
+                                <th width="30%">Phim liên quan</th>
+                                <th class="text-center pe-4" width="12%">Thao tác</th>
                             </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">
-                                Không có thể loại nào
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-
-            </table>
-
+                        </thead>
+                        <tbody>
+                            @{
+                                int stt = 1;
+                            }
+                            @foreach (var g in Model)
+                            {
+                                <tr>
+                                    <td class="text-center fw-medium text-muted">@stt</td>
+                                    <td>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 fs-6">
+                                            @g.Name
+                                        </span>
+                                    </td>
+                                    <td class="text-muted text-truncate" style="max-width: 250px;">
+                                        @(string.IsNullOrEmpty(g.Description) ? "—" : g.Description)
+                                    </td>
+                                    <td>
+                                        @if (g.Movies != null && g.Movies.Any())
+                                        {
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @foreach (var m in g.Movies)
+                                                {
+                                                    <span class="badge bg-light text-dark border rounded-pill px-2 small">
+                                                        🎬 @m.Title
+                                                    </span>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Chưa có phim</span>
+                                        }
+                                    </td>
+                                    <td class="text-center pe-4">
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <a asp-action="Edit" asp-route-id="@g.GenreId" class="btn btn-light btn-sm text-warning action-btn" data-bs-toggle="tooltip" title="Chỉnh sửa">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+                                            <a asp-action="Delete" asp-route-id="@g.GenreId" class="btn btn-light btn-sm text-danger action-btn" onclick="return confirm('Xóa thể loại này?');" data-bs-toggle="tooltip" title="Xóa">
+                                                <i class="bi bi-trash3"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                stt++;
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-mask opacity-50" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 fw-bold text-dark">Chưa có thể loại nào!</h5>
+                </div>
+            }
         </div>
     </div>
-
 </div>
+
+@section Scripts {
+    <script>
+        // Kích hoạt Tooltip
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Hàm tìm kiếm
+        function filterTable() {
+            let input = document.getElementById("searchInput");
+            let filter = input.value.toLowerCase();
+            let table = document.querySelector(".custom-table");
+            let rows = table.getElementsByTagName("tr");
+
+            for (let i = 1; i < rows.length; i++) {
+                let genreName = rows[i].getElementsByTagName("td")[1].textContent.toLowerCase();
+                let desc = rows[i].getElementsByTagName("td")[2].textContent.toLowerCase();
+
+                if (genreName.indexOf(filter) > -1 || desc.indexOf(filter) > -1) {
+                    rows[i].style.display = "";
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
+        }
+    </script>
+}

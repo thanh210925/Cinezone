@@ -4,282 +4,161 @@
     Layout = "_AdminLayout";
 }
 
-<style>
-    /* Header */
-    .customer-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 12px;
-        margin-bottom: 2rem;
-        color: white;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
+@section Styles {
+    <link rel="stylesheet" href="~/css/customer-management.css" />
+}
 
-    /* Search */
-    .search-box {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        margin-bottom: 2rem;
-    }
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item active">Quản lý khách hàng</li>
+        </ol>
+    </nav>
 
-    .search-input {
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        transition: all 0.3s ease;
-    }
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-white border-bottom-0 pt-4 pb-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <h4 class="fw-bold text-primary mb-0 d-flex align-items-center">
+                <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                    <i class="bi bi-people fs-5"></i>
+                </div>
+                Danh sách khách hàng
+                <span class="badge bg-light text-secondary border ms-3 fw-medium fs-6" id="totalCustomersBadge">
+                    Tổng: @(Model?.Count() ?? 0)
+                </span>
+            </h4>
 
-        .search-input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
-        }
-
-    /* Table */
-    .customer-table {
-        background: white;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        width: 100%;
-    }
-
-        .customer-table table {
-            width: 100%;
-            table-layout: auto;
-        }
-
-        .customer-table thead {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-            .customer-table thead th {
-                padding: 1rem;
-                font-weight: 600;
-                text-transform: uppercase;
-                font-size: 0.85rem;
-                letter-spacing: 0.5px;
-            }
-
-        .customer-table tbody td {
-            padding: 1rem;
-            vertical-align: middle;
-        }
-
-        .customer-table tbody tr {
-            transition: all 0.3s ease;
-        }
-
-            .customer-table tbody tr:hover {
-                background-color: #f8f9ff;
-                transform: scale(1.01);
-                box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
-            }
-
-    /* Badge */
-    .badge-gender {
-        padding: 0.4rem 0.8rem;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 500;
-    }
-
-    .badge-male {
-        background: #e3f2fd;
-        color: #1976d2;
-    }
-
-    .badge-female {
-        background: #fce4ec;
-        color: #c2185b;
-    }
-
-    /* Buttons */
-    .action-buttons .btn {
-        margin: 0 0.2rem;
-        padding: 0.5rem 1rem;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        transition: all 0.3s ease;
-        white-space: nowrap;
-    }
-
-    .btn-view {
-        background: #17a2b8;
-        color: white;
-    }
-
-        .btn-view:hover {
-            background: #138496;
-        }
-
-    .btn-edit {
-        background: #ffc107;
-        color: #212529;
-    }
-
-        .btn-edit:hover {
-            background: #e0a800;
-        }
-
-    .btn-delete {
-        background: #dc3545;
-        color: white;
-    }
-
-        .btn-delete:hover {
-            background: #c82333;
-        }
-
-    .btn-add-customer {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 600;
-        box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
-    }
-
-        .btn-add-customer:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
-            color: white;
-        }
-
-    /* Empty state */
-    .empty-state {
-        text-align: center;
-        padding: 3rem;
-        color: #6c757d;
-    }
-
-    .empty-state-icon {
-        font-size: 4rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-
-    /* Customer ID */
-    .customer-id {
-        font-weight: 600;
-        color: #667eea;
-    }
-</style>
-
-<div class="customer-header">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h2 class="mb-2 fw-bold">👥 Quản lý khách hàng</h2>
-            <p class="mb-0 opacity-75">Quản lý thông tin và theo dõi hoạt động của khách hàng</p>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <div class="input-group" style="width: 320px;">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="searchInput" class="form-control border-start-0"
+                           placeholder="Tìm tên, email, SĐT..." onkeyup="searchCustomers()">
+                </div>
+                <a asp-action="Create" class="btn btn-primary rounded-pill px-4 shadow-sm fw-medium">
+                    <i class="bi bi-person-plus me-1"></i> Thêm mới
+                </a>
+            </div>
         </div>
-        <a class="btn-add-customer" asp-action="Create">
-            <i class="bi bi-plus-circle me-2"></i>Thêm khách hàng mới
-        </a>
-    </div>
-</div>
 
-<div class="search-box">
-    <div class="row align-items-center">
-        <div class="col-md-8">
-            <input type="text" id="searchInput" class="form-control search-input" placeholder="🔍 Tìm kiếm theo tên, email, số điện thoại..." onkeyup="searchCustomers()">
-        </div>
-        <div class="col-md-4 text-end">
-            <span class="text-muted">Tổng số: <strong id="totalCustomers">@(Model?.Count() ?? 0)</strong> khách hàng</span>
-        </div>
-    </div>
-</div>
-
-<div class="customer-table">
-    <div class="table-responsive">
-        <table class="table table-hover mb-0" id="customerTable">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Họ và tên</th>
-                    <th>Email</th>
-                    <th>Số điện thoại</th>
-                    <th>Giới tính</th>
-                    <th>Ngày sinh</th>
-                    <th>Ngày tạo</th>
-                    <th>Đăng nhập cuối</th>
-                    <th class="text-center">Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model != null && Model.Any())
-                {
-                    foreach (var c in Model)
-                    {
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle custom-table mb-0" id="customerTable">
+                    <thead class="table-light text-secondary">
                         <tr>
-                            <td class="customer-id">#@c.CustomerId</td>
-                            <td>@c.FullName</td>
-                            <td><small class="text-muted">@c.Email</small></td>
-                            <td>@c.Phone</td>
-                            <td>
-                                @if (c.Gender?.ToLower() == "nam" || c.Gender?.ToLower() == "male")
-                                {
-                                    <span class="badge-gender badge-male">👨 @c.Gender</span>
-                                }
-                                else if (c.Gender?.ToLower() == "nữ" || c.Gender?.ToLower() == "female")
-                                {
-                                    <span class="badge-gender badge-female">👩 @c.Gender</span>
-                                }
-                                else
-                                {
-                                    <span class="badge-gender" style="background:#f5f5f5; color:#666;">@c.Gender</span>
-                                }
-                            </td>
-                            <td>@(c.BirthDate.HasValue ? "📅 " + c.BirthDate.Value.ToString("dd/MM/yyyy") : "-")</td>
-                            <td>@(c.CreatedAt.HasValue? c.CreatedAt.Value.ToString("dd/MM/yyyy") : "-")</td>
-                            <td>@(c.LastLogin.HasValue? c.LastLogin.Value.ToString("dd/MM/yyyy HH:mm") : "Chưa đăng nhập")</td>
-                            <td class="text-center">
-                                <div class="action-buttons">
-                                    <a class="btn btn-view btn-sm" asp-action="Details" asp-route-id="@c.CustomerId">👁 Xem</a>
-                                    <a class="btn btn-edit btn-sm" asp-action="Edit" asp-route-id="@c.CustomerId">✏️ Sửa</a>
-                                    <a class="btn btn-delete btn-sm" asp-action="Delete" asp-route-id="@c.CustomerId" onclick="return confirm('Bạn có chắc chắn muốn xóa khách hàng này?')">🗑 Xóa</a>
-                                </div>
-                            </td>
+                            <th class="ps-4">ID</th>
+                            <th>Họ và tên</th>
+                            <th>Thông tin liên hệ</th>
+                            <th class="text-center">Giới tính</th>
+                            <th class="text-center">Ngày sinh</th>
+                            <th class="text-center">Đăng nhập cuối</th>
+                            <th class="text-center pe-4" width="12%">Thao tác</th>
                         </tr>
-                    }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="9">
-                            <div class="empty-state">
-                                <div class="empty-state-icon">📭</div>
-                                <h5>Chưa có khách hàng nào</h5>
-                                <p class="text-muted">Hãy thêm khách hàng đầu tiên của bạn</p>
-                                <a class="btn-add-customer" asp-action="Create">
-                                    <i class="bi bi-plus-circle me-2"></i>Thêm khách hàng
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var c in Model)
+                            {
+                                <tr class="customer-row">
+                                    <td class="ps-4">
+                                        <span class="fw-bold text-primary">#@c.CustomerId</span>
+                                    </td>
+                                    <td class="fw-bold text-dark">
+                                        @c.FullName
+                                        <div class="small text-muted fw-normal mt-1">Gia nhập: @(c.CreatedAt.HasValue ? c.CreatedAt.Value.ToString("dd/MM/yyyy") : "-")</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-medium text-dark"><i class="bi bi-telephone text-muted me-1 small"></i> @c.Phone</div>
+                                        <div class="small text-muted mt-1"><i class="bi bi-envelope text-muted me-1 small"></i> @c.Email</div>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (c.Gender?.ToLower() == "nam" || c.Gender?.ToLower() == "male")
+                                        {
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-3">
+                                                <i class="bi bi-gender-male me-1"></i> Nam
+                                            </span>
+                                        }
+                                        else if (c.Gender?.ToLower() == "nữ" || c.Gender?.ToLower() == "female")
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3">
+                                                <i class="bi bi-gender-female me-1"></i> Nữ
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3">
+                                                @c.Gender
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-center text-muted">
+                                        @(c.BirthDate.HasValue ? c.BirthDate.Value.ToString("dd/MM/yyyy") : "—")
+                                    </td>
+                                    <td class="text-center text-muted small">
+                                        @(c.LastLogin.HasValue ? c.LastLogin.Value.ToString("dd/MM/yyyy HH:mm") : "Chưa từng")
+                                    </td>
+                                    <td class="text-center pe-4">
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <a asp-action="Details" asp-route-id="@c.CustomerId" class="btn btn-light btn-sm text-info action-btn" data-bs-toggle="tooltip" title="Xem chi tiết">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a asp-action="Edit" asp-route-id="@c.CustomerId" class="btn btn-light btn-sm text-warning action-btn" data-bs-toggle="tooltip" title="Chỉnh sửa">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+                                            <form asp-action="Delete" method="post" class="m-0" onsubmit="return confirm('Bạn có chắc chắn muốn xóa khách hàng @c.FullName?');">
+                                                <input type="hidden" name="id" value="@c.CustomerId" />
+                                                <button type="submit" class="btn btn-light btn-sm text-danger action-btn" data-bs-toggle="tooltip" title="Xóa">
+                                                    <i class="bi bi-trash3"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr id="emptyStateRow">
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-person-vcard fs-1 d-block mb-3 opacity-50"></i>
+                                    <h5 class="fw-bold text-dark">Chưa có khách hàng nào!</h5>
+                                    <p class="mb-0">Hãy thêm khách hàng đầu tiên vào hệ thống.</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
-<script>
-    function searchCustomers() {
-        const input = document.getElementById('searchInput').value.toLowerCase();
-        const rows = document.querySelectorAll('#customerTable tbody tr');
-        let count = 0;
-
-        rows.forEach(row => {
-            const text = row.innerText.toLowerCase();
-            if (text.includes(input)) {
-                row.style.display = '';
-                count++;
-            } else {
-                row.style.display = 'none';
-            }
+@section Scripts {
+    <script>
+        // Kích hoạt Tooltip
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
-        document.getElementById('totalCustomers').textContent = count;
-    }
-</script>
+        // Hàm tìm kiếm mượt mà
+        function searchCustomers() {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('.customer-row');
+            let count = 0;
+
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                if (text.includes(input)) {
+                    row.style.display = '';
+                    count++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Cập nhật bộ đếm trên badge
+            document.getElementById('totalCustomersBadge').innerHTML = `Tổng: ${count}`;
+        }
+    </script>
+}

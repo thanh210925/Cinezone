@@ -4,63 +4,149 @@
     Layout = "_AdminLayout";
 }
 
-<div class="container py-4">
-    <!-- Header -->
-    <div class="d-flex align-items-center mb-4">
-        <h2 class="fw-bold mb-0 text-primary">
-            <i class="bi bi-person-vcard-fill me-2"></i> Thông tin khách hàng
-        </h2>
-    </div>
+@section Styles {
+    <style>
+        .icon-shape {
+            width: 45px;
+            height: 45px;
+        }
 
-    <!-- Card thông tin -->
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-4">
-            <div class="row g-4">
-                <div class="col-md-6">
-                    <p class="mb-2">
-                        <i class="bi bi-hash text-secondary me-2"></i>
-                        <strong>ID:</strong> @Model.CustomerId
-                    </p>
-                    <p class="mb-2">
-                        <i class="bi bi-person-fill text-secondary me-2"></i>
-                        <strong>Họ tên:</strong> @Model.FullName
-                    </p>
-                    <p class="mb-2">
-                        <i class="bi bi-envelope-fill text-secondary me-2"></i>
-                        <strong>Email:</strong> @Model.Email
-                    </p>
-                    <p class="mb-2">
-                        <i class="bi bi-telephone-fill text-secondary me-2"></i>
-                        <strong>SĐT:</strong> @Model.Phone
-                    </p>
-                </div>
+        .profile-avatar {
+            width: 110px;
+            height: 110px;
+            font-size: 3rem;
+        }
+    </style>
+}
 
-                <div class="col-md-6">
-                    <p class="mb-2">
-                        <i class="bi bi-gender-ambiguous text-secondary me-2"></i>
-                        <strong>Giới tính:</strong> @Model.Gender
-                    </p>
-                    <p class="mb-2">
-                        <i class="bi bi-calendar-heart text-secondary me-2"></i>
-                        <strong>Ngày sinh:</strong> @Model.BirthDate?.ToString("dd/MM/yyyy")
-                    </p>
-                    <p class="mb-2">
-                        <i class="bi bi-calendar-check-fill text-secondary me-2"></i>
-                        <strong>Ngày tạo:</strong> @Model.CreatedAt?.ToString("dd/MM/yyyy")
-                    </p>
-                    <p class="mb-2">
-                        <i class="bi bi-clock-history text-secondary me-2"></i>
-                        <strong>Đăng nhập cuối:</strong> @Model.LastLogin?.ToString("dd/MM/yyyy HH:mm")
-                    </p>
-                </div>
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item"><a asp-action="Index" class="text-decoration-none">Quản lý khách hàng</a></li>
+            <li class="breadcrumb-item active">Hồ sơ khách hàng #@Model.CustomerId</li>
+        </ol>
+    </nav>
+
+    <!-- HEADER -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <h4 class="fw-bold text-dark mb-0 d-flex align-items-center">
+            <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3">
+                <i class="bi bi-person-vcard fs-5"></i>
             </div>
+            Hồ sơ khách hàng <span class="text-primary ms-2">#@Model.CustomerId</span>
+        </h4>
+
+        <div class="d-flex gap-2">
+            <a asp-action="Edit" asp-route-id="@Model.CustomerId" class="btn btn-warning rounded-pill px-4 shadow-sm text-dark fw-medium">
+                <i class="bi bi-pencil-square me-1"></i> Sửa
+            </a>
+            <form asp-action="Delete" method="post" class="m-0" onsubmit="return confirm('Bạn có chắc chắn muốn xóa khách hàng @Model.FullName?');">
+                <input type="hidden" name="id" value="@Model.CustomerId" />
+                <button type="submit" class="btn btn-danger rounded-pill px-4 shadow-sm fw-medium">
+                    <i class="bi bi-trash3 me-1"></i> Xóa
+                </button>
+            </form>
+            <a asp-action="Index" class="btn btn-light border rounded-pill px-4 shadow-sm text-secondary fw-medium">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại
+            </a>
         </div>
     </div>
 
-    <!-- Nút quay lại -->
-    <div class="mt-4">
-        <a asp-action="Index" class="btn btn-outline-primary px-4">
-            <i class="bi bi-arrow-left-circle me-2"></i> Quay lại danh sách
-        </a>
+    <div class="row g-4">
+        <!-- CỘT TRÁI: Avatar & Tóm tắt -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-body p-4 text-center d-flex flex-column justify-content-center align-items-center">
+                    <div class="profile-avatar bg-primary-subtle text-primary rounded-circle d-flex justify-content-center align-items-center mb-4 shadow-sm">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+
+                    <h4 class="fw-bold text-dark mb-1">@Model.FullName</h4>
+                    <p class="text-muted mb-3"><i class="bi bi-envelope me-1"></i> @Model.Email</p>
+
+                    <div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 fw-medium">
+                            <i class="bi bi-check-circle-fill me-1"></i> Khách hàng thành viên
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: Chi tiết thông tin -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-body p-4 p-md-5">
+                    <h6 class="fw-bold text-secondary text-uppercase mb-4" style="letter-spacing: 1px;">
+                        <i class="bi bi-info-circle text-primary me-2"></i> Chi tiết liên hệ & Cá nhân
+                    </h6>
+
+                    <div class="row g-4 mb-5">
+                        <div class="col-md-6">
+                            <div class="d-flex flex-column border-start border-3 border-primary ps-3">
+                                <span class="text-muted small text-uppercase fw-semibold mb-1">Số điện thoại</span>
+                                <span class="fw-bold text-dark fs-6">@Model.Phone</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex flex-column border-start border-3 border-info ps-3">
+                                <span class="text-muted small text-uppercase fw-semibold mb-1">Giới tính</span>
+                                <div>
+                                    @if (Model.Gender?.ToLower() == "nam" || Model.Gender?.ToLower() == "male")
+                                    {
+                                        <span class="badge bg-info-subtle text-info rounded-pill px-3"><i class="bi bi-gender-male me-1"></i> Nam</span>
+                                    }
+                                    else if (Model.Gender?.ToLower() == "nữ" || Model.Gender?.ToLower() == "female")
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-3"><i class="bi bi-gender-female me-1"></i> Nữ</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3">@Model.Gender</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex flex-column border-start border-3 border-warning ps-3">
+                                <span class="text-muted small text-uppercase fw-semibold mb-1">Ngày sinh</span>
+                                <span class="fw-bold text-dark fs-6">@(Model.BirthDate.HasValue ? Model.BirthDate.Value.ToString("dd/MM/yyyy") : "Chưa cập nhật")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-secondary text-uppercase mb-4 mt-2 border-top pt-4" style="letter-spacing: 1px;">
+                        <i class="bi bi-server text-success me-2"></i> Thông tin hệ thống
+                    </h6>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center bg-light p-3 rounded-3 border">
+                                <div class="bg-white rounded text-success d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-calendar-plus fs-5"></i>
+                                </div>
+                                <div>
+                                    <small class="text-muted d-block">Ngày tham gia</small>
+                                    <strong class="text-dark">@(Model.CreatedAt.HasValue ? Model.CreatedAt.Value.ToString("dd/MM/yyyy") : "—")</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center bg-light p-3 rounded-3 border">
+                                <div class="bg-white rounded text-secondary d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-clock-history fs-5"></i>
+                                </div>
+                                <div>
+                                    <small class="text-muted d-block">Đăng nhập lần cuối</small>
+                                    <strong class="text-dark">@(Model.LastLogin.HasValue ? Model.LastLogin.Value.ToString("HH:mm - dd/MM/yyyy") : "Chưa từng đăng nhập")</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>

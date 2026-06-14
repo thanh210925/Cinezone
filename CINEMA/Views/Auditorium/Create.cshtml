@@ -5,70 +5,119 @@
     var theaters = ViewBag.Theaters as List<CINEMA.Models.Theater>;
 }
 
-<div class="container mt-4">
-    <h2 class="fw-bold text-primary mb-4">
-        <i class="bi bi-tv"></i> Thêm phòng chiếu mới
-    </h2>
+@section Styles {
+    <link rel="stylesheet" href="~/css/auditorium-management.css" />
+}
 
-    <form asp-action="Create" method="post" class="card p-4 shadow-sm border-0">
-        <div class="row g-3">
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-10">
 
-            <!-- Cột trái -->
-            <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4">
 
-                <div class="mb-3">
-                    <label class="form-label">Tên phòng</label>
-                    <input asp-for="Name" class="form-control" required />
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4 d-flex align-items-center">
+                    <div class="icon-shape bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                        <i class="bi bi-collection-play fs-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold text-dark mb-0">Thêm phòng chiếu hàng loạt</h4>
+                        <small class="text-muted">Tạo nhanh một mẫu phòng chiếu và áp dụng cho nhiều rạp</small>
+                    </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Số hàng ghế</label>
-                    <input asp-for="SeatRows" type="number" min="1" class="form-control" required />
+                <div class="card-body p-4">
+                    <form asp-action="Create" method="post">
+
+                        <div class="row g-4 mb-4">
+
+                            <div class="col-md-6">
+                                <div class="form-section p-4 h-100 rounded-3 bg-light border border-light-subtle">
+                                    <h6 class="fw-bold mb-4 text-secondary text-uppercase" style="letter-spacing: 0.5px;">
+                                        Thông tin cơ bản
+                                    </h6>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-dark">Tên phòng <span class="text-danger">*</span></label>
+                                        <input asp-for="Name" class="form-control custom-input" placeholder="VD: Cinema 1, Phòng VIP..." required />
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-dark">Áp dụng cho các rạp <span class="text-danger">*</span></label>
+                                        <select name="TheaterIds" class="form-select custom-select" multiple required style="min-height: 120px;">
+                                            @if (theaters != null)
+                                            {
+                                                foreach (var t in theaters)
+                                                {
+                                                    <option value="@t.TheaterId">@t.Name</option>
+                                                }
+                                            }
+                                        </select>
+                                        <div class="form-text small mt-2 text-muted">
+                                            <i class="bi bi-keyboard me-1"></i> Giữ phím <strong>Ctrl</strong> (hoặc <strong>Cmd</strong> trên Mac) để chọn nhiều rạp cùng lúc.
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-dark">Loại màn hình</label>
+                                        <input asp-for="ScreenType" class="form-control custom-input" placeholder="VD: 2D, 3D, IMAX" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-section p-4 h-100 rounded-3 bg-light border border-light-subtle">
+                                    <h6 class="fw-bold mb-4 text-secondary text-uppercase" style="letter-spacing: 0.5px;">
+                                        Sức chứa & Trạng thái
+                                    </h6>
+
+                                    <div class="row">
+                                        <div class="col-sm-6 mb-3">
+                                            <label class="form-label fw-semibold text-dark">Số hàng ghế <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-distribute-vertical"></i></span>
+                                                <input asp-for="SeatRows" type="number" min="1" class="form-control custom-input border-start-0 ps-0" required />
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-6 mb-3">
+                                            <label class="form-label fw-semibold text-dark">Ghế mỗi hàng <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-distribute-horizontal"></i></span>
+                                                <input asp-for="SeatCols" type="number" min="1" class="form-control custom-input border-start-0 ps-0" required />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 mt-2">
+                                        <label class="form-label fw-semibold text-dark">Trạng thái phòng</label>
+                                        <select asp-for="IsActive" class="form-select custom-select">
+                                            <option value="true">🟢 Hoạt động</option>
+                                            <option value="false">⚪ Tạm dừng</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mt-4 p-3 bg-success bg-opacity-10 rounded-3 text-success d-flex align-items-center">
+                                        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                                        <small>Hệ thống sẽ tự động tạo sơ đồ ghế cho <strong>tất cả</strong> các rạp được chọn.</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="d-flex gap-3 pt-3 border-top justify-content-end">
+                            <a asp-action="Index" class="btn btn-light btn-lg px-4 fw-medium text-secondary custom-btn-outline border">
+                                Hủy bỏ
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg px-5 fw-bold text-white custom-btn shadow-sm">
+                                <i class="bi bi-check2-all me-2"></i> Lưu hàng loạt
+                            </button>
+                        </div>
+
+                    </form>
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Loại màn hình</label>
-                    <input asp-for="ScreenType" class="form-control" placeholder="VD: 2D, 3D, IMAX" />
-                </div>
-
-            </div>
-
-            <!-- Cột phải -->
-            <div class="col-md-6">
-
-                <div class="mb-3">
-                    <label class="form-label">Rạp</label>
-                    <select asp-for="TheaterId" class="form-select" required>
-                        <option value="">-- Chọn rạp --</option>
-                        @foreach (var t in theaters)
-                        {
-                            <option value="@t.TheaterId">@t.Name</option>
-                        }
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Số ghế mỗi hàng</label>
-                    <input asp-for="SeatCols" type="number" min="1" class="form-control" required />
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Trạng thái</label>
-                    <select asp-for="IsActive" class="form-select">
-                        <option value="true">Hoạt động</option>
-                        <option value="false">Tạm dừng</option>
-                    </select>
-                </div>
-
             </div>
 
         </div>
-
-        <div class="mt-4 text-end">
-            <button type="submit" class="btn btn-success px-4">
-                <i class="bi bi-plus-circle"></i> Thêm phòng
-            </button>
-            <a asp-action="Index" class="btn btn-secondary">Hủy</a>
-        </div>
-    </form>
+    </div>
 </div>

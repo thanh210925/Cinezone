@@ -1,99 +1,131 @@
 ﻿@model IEnumerable<CINEMA.Models.Popup>
-
 @{
     ViewData["Title"] = "Quản lý Popup";
     Layout = "_AdminLayout";
 }
 
-<div class="container mt-4">
+@section Styles {
+    <link rel="stylesheet" href="~/css/popup-management.css" />
+}
 
-    <h2 class="mb-3">Quản lý Popup</h2>
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item active">Quản lý Popup</li>
+        </ol>
+    </nav>
 
-    <a asp-action="Create" class="btn btn-success mb-3">
-        + Thêm Popup
-    </a>
-       
-    <table class="table table-bordered table-hover align-middle">
+    <!-- Card bọc nội dung -->
+    <div class="card shadow-sm border-0 rounded-4">
+        <!-- Header: Tiêu đề + Nút thêm -->
+        <div class="card-header bg-white border-bottom-0 pt-4 pb-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <h4 class="fw-bold text-primary mb-0 d-flex align-items-center">
+                <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                    <i class="bi bi-megaphone fs-5"></i>
+                </div>
+                Danh sách Popup
+            </h4>
 
-        <thead class="table-dark">
-            <tr>
-                <th>Tiêu đề</th>
-                <th>Ảnh</th>
-                <th>Trạng thái</th>
-                <th width="220">Chức năng</th>
-            </tr>
-        </thead>
+            <a asp-action="Create" class="btn btn-primary rounded-pill px-4 shadow-sm fw-medium">
+                <i class="bi bi-plus-lg me-1"></i> Thêm Popup mới
+            </a>
+        </div>
 
-        <tbody>
-
-            @if (Model == null || !Model.Any())
+        <div class="card-body p-0">
+            @if (Model != null && Model.Any())
             {
-                <tr>
-                    <td colspan="4" class="text-center text-muted">
-                        Chưa có popup nào
-                    </td>
-                </tr>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle custom-table mb-0">
+                        <thead class="table-light text-secondary">
+                            <tr>
+                                <th class="text-center ps-4" width="8%">STT</th>
+                                <th width="20%">Ảnh minh họa</th>
+                                <th width="40%">Tiêu đề</th>
+                                <th class="text-center" width="15%">Trạng thái</th>
+                                <th class="text-center pe-4" width="17%">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int stt = 1;
+                            }
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <!-- Số thứ tự -->
+                                    <td class="text-center ps-4 text-muted fw-medium">@stt</td>
+
+                                    <!-- Hình ảnh -->
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                        {
+                                            <img src="@item.ImageUrl" class="rounded-3 shadow-sm border" style="width: 140px; height: 80px; object-fit: cover;" alt="Popup Image" />
+                                        }
+                                        else
+                                        {
+                                            <div class="bg-light rounded-3 d-flex align-items-center justify-content-center text-muted border" style="width: 140px; height: 80px;">
+                                                <i class="bi bi-image text-secondary opacity-50 fs-4"></i>
+                                            </div>
+                                        }
+                                    </td>
+
+                                    <!-- Tiêu đề -->
+                                    <td class="fw-bold text-dark fs-6">@item.Title</td>
+
+                                    <!-- Trạng thái -->
+                                    <td class="text-center">
+                                        @if (item.IsActive)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
+                                                <i class="bi bi-eye-fill me-1"></i> Hiển thị
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-2">
+                                                <i class="bi bi-eye-slash-fill me-1"></i> Ẩn
+                                            </span>
+                                        }
+                                    </td>
+
+                                    <!-- Thao tác -->
+                                    <td class="text-center pe-4">
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-light btn-sm text-warning action-btn" data-bs-toggle="tooltip" title="Chỉnh sửa">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+                                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-light btn-sm text-danger action-btn" onclick="return confirm('Bạn có chắc chắn muốn xóa popup này không?');" data-bs-toggle="tooltip" title="Xóa">
+                                                <i class="bi bi-trash3"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                stt++;
+                            }
+                        </tbody>
+                    </table>
+                </div>
             }
             else
             {
-                @foreach (var item in Model)
-                {
-                    <tr>
-
-                        <td>
-                            <strong>@item.Title</strong>
-                        </td>
-
-                        <td>
-                            @if (!string.IsNullOrEmpty(item.ImageUrl))
-                            {
-                                <img src="@item.ImageUrl"
-                                     style="width:120px;height:70px;object-fit:cover;border-radius:8px;" />
-                            }
-                            else
-                            {
-                                <span class="text-muted">Không có ảnh</span>
-                            }
-                        </td>
-
-                        <td>
-                            @if (item.IsActive)
-                            {
-                                <span class="badge bg-success">
-                                    Hiển thị
-                                </span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">
-                                    Ẩn
-                                </span>
-                            }
-                        </td>
-
-                        <td>
-
-                            <a asp-action="Edit"
-                                   asp-route-id="@item.Id"
-                                   class="btn btn-primary btn-sm">
-                                Sửa
-                            </a>
-
-                            <a asp-action="Delete"
-                                   asp-route-id="@item.Id"
-                                   class="btn btn-danger btn-sm"
-                                   onclick="return confirm('Bạn có chắc muốn xóa popup này?');">
-                                Xóa
-                            </a>
-
-                        </td>
-
-                    </tr>
-                }
+                <div class="text-center py-5">
+                    <i class="bi bi-megaphone opacity-25" style="font-size: 4rem;"></i>
+                    <h5 class="mt-3 fw-bold text-dark">Chưa có Popup nào!</h5>
+                    <p class="text-muted">Nhấn vào "Thêm Popup mới" để tạo thông báo cho khách hàng.</p>
+                </div>
             }
-
-        </tbody>
-
-    </table>
-
+        </div>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Khởi tạo Tooltip Bootstrap
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    </script>
+}

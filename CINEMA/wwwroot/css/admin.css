@@ -1,64 +1,214 @@
-﻿/* 🎬 CineZone Admin Custom Style */
-
-/* Navbar gradient */
-.navbar {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+﻿* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-/* Logo Badge */
-.navbar-brand span.badge {
-    font-size: 1rem;
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-}
-
-/* Menu links */
-.nav-link {
-    color: rgba(255, 255, 255, 0.85) !important;
-    transition: all 0.25s ease;
-}
-
-    .nav-link:hover,
-    .nav-link.active {
-        background-color: rgba(255, 255, 255, 0.15);
-        border-radius: 8px;
-        color: #fff !important;
-    }
-
-/* Admin badge */
-.admin-badge {
-    background: linear-gradient(135deg, #475569 0%, #334155 100%);
-    color: #fff;
-    font-weight: 500;
-}
-
-/* Body background */
 body {
-    background-color: #f1f5f9;
+    background: #f5f7fb;
+    font-family: 'Segoe UI', sans-serif;
 }
 
-/* Shadow */
-.shadow-soft {
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+.admin-wrapper {
+    display: flex;
+    min-height: 100vh;
+    overflow-x: hidden; /* Ngăn scroll ngang khi sidebar trượt ra */
 }
 
-/* Footer */
-footer {
-    background: #f8fafc;
-    font-size: 0.9rem;
+/* ================= SIDEBAR ================= */
+.sidebar {
+    width: 280px;
+    background: #111827;
+    color: white;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    overflow-y: auto;
+    z-index: 1050;
+    transition: all 0.3s ease;
 }
 
-/* Responsive tweaks */
-@media (max-width: 768px) {
-    .navbar-brand {
-        font-size: 1.25rem;
+.logo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    font-size: 24px;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.toggle-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.admin-info {
+    text-align: center;
+    padding: 25px 15px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.avatar {
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    background: #374151;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    font-size: 35px;
+    margin-bottom: 10px;
+}
+
+.admin-name {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.admin-role {
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 15px 10px;
+}
+
+    .sidebar-menu li {
+        margin-bottom: 5px;
     }
 
-    .nav-link {
-        padding: 0.5rem 1rem;
+    .sidebar-menu a {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: #d1d5db;
+        padding: 12px 15px;
+        border-radius: 10px;
+        transition: .3s;
+        font-size: 15px;
+        font-weight: 500;
     }
 
-    .admin-badge {
-        font-size: 0.85rem;
-        padding: 0.4rem 0.8rem;
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background: #10b981;
+            color: white;
+        }
+
+        .sidebar-menu a.active {
+            font-weight: 600;
+        }
+
+/* SCROLLBAR DÀNH CHO SIDEBAR */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 10px;
+}
+
+/* ================= TRẠNG THÁI THU NHỎ (DESKTOP) ================= */
+.sidebar.collapsed {
+    width: 80px;
+}
+
+    .sidebar.collapsed .logo-text,
+    .sidebar.collapsed .admin-info,
+    .sidebar.collapsed .sidebar-menu span {
+        display: none;
+    }
+
+    .sidebar.collapsed .sidebar-menu a {
+        justify-content: center;
+    }
+
+        .sidebar.collapsed .sidebar-menu a i {
+            margin: 0;
+            font-size: 22px;
+        }
+
+/* ================= MAIN CONTENT ================= */
+.main-content {
+    flex: 1;
+    margin-left: 280px;
+    padding: 25px;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+    .main-content.expanded {
+        margin-left: 80px;
+    }
+
+.content-box {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    min-height: calc(100vh - 100px);
+    box-shadow: 0 3px 15px rgba(0,0,0,.08);
+}
+
+.footer {
+    margin-top: 20px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* ================= RESPONSIVE ĐIỆN THOẠI & TABLET ================= */
+@media (max-width: 992px) {
+    /* Mặc định ẩn sidebar sang trái */
+    .sidebar {
+        transform: translateX(-100%);
+        width: 280px !important;
+    }
+
+        /* Khi được toggle (Mở sidebar trên mobile) */
+        .sidebar.show-mobile {
+            transform: translateX(0);
+            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+        }
+
+            /* Khôi phục hiển thị chữ nếu sidebar đang bị class "collapsed" của desktop dính vào */
+            .sidebar.show-mobile .logo-text,
+            .sidebar.show-mobile .admin-info,
+            .sidebar.show-mobile .sidebar-menu span {
+                display: block;
+            }
+
+            .sidebar.show-mobile .sidebar-menu a {
+                justify-content: flex-start;
+            }
+
+    /* Mở rộng Main Content 100% */
+    .main-content, .main-content.expanded {
+        margin-left: 0;
+        padding: 15px; /* Giảm padding cho mobile bớt chật */
     }
 }
+
+/* Nền tối khi mở Sidebar trên mobile */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1040;
+}
+
+    .sidebar-overlay.show {
+        display: block;
+    }

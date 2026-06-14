@@ -1,0 +1,44 @@
+﻿/* Tùy chỉnh bảng */
+.custom-table th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.custom-table td {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+/* Nút thao tác dùng chung */
+.action-btn {
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    background-color: #f8f9fa;
+    border: 1px solid transparent;
+}
+
+    .action-btn:hover {
+        transform: scale(1.1);
+        background-color: #ffffff;
+        border-color: #dee2e6;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+/* Hiệu ứng copy mã code (Nếu muốn thêm UX xịn xò) */
+.badge.bg-primary {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+    .badge.bg-primary:hover {
+        transform: scale(1.05);
+    }

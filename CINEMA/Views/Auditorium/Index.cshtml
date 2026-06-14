@@ -2,56 +2,68 @@
 @{
     ViewData["Title"] = "Danh sách phòng chiếu";
     Layout = "_AdminLayout";
+    // Lấy danh sách rạp từ ViewBag (nhớ truyền từ Controller nhé)
+    var theaters = ViewBag.Theaters as List<CINEMA.Models.Theater> ?? new List<CINEMA.Models.Theater>();
 }
 
-<div class="container mt-4">
-    <h2 class="fw-bold mb-4 text-primary"><i class="bi bi-tv"></i> Danh sách phòng chiếu</h2>
+@section Styles {
+    <link rel="stylesheet" href="~/css/auditorium-management.css" />
+    <style>
+        /* Tùy chỉnh màu Gradient cho tab active như yêu cầu */
+        .nav-pills .nav-link {
+            color: #495057;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
 
-    <a asp-action="Create" class="btn btn-success mb-3">
-        <i class="bi bi-plus-circle"></i> Thêm phòng chiếu
-    </a>
-
-    <table class="table table-bordered table-hover align-middle">
-        <thead class="table-light text-center">
-            <tr>
-                <th>Tên phòng</th>
-                <th>Rạp</th>
-                <th>Số hàng ghế</th>
-                <th>Số ghế mỗi hàng</th>
-                <th>Loại màn hình</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var a in Model)
-            {
-                <tr class="text-center">
-                    <td>@a.Name</td>
-                    <td>@a.Theater?.Name</td>
-                    <td>@a.SeatRows</td>
-                    <td>@a.SeatCols</td>
-                    <td>@a.ScreenType</td>
-                    <td>
-                        @if (a.IsActive == true)
-                        {
-                            <span class="badge bg-success">Hoạt động</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-secondary">Tạm dừng</span>
-                        }
-                    </td>
-                    <td>
-                        <a asp-action="Edit" asp-route-id="@a.AuditoriumId" class="btn btn-sm btn-outline-warning">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                        <a asp-action="Delete" asp-route-id="@a.AuditoriumId" class="btn btn-sm btn-outline-danger">
-                            <i class="bi bi-trash"></i>
-                        </a>
-                    </td>
-                </tr>
+            .nav-pills .nav-link.active {
+                background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
+                color: white;
+                border: none;
+                box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
             }
-        </tbody>
-    </table>
+    </style>
+}
+
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item active">Quản lý phòng chiếu</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-white pt-4 px-4 border-0 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <ul class="nav nav-pills flex-nowrap overflow-auto" id="theaterTabs" role="tablist" style="scrollbar-width: none;">
+                <li class="nav-item">
+                    <button class="nav-link active rounded-pill px-4 me-2" data-bs-toggle="pill" data-bs-target="#all-content" type="button">Tất cả</button>
+                </li>
+                @foreach (var t in theaters)
+                {
+                    <li class="nav-item">
+                        <button class="nav-link rounded-pill px-4 me-2" data-bs-toggle="pill" data-bs-target="#content-@t.TheaterId" type="button">@t.Name</button>
+                    </li>
+                }
+            </ul>
+            <a class="btn btn-primary rounded-pill px-4 fw-medium" asp-action="Create">
+                <i class="bi bi-plus-lg me-1"></i> Thêm phòng chiếu
+            </a>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="tab-content" id="theaterTabsContent">
+                <div class="tab-pane fade show active" id="all-content">
+                    @await Html.PartialAsync("_AuditoriumTable", Model)
+                </div>
+                @foreach (var t in theaters)
+                {
+                    <div class="tab-pane fade" id="content-@t.TheaterId">
+                        @await Html.PartialAsync("_AuditoriumTable", Model.Where(a => a.TheaterId == t.TheaterId).ToList())
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
 </div>

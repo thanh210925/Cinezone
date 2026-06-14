@@ -3,51 +3,90 @@
     ViewData["Title"] = "Quản lý đơn hàng";
     Layout = "_AdminLayout";
 
-    var pending = Model.Where(o => o.Status == "Đang chờ thanh toán");
-    var paid = Model.Where(o => o.Status == "Đã thanh toán");
-    var failed = Model.Where(o => o.Status == "Thanh toán thất bại" || o.Status == "Đã hủy");
+    // Ép kiểu về List để tối ưu hiệu suất, tránh query lại nhiều lần
+    var pending = Model.Where(o => o.Status == "Đang chờ thanh toán").ToList();
+    var paid = Model.Where(o => o.Status == "Đã thanh toán").ToList();
+    var failed = Model.Where(o => o.Status == "Thanh toán thất bại" || o.Status == "Đã hủy").ToList();
 }
 
-<div class="container mt-4">
-    <h2 class="fw-bold text-center mb-4 text-gradient">📦 Quản lý đơn hàng</h2>
+@section Styles {
+    <link rel="stylesheet" href="~/css/order-management.css" />
+}
 
-    <!-- ========== KHUNG 1: ĐÃ THANH TOÁN ========== -->
-    
-    <div class="card shadow mb-5">
-        <div class="card-header bg-success text-white fw-bold">
-            ✔️ Đơn đã thanh toán
-        </div>
-        <div class="card-body p-0">
-            @await Html.PartialAsync("_OrderTable", paid)
-        </div>
-    </div>
-    <!-- ========== KHUNG 2: ĐANG CHỜ ========== -->
-    <div class="card shadow mb-5">
-        <div class="card-header bg-warning text-dark fw-bold">
-            ⏳ Đơn đang chờ thanh toán
-        </div>
-        <div class="card-body p-0">
-            @await Html.PartialAsync("_OrderTable", pending)
+<div class="container-fluid py-4">
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-primary mb-0 d-flex align-items-center">
+                <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                    <i class="bi bi-box-seam fs-5"></i>
+                </div>
+                Quản lý đơn hàng
+            </h4>
+            <small class="text-muted ms-5 ps-2">Theo dõi và xử lý giao dịch mua vé</small>
         </div>
     </div>
 
-    
-
-    <!-- ========== KHUNG 3: THẤT BẠI / HỦY ========== -->
-    <div class="card shadow mb-5">
-        <div class="card-header bg-danger text-white fw-bold">
-            ❌ Đơn thất bại hoặc đã hủy
+    <!-- STATS CARDS -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="text-success fw-bold fs-4">@paid.Count()</div>
+                <small class="text-muted text-uppercase fw-bold" style="letter-spacing: 1px;">Đã thanh toán</small>
+            </div>
         </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="text-warning fw-bold fs-4">@pending.Count()</div>
+                <small class="text-muted text-uppercase fw-bold" style="letter-spacing: 1px;">Đang chờ</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="text-danger fw-bold fs-4">@failed.Count()</div>
+                <small class="text-muted text-uppercase fw-bold" style="letter-spacing: 1px;">Thất bại / Hủy</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABS KHU VỰC BẢNG -->
+    <div class="card shadow-sm border-0 rounded-4">
+        <!-- Căn giữa Tabs bằng d-flex justify-content-center -->
+        <div class="card-header bg-white pt-4 px-4 border-0 d-flex justify-content-center">
+            <ul class="nav nav-pills gap-3" id="orderTabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active rounded-pill px-4 fw-medium" data-bs-toggle="pill" data-bs-target="#paid-content" type="button">
+                        <i class="bi bi-check-circle me-1"></i> Đã thanh toán
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link rounded-pill px-4 fw-medium" data-bs-toggle="pill" data-bs-target="#pending-content" type="button">
+                        <i class="bi bi-hourglass-split me-1"></i> Đang chờ
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link rounded-pill px-4 fw-medium" data-bs-toggle="pill" data-bs-target="#failed-content" type="button">
+                        <i class="bi bi-x-circle me-1"></i> Thất bại / Đã hủy
+                    </button>
+                </li>
+            </ul>
+        </div>
+
         <div class="card-body p-0">
-            @await Html.PartialAsync("_OrderTable", failed)
+            <div class="tab-content" id="orderTabsContent">
+                <!-- Nội dung: Đã thanh toán -->
+                <div class="tab-pane fade show active" id="paid-content">
+                    @await Html.PartialAsync("_OrderTable", paid)
+                </div>
+                <!-- Nội dung: Đang chờ -->
+                <div class="tab-pane fade" id="pending-content">
+                    @await Html.PartialAsync("_OrderTable", pending)
+                </div>
+                <!-- Nội dung: Thất bại / Hủy -->
+                <div class="tab-pane fade" id="failed-content">
+                    @await Html.PartialAsync("_OrderTable", failed)
+                </div>
+            </div>
         </div>
     </div>
 </div>
-
-<style>
-    .text-gradient {
-        background: linear-gradient(90deg, #007bff, #6610f2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-</style>

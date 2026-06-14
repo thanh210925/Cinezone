@@ -1,0 +1,85 @@
+﻿body {
+}
+/* Màu cho Tab Active */
+.nav-pills .nav-link.active {
+    background: linear-gradient(90deg, #0d6efd 0%, #0099ff 100%);
+    color: white;
+    box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);
+}
+
+.custom-table th {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding: 1rem;
+}
+
+.custom-table td {
+    padding: 1rem;
+}
+
+.btn-light {
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+}
+/* --- Tùy chỉnh bảng thêm nhiều --- */
+.custom-table th {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding-top: 1.2rem;
+    padding-bottom: 1.2rem;
+    letter-spacing: 0.5px;
+}
+
+.custom-table td {
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+    vertical-align: middle;
+}
+
+/* --- Icon Shape (Biểu tượng tròn trên header) --- */
+.icon-shape {
+    width: 45px;
+    height: 45px;
+}
+
+/* --- Nút thao tác (Xóa dòng) --- */
+.action-btn {
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    background-color: #f8f9fa;
+    border: 1px solid transparent;
+}
+
+    /* Hiệu ứng Hover cho nút Xóa (chỉ áp dụng cho nút không bị khóa) */
+    .action-btn:not([disabled]):hover {
+        transform: translateY(-2px);
+        background-color: #ffffff;
+        border-color: #dee2e6;
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
+    }
+
+    /* Giao diện nút bị khóa (dòng đầu tiên không được xóa) */
+    .action-btn[disabled] {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+/* --- Tùy chỉnh Input --- */
+.form-control, .form-select {
+    font-size: 0.9rem;
+}
+
+/* Làm tối ô Giờ kết thúc để báo hiệu đây là ô được tính tự động */
+.end-time-input[readonly] {
+    background-color: #f8f9fa !important;
+    color: #6c757d;
+    cursor: not-allowed;
+    border-color: #e9ecef;
+}
