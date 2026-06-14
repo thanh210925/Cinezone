@@ -59,6 +59,7 @@ namespace CINEMA.Controllers
             var admin = _context.Admins.FirstOrDefault(a => a.Email == email && a.PasswordHash == password);
             if (admin != null)
             {
+                HttpContext.Session.SetString("AdminId", admin.AdminId.ToString());
                 HttpContext.Session.SetString("Role", "Admin");
                 HttpContext.Session.SetString("Name", admin.FullName);
 
@@ -97,6 +98,48 @@ namespace CINEMA.Controllers
 
             return View();
         }
+        public IActionResult StaffList()
+        {
+            if (HttpContext.Session.GetString("Role") != "Admin") return RedirectToAction("Login");
+            return View(_context.Admins.ToList());
+        }
+
+        public IActionResult CreateStaff() => View();
+
+        [HttpPost]
+        public IActionResult CreateStaff(Admin admin)
+        {
+            admin.CreatedAt = DateTime.Now;
+            _context.Admins.Add(admin);
+            _context.SaveChanges();
+            return RedirectToAction(nameof(StaffList));
+        }
+
+        public IActionResult EditStaff(int id)
+        {
+            var admin = _context.Admins.Find(id);
+            return admin == null ? NotFound() : View(admin);
+        }
+
+        [HttpPost]
+        public IActionResult EditStaff(Admin admin)
+        {
+            _context.Admins.Update(admin);
+            _context.SaveChanges();
+            return RedirectToAction(nameof(StaffList));
+        }
+
+        [HttpPost]
+        public IActionResult DeleteStaff(int id)
+        {
+            var admin = _context.Admins.Find(id);
+            if (admin != null)
+            {
+                _context.Admins.Remove(admin);
+                _context.SaveChanges();
+            }
+            return RedirectToAction(nameof(StaffList));
+        }
         public IActionResult Logout()
         {
             HttpContext.Session.Clear();
@@ -104,3 +147,4 @@ namespace CINEMA.Controllers
         }
     }
 }
+

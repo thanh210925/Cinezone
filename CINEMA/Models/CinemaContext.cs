@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.AspNetCore.Http; // Thêm thư viện này
+using System.Linq;
 namespace CINEMA.Models;
 
 public partial class CinemaContext : DbContext
 {
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
     public CinemaContext()
     {
     }
@@ -14,7 +17,7 @@ public partial class CinemaContext : DbContext
         : base(options)
     {
     }
-
+    public virtual DbSet<ActivityLog> ActivityLogs { get; set; }
     public virtual DbSet<Admin> Admins { get; set; }
 
     public virtual DbSet<Auditorium> Auditoriums { get; set; }
@@ -44,9 +47,38 @@ public partial class CinemaContext : DbContext
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
     //        => optionsBuilder.UseSqlServer("Server=DESKTOP-11TEUJ3\\BANGTHANH;Database=CINEMA;User Id=BANGTHANH;Password=12345678;TrustServerCertificate=True;");
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted);
 
+        var adminIdStr = _httpContextAccessor?.HttpContext?.Session.GetString("AdminId");
+        int adminId = int.TryParse(adminIdStr, out int id) ? id : 0;
+
+        foreach (var entry in entries)
+        {
+            if (entry.Entity is ActivityLog) continue;
+
+            var log = new ActivityLog
+            {
+                AdminId = adminId,
+                Action = entry.State.ToString().ToUpper(),
+                Entity = entry.Entity.GetType().Name,
+                EntityId = (int)entry.Metadata.FindPrimaryKey().Properties[0].PropertyInfo.GetValue(entry.Entity),
+                LogDate = System.DateTime.Now
+            };
+            this.ActivityLogs.Add(log);
+        }
+        return await base.SaveChangesAsync(cancellationToken);
+    }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<ActivityLog>(entity =>
+        {
+            entity.HasOne(d => d.Admin)
+                  .WithMany()
+                  .HasForeignKey(d => d.AdminId);
+        });
         modelBuilder.Entity<Admin>(entity =>
         {
             entity.HasKey(e => e.AdminId).HasName("PK__Admins__719FE4888C53A24F");

@@ -1,17 +1,19 @@
 ﻿using CINEMA.Controllers;
+using CINEMA.Helpers; // Dòng này là bắt buộc để gọi được LogHelper
 using CINEMA.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
+using OfficeOpenXml;
 namespace CINEMA.Controllers
 {
     public class MovieController : AdminBaseController
     {
         private readonly CinemaContext _context;
-
-        public MovieController(CinemaContext context)
+        private readonly IHttpContextAccessor _httpContextAccessor; // Thêm biến này
+        public MovieController(CinemaContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         // ==================== DANH SÁCH PHIM ====================
@@ -37,44 +39,86 @@ namespace CINEMA.Controllers
         [HttpGet]
         public IActionResult Create()
         {
+
             return View();
         }
 
         // ==================== THÊM PHIM (POST) ====================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(Movie movie, IFormFile? PosterImage)
+        public IActionResult CreateMultiple(MovieListViewModel model)
         {
-            if (!ModelState.IsValid)
-                return View(movie);
+            // Lọc những dòng có nhập Tên phim
+            var validMovies = model.Movies.Where(m => !string.IsNullOrWhiteSpace(m.Title)).ToList();
 
-            // Upload ảnh
-            if (PosterImage != null && PosterImage.Length > 0)
+            if (!validMovies.Any())
             {
-                var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "movies");
-                if (!Directory.Exists(folder))
-                    Directory.CreateDirectory(folder);
-
-                var fileName = Path.GetFileName(PosterImage.FileName);
-                var filePath = Path.Combine(folder, fileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    PosterImage.CopyTo(stream);
-                }
-
-                movie.PosterUrl = "/images/movies/" + fileName;
+                TempData["ErrorMessage"] = "Vui lòng nhập ít nhất một bộ phim!";
+                return RedirectToAction("Index");
             }
 
-            movie.IsActive = true; // Luôn active khi thêm mới
+            foreach (var movie in validMovies)
+            {
+                movie.IsActive = true;
+                movie.CreatedAt = DateTime.Now;
+                _context.Movies.Add(movie);
+            }
 
-            _context.Movies.Add(movie);
             _context.SaveChanges();
 
-            TempData["SuccessMessage"] = "🎉 Thêm phim thành công!";
+            // Ghi log chung
+            LogHelper.Write(_context, _httpContextAccessor, "ADDED_MULTIPLE", "Movie", validMovies.Count);
+
+            TempData["SuccessMessage"] = $"🎉 Đã thêm {validMovies.Count} phim thành công!";
+            return RedirectToAction("Index");
+        }
+        [HttpPost]
+        public async Task<IActionResult> ImportExcel(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                TempData["ErrorMessage"] = "Vui lòng chọn file Excel!";
+                return RedirectToAction(nameof(Create));
+            }
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            using var package = new ExcelPackage(stream);
+            var sheet = package.Workbook.Worksheets[0];
+            int rowCount = sheet.Dimension.Rows;
+            int importedCount = 0; // Đếm số phim thực tế đã thêm
+
+            for (int row = 2; row <= rowCount; row++)
+            {
+                var movie = new Movie
+                {
+                    Title = sheet.Cells[row, 1].Text,
+                    // Thêm check để tránh lỗi khi dữ liệu trống
+                    Duration = int.TryParse(sheet.Cells[row, 2].Text, out int dur) ? dur : 0,
+                    Country = sheet.Cells[row, 3].Text,
+                    Language = sheet.Cells[row, 4].Text,
+                    AgeRating = sheet.Cells[row, 5].Text,
+                    Description = sheet.Cells[row, 6].Text,
+                    PosterUrl = sheet.Cells[row, 7].Text,
+                    TrailerUrl = sheet.Cells[row, 8].Text,
+                    IsActive = true,
+                    CreatedAt = DateTime.Now
+                };
+
+                _context.Movies.Add(movie);
+                importedCount++;
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Đã sửa lỗi: dùng importedCount thay cho validMovies (vốn không tồn tại ở hàm này)
+            LogHelper.Write(_context, _httpContextAccessor, "ADDED_MULTIPLE", "Movie", importedCount);
+
+            TempData["SuccessMessage"] = $"✅ Đã import thành công {importedCount} bộ phim!";
             return RedirectToAction(nameof(Index));
         }
-
         // ==================== SỬA PHIM (GET) ====================
         [HttpGet]
         public IActionResult Edit(int id)
@@ -123,7 +167,10 @@ namespace CINEMA.Controllers
             }
 
             _context.SaveChanges();
+            _context.SaveChanges();
 
+            // Ghi log sau khi cập nhật thành công
+            LogHelper.Write(_context, _httpContextAccessor, "MODIFIED", "Movie", movie.MovieId);
             TempData["SuccessMessage"] = "✏️ Cập nhật phim thành công!";
             return RedirectToAction(nameof(Index));
         }
@@ -164,7 +211,7 @@ namespace CINEMA.Controllers
 
             _context.Movies.Remove(movie);
             _context.SaveChanges();
-
+            LogHelper.Write(_context, _httpContextAccessor, "DELETED", "Movie", id);
             TempData["SuccessMessage"] = $"🗑️ Đã xóa phim \"{movie.Title}\" cùng toàn bộ suất chiếu!";
             return RedirectToAction(nameof(Index));
         }

@@ -1,0 +1,46 @@
+﻿@model CINEMA.Models.Admin
+@{
+    ViewData["Title"] = "Sửa thông tin nhân viên";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-4 p-4">
+                <h4 class="fw-bold mb-4">Sửa thông tin nhân viên</h4>
+
+                <form asp-action="EditStaff" method="post">
+                    <input type="hidden" asp-for="AdminId" />
+
+                    <input type="hidden" asp-for="CreatedAt" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Họ tên</label>
+                        <input asp-for="FullName" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input asp-for="Email" type="email" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu mới (để trống nếu không đổi)</label>
+                        <input asp-for="PasswordHash" type="password" class="form-control" placeholder="Nhập mật khẩu mới" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Số điện thoại</label>
+                        <input asp-for="Phone" class="form-control" />
+                    </div>
+
+                    <div class="mt-4 text-end">
+                        <a asp-action="StaffList" class="btn btn-secondary rounded-pill px-4">Hủy</a>
+                        <button type="submit" class="btn btn-warning rounded-pill px-4 text-white">Cập nhật</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

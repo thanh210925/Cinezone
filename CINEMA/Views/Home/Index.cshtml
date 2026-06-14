@@ -505,6 +505,31 @@
             const mapUrl = "https://maps.google.com/maps?q=" + encodeURIComponent(address) + "&output=embed";
             document.getElementById("theaterMap").src = mapUrl;
         }
-    </script>
+        function scrollToMapAndChange(address) {
+            // 1. Cuộn tới phần bản đồ
+            const mapSection = document.querySelector('.map-container');
+            if (mapSection) {
+                mapSection.scrollIntoView({ behavior: 'smooth' });
+            }
 
+            // 2. Tìm tất cả các card rạp
+            const allCards = document.querySelectorAll('.theater-card');
+
+            allCards.forEach(card => {
+                // Lấy địa chỉ từ thẻ p bên trong card đó (đảm bảo class khớp với HTML của bạn)
+                const cardAddress = card.querySelector('.theater-info p').innerText.trim();
+
+                // Xóa highlight cũ
+                card.classList.remove('active-card');
+
+                // Nếu địa chỉ trùng thì thêm class active-card vào
+                if (cardAddress === address) {
+                    card.classList.add('active-card');
+
+                    // Gọi hàm changeMap để đổi bản đồ
+                    changeMap(address, card);
+                }
+            });
+        }
+    </script>
 }

@@ -24,6 +24,8 @@ namespace CINEMA
             builder.Services.AddScoped<IVnpayService, VnpayService>();
             builder.Services.AddScoped<StatisticsController>();
             builder.Services.AddHttpClient<CINEMA.Services.GeminiService>();
+            // Trong file Program.cs
+            builder.Services.AddHttpContextAccessor(); // Thêm dòng này để lấy Session
             // 🟢 AUTH (PHẢI đặt trước Build)
             builder.Services.AddAuthentication(options =>
             {

@@ -1,0 +1,12 @@
+﻿@model IEnumerable<CINEMA.Models.Theater>
+
+@foreach (var theater in Model)
+{
+    <li>
+        <a href="javascript:void(0)"
+           onclick="scrollToMapAndChange('@theater.Address')"
+           class="text-decoration-none">
+            @theater.Name
+        </a>
+    </li>
+}

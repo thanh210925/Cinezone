@@ -14,6 +14,7 @@ public partial class Admin
     public string PasswordHash { get; set; } = null!;
 
     public string? Phone { get; set; }
+    public bool IsActive { get; set; } = true; // Để khóa tài khoản nhân viên khi cần
 
     public DateTime? CreatedAt { get; set; }
 

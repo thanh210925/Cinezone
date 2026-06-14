@@ -40,6 +40,16 @@
                     </a>
                 </li>
                 <li>
+                    <a asp-controller="Admin" asp-action="StaffList" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "StaffList" ? "active" : "")">
+                        <i class="bi bi-building"></i><span>Quản lý Nhân viên</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Log" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Log" ? "active" : "")">
+                        <i class="bi bi-building"></i><span>Quản lý Nhật ký</span>
+                    </a>
+                </li>
+                <li>
                     <a asp-controller="Theater" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Theater" ? "active" : "")">
                         <i class="bi bi-building"></i><span>Quản lý Rạp</span>
                     </a>

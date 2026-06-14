@@ -95,45 +95,77 @@
 
     <footer class="footer-cinezone text-white pt-5 pb-4 mt-auto">
         <div class="container">
-            <div class="row gy-4 text-center text-lg-start">
-                <div class="col-12 col-md-6 col-lg-3">
-                    <img src="/images/unnamed.jpg" class="footer-logo mb-3" />
-                    <p class="small mb-3">Điểm hẹn điện ảnh</p>
-                    <a asp-controller="Home" asp-action="Schedule" class="btn btn-warning fw-bold px-4 rounded-pill">
-                        🎟 ĐẶT VÉ
+            <div class="row gy-4">
+
+                <div class="col-lg-3 col-md-6 text-center text-md-start pe-lg-4">
+                    <a asp-controller="Home" asp-action="Index" class="d-inline-block mb-3">
+                        <img src="/images/unnamed.jpg" class="rounded-circle shadow-sm" style="width: 80px; height: 80px; object-fit: cover;" alt="CineZone Logo" />
                     </a>
+                    <p class="small mb-3 fw-bold text-uppercase letter-spacing-1">Điểm hẹn điện ảnh</p>
+
+                    <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-start mb-4">
+                        <a asp-controller="Home" asp-action="Schedule" class="btn btn-warning fw-bold px-4 rounded-0 text-dark" style="letter-spacing: 1px;">ĐẶT VÉ</a>
+                    </div>
+
+                    <div class="social-icons d-flex gap-2 justify-content-center justify-content-md-start">
+                        <a href="#"><i class="bi bi-facebook"></i></a>
+                        <a href="#"><i class="bi bi-youtube"></i></a>
+                        <a href="#"><i class="bi bi-tiktok"></i></a>
+                    </div>
                 </div>
 
-                <div class="col-6 col-md-3 col-lg-2">
-                    <h6 class="footer-title">Tài khoản</h6>
-                    <a asp-controller="Customer" asp-action="Login" class="footer-link">Đăng nhập</a>
-                    <a asp-controller="Customer" asp-action="Register" class="footer-link">Đăng ký</a>
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h6 class="footer-title text-uppercase fw-bold mb-4">Tài khoản</h6>
+                    <ul class="list-unstyled footer-links mb-4">
+                        <li><a asp-controller="Customer" asp-action="Login">Đăng nhập</a></li>
+                        <li><a asp-controller="Customer" asp-action="Register">Đăng ký</a></li>
+                        <li><a href="#" data-bs-toggle="modal" data-bs-target="#modalMembershipSummary">Membership</a></li>
+                    </ul>
+
+                    <h6 class="footer-title text-uppercase fw-bold mb-4">Xem phim</h6>
+                    <ul class="list-unstyled footer-links">
+                        <li><a asp-controller="Home" asp-action="Index">Phim đang chiếu</a></li>
+                        <li><a asp-controller="Home" asp-action="Index">Phim sắp chiếu</a></li>
+                    </ul>
                 </div>
 
-                <div class="col-6 col-md-3 col-lg-2">
-                    <h6 class="footer-title">Xem phim</h6>
-                    <a asp-controller="Home" asp-action="Index" class="footer-link">Phim đang chiếu</a>
-                    <a asp-controller="Home" asp-action="Index" class="footer-link">Phim sắp chiếu</a>
+                <div class="col-lg-3 col-md-6 col-6">
+                    <h6 class="footer-title text-uppercase fw-bold mb-4">CineZone</h6>
+                    <ul class="list-unstyled footer-links mb-4">
+                        <li><a href="#">Giới thiệu</a></li>
+                        <li><a href="#">Liên hệ</a></li>
+                        <li><a href="#">Tuyển dụng</a></li>
+                    </ul>
+
+                    <h6 class="footer-title text-uppercase fw-bold mb-4">Dịch vụ</h6>
+                    <ul class="list-unstyled footer-links">
+                        <li><a href="#">Thuê rạp</a></li>
+                        <li><a href="#">Tổ chức sự kiện</a></li>
+                    </ul>
                 </div>
 
-                <div class="col-6 col-md-6 col-lg-2">
-                    <h6 class="footer-title">Dịch vụ</h6>
-                    <a href="#" class="footer-link">Thuê rạp</a>
-                </div>
-
-                <div class="col-6 col-md-6 col-lg-3">
-                    <h6 class="footer-title">Hệ thống rạp</h6>
-                    <a href="#" class="footer-link">CineZone Quận 1</a>
+                <div class="col-lg-4 col-md-6">
+                    <h6 class="footer-title text-uppercase fw-bold mb-4">Hệ thống rạp</h6>
+                    <ul class="list-unstyled footer-links" style="column-count: 2; column-gap: 20px;">
+                        @await Component.InvokeAsync("TheaterList")
+                    </ul>
                 </div>
             </div>
 
             <hr class="border-light opacity-25 my-4">
 
-            <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between align-items-center">
-                <div class="mb-2 mb-md-0">© 2026 <strong>CineZone</strong></div>
-                <div class="d-flex gap-3">
-                    <a asp-controller="Home" asp-action="Privacy" class="footer-link mb-0">Chính sách bảo mật</a>
-                    <a href="#" class="footer-link mb-0">Hỏi & Đáp</a>
+            <div class="footer-bottom d-flex flex-column flex-lg-row justify-content-between align-items-center text-center text-lg-start">
+                <div class="mb-3 mb-lg-0 small text-light opacity-75">
+                    © 2026 <strong>CineZone</strong>. All rights reserved.
+                </div>
+
+                <div class="d-flex flex-wrap gap-4 small justify-content-center">
+                    <a asp-controller="Home" asp-action="Privacy" class="footer-link-bottom">Chính sách bảo mật</a>
+                    <a href="#" class="footer-link-bottom">Tin điện ảnh</a>
+
+                    <a href="javascript:void(0)" onclick="toggleChat()" class="footer-link-bottom fw-bold text-warning">
+                        <i class="bi bi-chat-dots me-1"></i> Hỏi và đáp
+                    </a>
                 </div>
             </div>
         </div>
