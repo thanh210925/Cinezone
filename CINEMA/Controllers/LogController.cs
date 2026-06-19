@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace CINEMA.Controllers
 {
-    public class LogController : Controller
+    public class LogController : AdminBaseController
     {
         private readonly CinemaContext _context;
 
@@ -25,7 +25,13 @@ namespace CINEMA.Controllers
             {
                 return RedirectToAction("Login", "Admin");
             }
-
+            var role = HttpContext.Session.GetString("Role");
+            if (role != "SuperAdmin")
+            {
+                // Nếu là Staff, chuyển hướng về Dashboard và thông báo lỗi
+                TempData["Error"] = "Bạn không có quyền truy cập nhật ký hệ thống!";
+                return RedirectToAction("Dashboard", "Admin");
+            }
             // 2. Cấu hình phân trang
             int pageSize = 20; // Số dòng trên mỗi trang
             var query = _context.ActivityLogs.Include(l => l.Admin).OrderByDescending(l => l.LogDate);

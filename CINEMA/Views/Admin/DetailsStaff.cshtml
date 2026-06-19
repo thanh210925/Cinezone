@@ -1,0 +1,94 @@
+﻿@model CINEMA.Models.Admin
+
+@{
+    ViewData["Title"] = "Chi tiết nhân viên";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="mb-4">
+        <h4 class="fw-bold text-primary">Thông tin chi tiết nhân viên</h4>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-action="Dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-action="StaffList">Nhân viên</a></li>
+                <li class="breadcrumb-item active">Chi tiết</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-4">Thông tin tài khoản</h5>
+                    <div class="mb-3">
+                        <label class="text-muted small">Họ và tên</label>
+                        <p class="fs-6 fw-bold">@Model.FullName</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Email</label>
+                        <p class="fs-6">@Model.Email</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Số điện thoại</label>
+                        <p class="fs-6">@Model.Phone</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Vai trò</label>
+                        <div>
+                            @if (Model.Role == "SuperAdmin")
+                            {
+                                <span class="badge bg-danger rounded-pill">@Model.Role</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-primary rounded-pill">@Model.Role</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-4">Thông tin hệ thống</h5>
+                    <div class="mb-3">
+                        <label class="text-muted small">Ngày tạo tài khoản</label>
+                        <p class="fs-6">@Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Lần đăng nhập cuối</label>
+                        <p class="fs-6">@(Model.LastLogin?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa đăng nhập")</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Trạng thái</label>
+                        <p class="fs-6">
+                            @if (Model.IsActive)
+                            {
+                                <span class="text-success"><i class="bi bi-check-circle-fill"></i> Đang hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="text-danger"><i class="bi bi-x-circle-fill"></i> Đã khóa</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a asp-action="StaffList" class="btn btn-outline-secondary rounded-pill px-4">
+            <i class="bi bi-arrow-left"></i> Quay lại
+        </a>
+        <a asp-action="EditStaff" asp-route-id="@Model.AdminId" class="btn btn-warning rounded-pill px-4 text-white">
+            <i class="bi bi-pencil-square"></i> Chỉnh sửa
+        </a>
+    </div>
+</div>

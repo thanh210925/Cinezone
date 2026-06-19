@@ -6,7 +6,14 @@ namespace CINEMA.Controllers
     public class AdminController : Controller
     {
         private readonly CinemaContext _context;
-
+        private bool IsSuperAdmin()
+        {
+            return HttpContext.Session.GetString("Role") == "SuperAdmin";
+        }
+        private bool IsLoggedIn()
+        {
+            return !string.IsNullOrEmpty(HttpContext.Session.GetString("AdminId"));
+        }
         public AdminController(CinemaContext context)
         {
             _context = context;
@@ -39,6 +46,7 @@ namespace CINEMA.Controllers
                 Email = email,
                 PasswordHash = password,
                 Phone = phone,
+                Role = "Staff",
                 CreatedAt = DateTime.Now
             };
 
@@ -60,7 +68,7 @@ namespace CINEMA.Controllers
             if (admin != null)
             {
                 HttpContext.Session.SetString("AdminId", admin.AdminId.ToString());
-                HttpContext.Session.SetString("Role", "Admin");
+                HttpContext.Session.SetString("Role", admin.Role ?? "Staff");
                 HttpContext.Session.SetString("Name", admin.FullName);
 
                 admin.LastLogin = DateTime.Now;
@@ -72,14 +80,17 @@ namespace CINEMA.Controllers
             ViewBag.Error = "Sai tài khoản hoặc mật khẩu!";
             return View();
         }
-      public IActionResult Dashboard()
+        public IActionResult Dashboard()
         {
-            if (HttpContext.Session.GetString("Role") != "Admin")
+            // Kiểm tra xem đã có AdminId trong session hay chưa
+            if (string.IsNullOrEmpty(HttpContext.Session.GetString("AdminId")))
             {
                 return RedirectToAction("Login", "Admin");
             }
 
             ViewBag.Name = HttpContext.Session.GetString("Name");
+            // Lấy Role để view có thể hiển thị thông tin hoặc ẩn hiện menu
+            ViewBag.Role = HttpContext.Session.GetString("Role");
 
             ViewBag.TotalMovies = _context.Movies.Count();
             ViewBag.TotalCustomers = _context.Customers.Count();
@@ -100,7 +111,12 @@ namespace CINEMA.Controllers
         }
         public IActionResult StaffList()
         {
-            if (HttpContext.Session.GetString("Role") != "Admin") return RedirectToAction("Login");
+            // Chỉ SuperAdmin mới được xem danh sách
+            if (!IsSuperAdmin())
+            {
+                TempData["Error"] = "Bạn không có quyền truy cập trang này!";
+                return RedirectToAction("Dashboard");
+            }
             return View(_context.Admins.ToList());
         }
 
@@ -109,7 +125,15 @@ namespace CINEMA.Controllers
         [HttpPost]
         public IActionResult CreateStaff(Admin admin)
         {
+            // Chỉ SuperAdmin mới được tạo nhân viên
+            if (!IsSuperAdmin())
+            {
+                TempData["Error"] = "Bạn không có quyền thực hiện thao tác này!";
+                return RedirectToAction("Dashboard");
+            }
+
             admin.CreatedAt = DateTime.Now;
+            admin.Role = "Staff"; // Mặc định tạo mới là Staff+
             _context.Admins.Add(admin);
             _context.SaveChanges();
             return RedirectToAction(nameof(StaffList));
@@ -117,6 +141,13 @@ namespace CINEMA.Controllers
 
         public IActionResult EditStaff(int id)
         {
+            // Chỉ SuperAdmin mới được chỉnh sửa nhân viên
+            if (!IsSuperAdmin())
+            {
+                TempData["Error"] = "Bạn không có quyền thực hiện thao tác này!";
+                return RedirectToAction("Dashboard");
+            }
+
             var admin = _context.Admins.Find(id);
             return admin == null ? NotFound() : View(admin);
         }
@@ -124,6 +155,13 @@ namespace CINEMA.Controllers
         [HttpPost]
         public IActionResult EditStaff(Admin admin)
         {
+            // Chỉ SuperAdmin mới được chỉnh sửa nhân viên
+            if (!IsSuperAdmin())
+            {
+                TempData["Error"] = "Bạn không có quyền thực hiện thao tác này!";
+                return RedirectToAction("Dashboard");
+            }
+admin.CreatedAt = DateTime.Now;
             _context.Admins.Update(admin);
             _context.SaveChanges();
             return RedirectToAction(nameof(StaffList));
@@ -132,6 +170,13 @@ namespace CINEMA.Controllers
         [HttpPost]
         public IActionResult DeleteStaff(int id)
         {
+            // Chỉ SuperAdmin mới được xóa nhân viên
+            if (!IsSuperAdmin())
+            {
+                TempData["Error"] = "Bạn không có quyền thực hiện thao tác này!";
+                return RedirectToAction("Dashboard");
+            }
+
             var admin = _context.Admins.Find(id);
             if (admin != null)
             {
@@ -144,6 +189,12 @@ namespace CINEMA.Controllers
         {
             HttpContext.Session.Clear();
             return RedirectToAction("Login", "Admin");
+        }
+        public IActionResult DetailsStaff(int id)
+        {
+            var admin = _context.Admins.Find(id);
+            if (admin == null) return NotFound();
+            return View(admin);
         }
     }
 }

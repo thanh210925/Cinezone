@@ -4,7 +4,7 @@ using CINEMA.Models;
 
 namespace CINEMA.Controllers
 {
-    public class TicketsController : Controller
+    public class TicketsController : AdminBaseController
     {
         private readonly CinemaContext _context;
 

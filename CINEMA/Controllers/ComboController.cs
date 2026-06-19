@@ -9,7 +9,7 @@ using CINEMA.Models;
 
 namespace CINEMA.Controllers
 {
-    public class ComboController : Controller
+    public class ComboController : AdminBaseController
     {
         private readonly CinemaContext _context;
 

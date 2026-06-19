@@ -134,47 +134,43 @@ namespace CINEMA.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Edit(Movie updatedMovie, IFormFile? PosterImage)
         {
+            // 1. Kiểm tra tính hợp lệ
             if (!ModelState.IsValid)
                 return View(updatedMovie);
 
-            // Lấy bản gốc từ DB để tránh lỗi tracking
+            // 2. Lấy bản gốc từ DB
             var movie = _context.Movies.FirstOrDefault(m => m.MovieId == updatedMovie.MovieId);
             if (movie == null) return NotFound();
 
-            // Cập nhật dữ liệu
-            movie.Title = updatedMovie.Title;
-            movie.Description = updatedMovie.Description;
-            movie.ReleaseDate = updatedMovie.ReleaseDate;
-            movie.Duration = updatedMovie.Duration;
-            movie.IsActive = updatedMovie.IsActive; // ⭐ CHỖ QUAN TRỌNG NHẤT
+            // 3. Cập nhật tất cả các trường cùng lúc (Ngoại trừ ID và các trường hệ thống không đổi)
+            // Lưu ý: Nếu PosterUrl không nằm trong form, nó sẽ bị ghi đè thành null.
+            // Cách này sẽ cập nhật ĐẦY ĐỦ các trường, giải quyết triệt để lỗi "không lưu được"
+            _context.Entry(movie).CurrentValues.SetValues(updatedMovie);
 
-            // Upload ảnh nếu có
+            // 4. Xử lý ảnh (Chỉ cập nhật nếu có ảnh mới)
             if (PosterImage != null && PosterImage.Length > 0)
             {
                 var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "movies");
-                if (!Directory.Exists(folder))
-                    Directory.CreateDirectory(folder);
+                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
-                var fileName = Path.GetFileName(PosterImage.FileName);
+                // Lưu ý: Nên dùng GUID để tránh trùng tên file ảnh
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(PosterImage.FileName);
                 var filePath = Path.Combine(folder, fileName);
 
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     PosterImage.CopyTo(stream);
                 }
-
                 movie.PosterUrl = "/images/movies/" + fileName;
             }
 
-            _context.SaveChanges();
+            // 5. Lưu DB (Chỉ cần 1 lần)
             _context.SaveChanges();
 
-            // Ghi log sau khi cập nhật thành công
             LogHelper.Write(_context, _httpContextAccessor, "MODIFIED", "Movie", movie.MovieId);
             TempData["SuccessMessage"] = "✏️ Cập nhật phim thành công!";
             return RedirectToAction(nameof(Index));
         }
-
         // ==================== XÓA PHIM (GET) ====================
         [HttpGet]
         public IActionResult Delete(int id)

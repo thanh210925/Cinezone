@@ -1,16 +1,18 @@
 ﻿using CINEMA.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
+using CINEMA.Helpers;
 namespace CINEMA.Controllers
 {
     public class ShowtimeController : AdminBaseController
     {
         private readonly CinemaContext _context;
-
-        public ShowtimeController(CinemaContext context)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public ShowtimeController(CinemaContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
+
         }
 
         // ========================
@@ -51,7 +53,13 @@ namespace CINEMA.Controllers
 
             _context.Showtimes.Add(showtime);
             _context.SaveChanges();
-
+            LogHelper.Write(
+    _context,
+    _httpContextAccessor,
+    "ADDED",
+    "Showtime",
+    showtime.ShowtimeId
+);
             return RedirectToAction(nameof(Index));
         }
 
@@ -78,7 +86,13 @@ namespace CINEMA.Controllers
 
             _context.Showtimes.Update(showtime);
             _context.SaveChanges();
-
+            LogHelper.Write(
+    _context,
+    _httpContextAccessor,
+    "MODIFIED",
+    "Showtime",
+    showtime.ShowtimeId
+);
             return RedirectToAction(nameof(Index));
         }
 
@@ -127,11 +141,19 @@ namespace CINEMA.Controllers
             var showtime = _context.Showtimes.Find(id);
             if (showtime != null)
             {
+                int showtimeId = showtime.ShowtimeId;
+
                 _context.Showtimes.Remove(showtime);
                 _context.SaveChanges();
-            }
 
-            TempData["SuccessMessage"] = "🗑 Đã xóa suất chiếu thành công!";
+                LogHelper.Write(
+                    _context,
+                    _httpContextAccessor,
+                    "DELETED",
+                    "Showtime",
+                    showtimeId
+                );
+            }
             return RedirectToAction(nameof(Index));
         }
 
@@ -146,7 +168,13 @@ namespace CINEMA.Controllers
 
             showtime.IsActive = true;
             _context.SaveChanges();
-
+            LogHelper.Write(
+     _context,
+     _httpContextAccessor,
+     "ACTIVATED",
+     "Showtime",
+     showtime.ShowtimeId
+ );
             return RedirectToAction(nameof(Index));
         }
         [HttpPost]
@@ -157,7 +185,13 @@ namespace CINEMA.Controllers
 
             show.IsActive = false;
             await _context.SaveChangesAsync();
-
+            LogHelper.Write(
+     _context,
+     _httpContextAccessor,
+     "DEACTIVATED",
+     "Showtime",
+     show.ShowtimeId
+ );
             return RedirectToAction("Index");
         }
         [HttpPost]
@@ -168,7 +202,13 @@ namespace CINEMA.Controllers
                 _context.Showtimes.AddRange(showtimes);
                 _context.SaveChanges();
             }
-
+            LogHelper.Write(
+            _context,
+            _httpContextAccessor,
+            "ADDED_MULTIPLE",
+            "Showtime",
+            showtimes.Count
+        );
             return RedirectToAction("Index");
         }
     }

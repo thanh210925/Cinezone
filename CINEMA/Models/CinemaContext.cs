@@ -13,9 +13,11 @@ public partial class CinemaContext : DbContext
     {
     }
 
-    public CinemaContext(DbContextOptions<CinemaContext> options)
+    public CinemaContext(DbContextOptions<CinemaContext> options, IHttpContextAccessor httpContextAccessor)
         : base(options)
     {
+        _httpContextAccessor = httpContextAccessor;
+
     }
     public virtual DbSet<ActivityLog> ActivityLogs { get; set; }
     public virtual DbSet<Admin> Admins { get; set; }

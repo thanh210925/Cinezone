@@ -1,4 +1,5 @@
 ﻿@model IEnumerable<CINEMA.Models.Admin>
+
 @{
     ViewData["Title"] = "Quản lý nhân viên";
     Layout = "_AdminLayout";
@@ -11,7 +12,7 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a asp-action="Dashboard">Dashboard</a></li>
-                    <li class="breadcrumb-item active">Nhân viên</li>
+                    <li class="breadcrumb-item active">Danh sách nhân viên</li>
                 </ol>
             </nav>
         </div>
@@ -28,8 +29,8 @@
                         <tr>
                             <th class="ps-4">Họ tên</th>
                             <th>Email</th>
-                            <th>Số điện thoại</th>
-                            <th>Ngày tạo</th>
+                            <th>Vai trò</th>
+                            <th>Trạng thái</th>
                             <th class="text-center">Thao tác</th>
                         </tr>
                     </thead>
@@ -39,16 +40,43 @@
                             <tr>
                                 <td class="ps-4 fw-bold text-dark">@item.FullName</td>
                                 <td>@item.Email</td>
-                                <td>@item.Phone</td>
-                                <td class="text-muted">@item.CreatedAt?.ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    @if (item.Role == "SuperAdmin")
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-3">@item.Role</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary-subtle text-primary rounded-pill px-3">@item.Role</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="text-success small"><i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i> Hoạt động</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-danger small"><i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i> Đã khóa</span>
+                                    }
+                                </td>
                                 <td class="text-center">
-                                    <a asp-action="EditStaff" asp-route-id="@item.AdminId"
-                                       class="btn btn-sm btn-outline-warning rounded-pill px-3 me-2">Sửa</a>
-
-                                    <form asp-action="DeleteStaff" asp-route-id="@item.AdminId" method="post"
-                                          style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa nhân viên này?');">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">Xóa</button>
-                                    </form>
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="DetailsStaff" asp-route-id="@item.AdminId"
+                                           class="btn btn-sm btn-outline-info border-0" title="Chi tiết">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="EditStaff" asp-route-id="@item.AdminId"
+                                           class="btn btn-sm btn-outline-warning border-0" title="Sửa">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form asp-action="DeleteStaff" asp-route-id="@item.AdminId" method="post"
+                                              style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa nhân viên này?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Xóa">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         }
