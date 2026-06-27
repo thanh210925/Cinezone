@@ -21,7 +21,17 @@
             <p class="text-muted ms-5 ps-2 mb-0 mt-1">
                 @if (Model.FromDate.HasValue || Model.ToDate.HasValue)
                 {
-                    <span>Đang lọc: <strong>@Model.FromDate?.ToString("dd/MM/yyyy") - @Model.ToDate?.ToString("dd/MM/yyyy")</strong></span>
+                    // Kiểm tra xem có phải khoảng thời gian mặc định của tháng hiện tại không
+                    var today = DateTime.Today;
+                    var defaultFrom = new DateTime(today.Year, today.Month, 1);
+                    if (Model.FromDate == defaultFrom && Model.ToDate == today)
+                    {
+                        <span>Đang xem mặc định: <strong>Tháng hiện tại (@today.ToString("MM/yyyy"))</strong></span>
+                    }
+                    else
+                    {
+                        <span>Đang lọc: <strong>@Model.FromDate?.ToString("dd/MM/yyyy") - @Model.ToDate?.ToString("dd/MM/yyyy")</strong></span>
+                    }
                 }
                 else
                 {
@@ -30,16 +40,37 @@
             </p>
         </div>
 
+        <!-- BỘ LỌC ĐA NĂNG (GỒM LỌC NHANH THEO THÁNG VÀ LỌC THEO NGÀY TÙY CHỈNH) -->
         <div class="bg-white p-2 rounded-pill shadow-sm border">
-            <form method="get" class="d-flex align-items-center m-0">
+            <form id="filterForm" method="get" class="d-flex align-items-center m-0">
+                <!-- Chọn tháng nhanh -->
+                <div class="d-flex align-items-center px-3 border-end">
+                    <label class="text-muted small me-2 text-nowrap"><i class="bi bi-calendar3 me-1"></i>Xem theo tháng</label>
+                    <select id="quickMonthFilter" class="form-select form-select-sm border-0 bg-transparent shadow-none fw-medium text-primary" style="cursor: pointer; width: auto;">
+                        <option value="">-- Chọn tháng --</option>
+                        @for (int i = 0; i < 12; i++)
+                        {
+                            var targetMonth = DateTime.Today.AddMonths(-i);
+                            var valString = targetMonth.ToString("yyyy-MM");
+                            var displayString = $"Tháng {targetMonth.ToString("MM/yyyy")}";
+                            <option value="@valString">@displayString</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Từ ngày -->
                 <div class="d-flex align-items-center px-3 border-end">
                     <label class="text-muted small me-2 text-nowrap">Từ ngày</label>
-                    <input type="date" name="from" class="form-control form-control-sm border-0 bg-transparent shadow-none" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+                    <input type="date" id="inputFrom" name="from" class="form-control form-control-sm border-0 bg-transparent shadow-none" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
                 </div>
+
+                <!-- Đến ngày -->
                 <div class="d-flex align-items-center px-3 border-end">
                     <label class="text-muted small me-2 text-nowrap">Đến ngày</label>
-                    <input type="date" name="to" class="form-control form-control-sm border-0 bg-transparent shadow-none" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+                    <input type="date" id="inputTo" name="to" class="form-control form-control-sm border-0 bg-transparent shadow-none" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
                 </div>
+
+                <!-- Nút Lọc -->
                 <div class="px-2">
                     <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-medium text-nowrap">
                         <i class="bi bi-funnel me-1"></i> Lọc
@@ -49,6 +80,7 @@
         </div>
     </div>
 
+    <!-- [ĐOẠN TABS CONTENT GIỮ NGUYÊN HOÀN TOÀN TỪ CODE CŨ CỦA BẠN] -->
     <div class="d-flex justify-content-center mb-4">
         <ul class="nav nav-pills gap-2 p-1 bg-white border rounded-pill shadow-sm" id="dashboardTabs" role="tablist">
             <li class="nav-item"><button class="nav-link active rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#tongquan" type="button"><i class="bi bi-graph-up me-1"></i> Tổng Quan</button></li>
@@ -61,9 +93,8 @@
     </div>
 
     <div class="tab-content" id="dashboardTabsContent">
-
+        <!-- Tab Tổng Quan -->
         <div class="tab-pane fade show active" id="tongquan">
-
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 border-bottom border-4 border-info">
@@ -146,6 +177,7 @@
             </div>
         </div>
 
+        <!-- Tab Phim -->
         <div class="tab-pane fade" id="phim">
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
@@ -237,6 +269,7 @@
             </div>
         </div>
 
+        <!-- Tab Suất chiếu -->
         <div class="tab-pane fade" id="suatchieu">
             <div class="card shadow-sm border-0 rounded-4 mb-4 p-4">
                 <h6 class="fw-bold text-dark mb-4">🎬 Doanh thu theo suất chiếu</h6>
@@ -277,6 +310,7 @@
             </div>
         </div>
 
+        <!-- Tab Combo -->
         <div class="tab-pane fade" id="combo">
             <div class="alert alert-danger border-0 shadow-sm rounded-4 d-flex justify-content-between align-items-center p-4 mb-4">
                 <div>
@@ -353,6 +387,7 @@
             </div>
         </div>
 
+        <!-- Tab Voucher -->
         <div class="tab-pane fade" id="voucher">
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
@@ -415,6 +450,7 @@
             </div>
         </div>
 
+        <!-- Tab Chi tiết bảng -->
         <div class="tab-pane fade" id="chitiet">
             <div class="card shadow-sm border-0 rounded-4">
                 <div class="card-header bg-white pt-4 px-4 border-0">
@@ -452,8 +488,53 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Xử lý tự động tính toán Ngày khi chọn lọc nhanh theo Tháng -->
     <script>
-        // Dữ liệu từ Model
+        document.getElementById('quickMonthFilter').addEventListener('change', function() {
+            const selectedMonthValue = this.value; // Dạng "YYYY-MM"
+            if (!selectedMonthValue) return;
+
+            const [year, month] = selectedMonthValue.split('-').map(Number);
+
+            // Ngày bắt đầu: Ngày 1 của tháng đã chọn
+            const fromDate = `${year}-${String(month).padStart(2, '0')}-01`;
+
+            // Ngày kết thúc: Ngày cuối cùng của tháng đã chọn
+            const lastDay = new Date(year, month, 0).getDate();
+            const toDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+            // Gán dữ liệu vào 2 ô input date
+            document.getElementById('inputFrom').value = fromDate;
+            document.getElementById('inputTo').value = toDate;
+
+            // Tự động submit gửi dữ liệu lên Controller xử lý
+            document.getElementById('filterForm').submit();
+        });
+
+        // Giữ trạng thái hiển thị cho dropdown tháng nếu đang lọc trúng tháng đó
+        window.addEventListener('DOMContentLoaded', () => {
+            const fromVal = document.getElementById('inputFrom').value;
+            const toVal = document.getElementById('inputTo').value;
+
+            if (fromVal && toVal) {
+                const fromPrefix = fromVal.substring(0, 7); // Lấy "YYYY-MM"
+                const toPrefix = toVal.substring(0, 7);
+
+                // Nếu cùng thuộc một tháng và từ ngày 1 đến ngày cuối tháng
+                if (fromPrefix === toPrefix && fromVal.endsWith('-01')) {
+                    const selectElement = document.getElementById('quickMonthFilter');
+                    const option = selectElement.querySelector(`option[value="${fromPrefix}"]`);
+                    if(option) {
+                        selectElement.value = fromPrefix;
+                    }
+                }
+            }
+        });
+    </script>
+
+    <!-- Thống kê Charts Logic (Giữ nguyên gốc từ View cũ của bạn) -->
+    <script>
         const labelsByDate = @Html.Raw(Json.Serialize(Model.LabelsByDate));
         const revenueByDate = @Html.Raw(Json.Serialize(Model.RevenueByDate));
         const ticketCountByDate = @Html.Raw(Json.Serialize(Model.TicketCountByDate));
@@ -476,133 +557,127 @@
         const comboPieLabels = @Html.Raw(Json.Serialize(Model.ComboPieLabels));
         const comboPieValues = @Html.Raw(Json.Serialize(Model.ComboPieValues));
 
-        // Hàm tạo Line/Bar Chart tổng quát
         function createMixedChart(id, labels, data1, data2) {
-        new Chart(document.getElementById(id), {
-        type: 'bar',
-        data: {
-        labels: labels,
-        datasets: [
-        { label: 'Doanh thu', data: data1, yAxisID: 'y', backgroundColor: 'rgba(13, 110, 253, 0.8)', borderRadius: 4, maxBarThickness: 50 }, // Thêm giới hạn độ rộng cột
-        { label: 'Số vé', data: data2, type: 'line', yAxisID: 'y1', borderColor: '#ffc107', borderWidth: 2, tension: 0.3 }
-        ]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-        });
+            new Chart(document.getElementById(id), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Doanh thu', data: data1, yAxisID: 'y', backgroundColor: 'rgba(13, 110, 253, 0.8)', borderRadius: 4, maxBarThickness: 50 },
+                        { label: 'Số vé', data: data2, type: 'line', yAxisID: 'y1', borderColor: '#ffc107', borderWidth: 2, tension: 0.3 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
         }
 
-        // Render Biểu đồ Tổng Quan
         createMixedChart("revenueByDateChart", labelsByDate, revenueByDate, ticketCountByDate);
         createMixedChart("revenueByMonthChart", labelsByMonth, revenueByMonth, ticketCountByMonth);
         createMixedChart("revenueByYearChart", labelsByYear, revenueByYear, ticketCountByYear);
 
         new Chart(document.getElementById("revenueByMovieChart"), {
-        type: 'doughnut',
-        data: {
-        labels: movieLabels,
-        datasets: [{ data: revenueByMovie, hoverOffset: 4 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            type: 'doughnut',
+            data: {
+                labels: movieLabels,
+                datasets: [{ data: revenueByMovie, hoverOffset: 4 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
 
-        // Render Biểu đồ Theo Phim
         new Chart(document.getElementById("movieRevenueChart"), {
-        type: 'bar',
-        data: {
-        labels: movieLabels,
-        datasets: [{ label: 'Doanh thu (₫)', data: revenueByMovie, backgroundColor: '#198754', borderRadius: 4, maxBarThickness: 50 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
+            type: 'bar',
+            data: {
+                labels: movieLabels,
+                datasets: [{ label: 'Doanh thu (₫)', data: revenueByMovie, backgroundColor: '#198754', borderRadius: 4, maxBarThickness: 50 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
         });
 
         new Chart(document.getElementById("ticketComparisonChart"), {
-        type: 'bar',
-        data: {
-        labels: movieLabels,
-        datasets: [{ label: 'Số lượng vé', data: ticketData, backgroundColor: '#0dcaf0', borderRadius: 4, maxBarThickness: 50 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
+            type: 'bar',
+            data: {
+                labels: movieLabels,
+                datasets: [{ label: 'Số lượng vé', data: ticketData, backgroundColor: '#0dcaf0', borderRadius: 4, maxBarThickness: 50 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
         });
 
         new Chart(document.getElementById("aovChart"), {
-        type: 'bar',
-        data: {
-        labels: ['Hôm nay', 'Tháng này', 'Quý này', 'Năm nay'],
-        datasets: [{
-        label: 'Giá trị trung bình (VND)',
-        data: [@Model.AvgOrderValueToday, @Model.AvgOrderValueMonth, @Model.AvgOrderValueQuarter, @Model.AvgOrderValueYear],
-        backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)'],
-        borderRadius: 4,
-        maxBarThickness: 50
-        }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
+            type: 'bar',
+            data: {
+                labels: ['Hôm nay', 'Tháng này', 'Quý này', 'Năm nay'],
+                datasets: [{
+                    label: 'Giá trị trung bình (VND)',
+                    data: [@Model.AvgOrderValueToday, @Model.AvgOrderValueMonth, @Model.AvgOrderValueQuarter, @Model.AvgOrderValueYear],
+                    backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)'],
+                    borderRadius: 4,
+                    maxBarThickness: 50
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
         });
 
         new Chart(document.getElementById("monthCompareChart"), {
-        type: 'bar',
-        data: {
-        labels: ['Tháng trước', 'Tháng này'],
-        datasets: [{
-        label: 'Doanh thu (VND)',
-        data: [@Model.RevenueLastMonth, @Model.RevenueCurrentMonth],
-        backgroundColor: ['rgba(108, 117, 125, 0.8)', 'rgba(25, 135, 84, 0.8)'],
-        borderRadius: 4,
-        maxBarThickness: 50
-        }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
+            type: 'bar',
+            data: {
+                labels: ['Tháng trước', 'Tháng này'],
+                datasets: [{
+                    label: 'Doanh thu (VND)',
+                    data: [@Model.RevenueLastMonth, @Model.RevenueCurrentMonth],
+                    backgroundColor: ['rgba(108, 117, 125, 0.8)', 'rgba(25, 135, 84, 0.8)'],
+                    borderRadius: 4,
+                    maxBarThickness: 50
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
         });
 
-        // Render Biểu đồ Suất chiếu (Đây chính là biểu đồ bị mập trong ảnh của bạn)
         new Chart(document.getElementById("showtimeRevenueChart"), {
-        type: 'bar',
-        data: {
-        labels: showtimeLabels,
-        datasets: [{ label: 'Doanh thu (₫)', data: revenueByShowtime, backgroundColor: '#6f42c1', borderRadius: 4, maxBarThickness: 50 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
+            type: 'bar',
+            data: {
+                labels: showtimeLabels,
+                datasets: [{ label: 'Doanh thu (₫)', data: revenueByShowtime, backgroundColor: '#6f42c1', borderRadius: 4, maxBarThickness: 50 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
         });
 
-        // Render Biểu đồ Combo
         new Chart(document.getElementById('topComboChart'), {
-        type: 'bar',
-        data: {
-        labels: @Html.Raw(Json.Serialize(Model.TopComboLabels)),
-        datasets: [{ label: 'Số lượng bán', data: @Html.Raw(Json.Serialize(Model.TopComboValues)), backgroundColor: '#0d6efd', borderRadius: 4, maxBarThickness: 50 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.TopComboLabels)),
+                datasets: [{ label: 'Số lượng bán', data: @Html.Raw(Json.Serialize(Model.TopComboValues)), backgroundColor: '#0d6efd', borderRadius: 4, maxBarThickness: 50 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
 
         new Chart(document.getElementById('topRevenueComboChart'), {
-        type: 'bar',
-        data: {
-        labels: @Html.Raw(Json.Serialize(Model.TopRevenueComboLabels)),
-        datasets: [{ label: 'Doanh thu (₫)', data: @Html.Raw(Json.Serialize(Model.TopRevenueComboValues)), backgroundColor: '#198754', borderRadius: 4, maxBarThickness: 50 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.TopRevenueComboLabels)),
+                datasets: [{ label: 'Doanh thu (₫)', data: @Html.Raw(Json.Serialize(Model.TopRevenueComboValues)), backgroundColor: '#198754', borderRadius: 4, maxBarThickness: 50 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
 
         new Chart(document.getElementById("comboPieChart"), {
-        type: 'pie',
-        data: {
-        labels: comboPieLabels,
-        datasets: [{ data: comboPieValues, hoverOffset: 4 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            type: 'pie',
+            data: {
+                labels: comboPieLabels,
+                datasets: [{ data: comboPieValues, hoverOffset: 4 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
 
-        // Render Biểu đồ Voucher
         const voucherCtx = document.getElementById('voucherChart');
         if (voucherCtx) {
-        new Chart(voucherCtx, {
-        type: 'bar',
-        data: {
-        labels: @Html.Raw(Json.Serialize(Model.VoucherLabels)),
-        datasets: [{ label: 'Lượt sử dụng', data: @Html.Raw(Json.Serialize(Model.VoucherValues)), backgroundColor: '#dc3545', borderRadius: 4, maxBarThickness: 50 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-        });
+            new Chart(voucherCtx, {
+                type: 'bar',
+                data: {
+                    labels: @Html.Raw(Json.Serialize(Model.VoucherLabels)),
+                    datasets: [{ label: 'Lượt sử dụng', data: @Html.Raw(Json.Serialize(Model.VoucherValues)), backgroundColor: '#dc3545', borderRadius: 4, maxBarThickness: 50 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
         }
     </script>
 }

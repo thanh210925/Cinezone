@@ -36,7 +36,7 @@ namespace CINEMA
                 options.LoginPath = "/Customer/Login";
             })
             // GG
-             ;
+          ;
 
             var app = builder.Build();
 

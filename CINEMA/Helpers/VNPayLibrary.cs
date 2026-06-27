@@ -55,19 +55,22 @@ namespace CINEMA.Helpers
                     data.Append(WebUtility.UrlEncode(kv.Key) + "=" + WebUtility.UrlEncode(kv.Value) + "&");
                 }
             }
+
             string queryString = data.ToString();
 
-            baseUrl += "?" + queryString;
-            String signData = queryString;
-            if (signData.Length > 0)
+            // 1. Loại bỏ dấu '&' thừa ở cuối chuỗi dữ liệu gốc trước
+            if (queryString.Length > 0)
             {
-
-                signData = signData.Remove(data.Length - 1, 1);
+                queryString = queryString.Remove(queryString.Length - 1, 1);
             }
-            string vnp_SecureHash = HmacSha512(vnp_HashSecret, signData);
-            baseUrl += "vnp_SecureHash=" + vnp_SecureHash;
 
-            return baseUrl;
+            // 2. Tạo chữ ký an toàn từ chuỗi sạch
+            string vnp_SecureHash = HmacSha512(vnp_HashSecret, queryString);
+
+            // 3. Ghép nối thành URL hoàn chỉnh theo cấu trúc chuẩn tách biệt dấu &
+            string finalUrl = baseUrl + "?" + queryString + "&vnp_SecureHash=" + vnp_SecureHash;
+
+            return finalUrl;
         }
 
 

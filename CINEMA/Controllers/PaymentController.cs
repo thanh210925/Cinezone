@@ -1,16 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text.Json;
+﻿using CINEMA.Helpers;
+using CINEMA.Models;
+using CINEMA.Services;
+using CINEMA.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using CINEMA.Models;
-using CINEMA.ViewModels;
-using CINEMA.Helpers;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text.Json;
 
 namespace CINEMA.Controllers
 {
@@ -19,12 +20,14 @@ namespace CINEMA.Controllers
         private readonly CinemaContext _context;
         private readonly IConfiguration _config;
         private readonly ILogger<PaymentController> _logger;
+        private readonly IVnpayService _vnpayService;
 
-        public PaymentController(CinemaContext context, IConfiguration config, ILogger<PaymentController> logger)
+        public PaymentController(CinemaContext context, IConfiguration config, ILogger<PaymentController> logger, IVnpayService vnpayService)
         {
             _context = context;
             _config = config;
             _logger = logger;
+            _vnpayService = vnpayService;
         }
 
         // =================== [1] Trang xác nhận thanh toán ===================
@@ -301,7 +304,11 @@ namespace CINEMA.Controllers
                 {
                     var pay = new VnpayLibrary();
                     string baseUrl = _config["Vnpay:BaseUrl"];
-                    string returnUrl = $"{Request.Scheme}://{Request.Host}{_config["Vnpay:ReturnUrl"]}";
+                    string returnUrl = _config["Vnpay:ReturnUrl"];
+                    if (!returnUrl.StartsWith("http"))
+                    {
+                        returnUrl = $"{Request.Scheme}://{Request.Host}{returnUrl}";
+                    }
                     string tmnCode = _config["Vnpay:TmnCode"];
                     string hashSecret = _config["Vnpay:HashSecret"];
 
@@ -317,7 +324,7 @@ namespace CINEMA.Controllers
                     pay.AddRequestData("vnp_OrderType", "billpayment");
                     pay.AddRequestData("vnp_ReturnUrl", returnUrl);
                     pay.AddRequestData("vnp_TxnRef", order.OrderId.ToString());
-
+                    //string paymentUrl = _vnpayService.CreatePaymentUrl(order, HttpContext);
                     string paymentUrl = pay.CreateRequestUrl(baseUrl, hashSecret);
                     return Redirect(paymentUrl);
                 }

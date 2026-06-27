@@ -30,20 +30,28 @@ namespace CINEMA.Controllers
         // ============================
         //  HÀM XỬ LÝ THỐNG KÊ GỘP CHUẨN (GIT + LOCAL)
         // ============================
-        public async Task<RevenueDashboardViewModel> BuildDashboard(DateTime? from, DateTime? to)
+     
+            public async Task<RevenueDashboardViewModel> BuildDashboard(DateTime? from, DateTime? to)
         {
+            var today = DateTime.Today;
+            var startOfMonth = new DateTime(today.Year, today.Month, 1);
+            var lastMonthStart = startOfMonth.AddMonths(-1);
+
+            // MẶC ĐỊNH: Reset doanh thu theo tháng hiện tại nếu không bấm lọc
+            if (!from.HasValue && !to.HasValue)
+            {
+                from = startOfMonth;
+                to = today;
+            }
+
             var model = new RevenueDashboardViewModel
             {
                 FromDate = from,
                 ToDate = to
             };
 
-            var today = DateTime.Today;
-            var startOfMonth = new DateTime(today.Year, today.Month, 1);
-            var lastMonthStart = startOfMonth.AddMonths(-1);
-
             // =====================================================
-            // 1. LẤY ĐƠN HÀNG ĐÃ THANH TOÁN (Kéo về bộ nhớ tối ưu hóa)
+            // 1. LẤY ĐƠN HÀNG ĐÃ THANH TOÁN (Lúc này query luôn có khoảng thời gian giới hạn)
             // =====================================================
             var paidOrdersQuery = _context.Orders
                 .Include(o => o.Tickets)
@@ -68,6 +76,9 @@ namespace CINEMA.Controllers
             }
 
             var paidOrders = await paidOrdersQuery.ToListAsync();
+
+            // ... Giữ nguyên toàn bộ các logic tính toán (Tổng doanh thu, phim, combo, biểu đồ...) ở phía dưới ...
+
 
             // =====================================================
             // 2. TỔNG DOANH THU & KPI SỐ LƯỢNG VÉ
