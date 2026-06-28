@@ -146,7 +146,7 @@ namespace CINEMA.Controllers
                 ChildTickets = ChildTickets,
                 StudentTickets = StudentTickets,
                 TotalPrice = TotalPrice,
-                VoucherCode= VoucherCode,
+                VoucherCode = VoucherCode,
                 Combos = combosVm
             };
 
@@ -170,7 +170,7 @@ namespace CINEMA.Controllers
                 decimal comboTotal = model.Combos?.Sum(c => c.Price * c.Quantity) ?? 0;
                 decimal ticketOnlyTotal = model.TotalPrice - comboTotal;
 
-               
+
                 decimal pricePerTicket = model.SelectedSeats.Count > 0
                     ? ticketOnlyTotal / model.SelectedSeats.Count
                     : 0;
@@ -318,7 +318,9 @@ namespace CINEMA.Controllers
                     pay.AddRequestData("vnp_Amount", ((long)total * 100).ToString());
                     pay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
                     pay.AddRequestData("vnp_CurrCode", "VND");
-                    pay.AddRequestData("vnp_IpAddr", HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1");
+                    string ipAddr = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+                    if (ipAddr == "::1") ipAddr = "127.0.0.1";
+                    pay.AddRequestData("vnp_IpAddr", ipAddr);
                     pay.AddRequestData("vnp_Locale", "vn");
                     pay.AddRequestData("vnp_OrderInfo", $"Thanh toán đơn #{order.OrderId}");
                     pay.AddRequestData("vnp_OrderType", "billpayment");
