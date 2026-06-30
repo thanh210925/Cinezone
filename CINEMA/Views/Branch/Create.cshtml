@@ -1,0 +1,40 @@
+﻿@model CINEMA.Models.Branch
+
+@{
+    Layout = "_AdminLayout";
+}
+
+<h3>Thêm chi nhánh</h3>
+
+<form asp-action="Create">
+
+    <div class="mb-3">
+        <label>Mã</label>
+        <input asp-for="BranchCode" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Tên chi nhánh</label>
+        <input asp-for="BranchName" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Địa chỉ</label>
+        <input asp-for="Address" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Điện thoại</label>
+        <input asp-for="Phone" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Email</label>
+        <input asp-for="Email" class="form-control" />
+    </div>
+
+    <button class="btn btn-success">
+        Lưu
+    </button>
+
+</form>

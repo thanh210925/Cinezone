@@ -6,89 +6,250 @@
 }
 
 <div class="container-fluid py-4">
-    <!-- Header -->
-    <div class="mb-4">
-        <h4 class="fw-bold text-primary">Thông tin chi tiết nhân viên</h4>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a asp-action="Dashboard">Dashboard</a></li>
-                <li class="breadcrumb-item"><a asp-action="StaffList">Nhân viên</a></li>
-                <li class="breadcrumb-item active">Chi tiết</li>
-            </ol>
-        </nav>
+
+    <div class="d-flex justify-content-between mb-4">
+
+        <div>
+            <h3 class="fw-bold text-primary">
+                Hồ sơ nhân viên
+            </h3>
+
+            <small class="text-muted">
+                Thông tin chi tiết nhân viên
+            </small>
+        </div>
+
+        <div>
+
+            <a asp-action="EditStaff"
+               asp-route-id="@Model.AdminId"
+               class="btn btn-warning">
+
+                <i class="bi bi-pencil"></i>
+                Sửa
+            </a>
+
+            <a asp-action="StaffList"
+               class="btn btn-secondary">
+
+                Quay lại
+
+            </a>
+
+        </div>
+
     </div>
 
-    <!-- Main Content -->
     <div class="row">
-        <div class="col-md-6">
+
+        <!-- Avatar -->
+
+        <div class="col-lg-4">
+
             <div class="card shadow-sm border-0 rounded-4">
-                <div class="card-body p-4">
-                    <h5 class="card-title fw-bold mb-4">Thông tin tài khoản</h5>
-                    <div class="mb-3">
-                        <label class="text-muted small">Họ và tên</label>
-                        <p class="fs-6 fw-bold">@Model.FullName</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="text-muted small">Email</label>
-                        <p class="fs-6">@Model.Email</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="text-muted small">Số điện thoại</label>
-                        <p class="fs-6">@Model.Phone</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="text-muted small">Vai trò</label>
-                        <div>
-                            @if (Model.Role == "SuperAdmin")
-                            {
-                                <span class="badge bg-danger rounded-pill">@Model.Role</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-primary rounded-pill">@Model.Role</span>
-                            }
-                        </div>
-                    </div>
+
+                <div class="card-body text-center">
+
+                    @if (!string.IsNullOrEmpty(Model.Avatar))
+                    {
+                        <img src="@Model.Avatar"
+                             class="rounded-circle border"
+                             width="180"
+                             height="180"
+                             style="object-fit:cover" />
+                    }
+                    else
+                    {
+                        <img src="/images/default-avatar.png"
+                             class="rounded-circle border"
+                             width="180"
+                             height="180" />
+                    }
+
+                    <h4 class="mt-3 fw-bold">
+                        @Model.FullName
+                    </h4>
+
+                    <p class="text-muted">
+                        @Model.Email
+                    </p>
+
+                    @if (Model.IsActive)
+                    {
+                        <span class="badge bg-success">
+                            Hoạt động
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">
+                            Đã khóa
+                        </span>
+                    }
+
                 </div>
+
             </div>
+
         </div>
 
-        <div class="col-md-6">
+        <!-- Thông tin -->
+
+        <div class="col-lg-8">
+
             <div class="card shadow-sm border-0 rounded-4">
-                <div class="card-body p-4">
-                    <h5 class="card-title fw-bold mb-4">Thông tin hệ thống</h5>
-                    <div class="mb-3">
-                        <label class="text-muted small">Ngày tạo tài khoản</label>
-                        <p class="fs-6">@Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="text-muted small">Lần đăng nhập cuối</label>
-                        <p class="fs-6">@(Model.LastLogin?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa đăng nhập")</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="text-muted small">Trạng thái</label>
-                        <p class="fs-6">
-                            @if (Model.IsActive)
-                            {
-                                <span class="text-success"><i class="bi bi-check-circle-fill"></i> Đang hoạt động</span>
-                            }
-                            else
-                            {
-                                <span class="text-danger"><i class="bi bi-x-circle-fill"></i> Đã khóa</span>
-                            }
-                        </p>
-                    </div>
+
+                <div class="card-body">
+
+                    <h5 class="mb-4">
+                        Thông tin cá nhân
+                    </h5>
+
+                    <table class="table">
+
+                        <tr>
+                            <th width="200">
+                                Mã nhân viên
+                            </th>
+                            <td>
+                                @Model.AdminId
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>
+                                Họ tên
+                            </th>
+                            <td>
+                                @Model.FullName
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>
+                                Email
+                            </th>
+                            <td>
+                                @Model.Email
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>
+                                Số điện thoại
+                            </th>
+                            <td>
+                                @Model.Phone
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>
+                                Ngày sinh
+                            </th>
+                            <td>
+                                @(Model.BirthDate?.ToString("dd/MM/yyyy"))
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>
+                                Địa chỉ
+                            </th>
+                            <td>
+                                @Model.Address
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>
+                                Chi nhánh
+                            </th>
+                            <td>
+                                @(Model.Branch?.BranchName ?? "Chưa gán")
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>
+                                Chức vụ
+                            </th>
+                            <td>
+                                @(Model.Position?.PositionName ?? "Chưa gán")
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>
+                                Vai trò
+                            </th>
+                            <td>
+
+                                @if (Model.Role == "SuperAdmin")
+                                {
+                                    <span class="badge bg-danger">
+                                        SuperAdmin
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-primary">
+                                        Staff
+                                    </span>
+                                }
+
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>
+                                Ngày tạo
+                            </th>
+                            <td>
+                                @(Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm"))
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Mã nhân viên</th>
+                            <td>@Model.EmployeeCode</td>
+                        </tr>
+
+                        <tr>
+                            <th>Giới tính</th>
+                            <td>@Model.Gender</td>
+                        </tr>
+
+                        <tr>
+                            <th>CCCD</th>
+                            <td>@Model.CitizenId</td>
+                        </tr>
+
+                        <tr>
+                            <th>Thông tin công việc</th>
+                            <td>@Model.JobInfo</td>
+                        </tr>
+
+                        <tr>
+                            <th>Ngày vào làm</th>
+                            <td>@Model.HireDate?.ToString("dd/MM/yyyy")</td>
+                        </tr>
+                        <tr>
+                            <th>
+                                Đăng nhập gần nhất
+                            </th>
+                            <td>
+                                @(Model.LastLogin?.ToString("dd/MM/yyyy HH:mm"))
+                            </td>
+                        </tr>
+
+                    </table>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
-    <div class="mt-4">
-        <a asp-action="StaffList" class="btn btn-outline-secondary rounded-pill px-4">
-            <i class="bi bi-arrow-left"></i> Quay lại
-        </a>
-        <a asp-action="EditStaff" asp-route-id="@Model.AdminId" class="btn btn-warning rounded-pill px-4 text-white">
-            <i class="bi bi-pencil-square"></i> Chỉnh sửa
-        </a>
-    </div>
 </div>

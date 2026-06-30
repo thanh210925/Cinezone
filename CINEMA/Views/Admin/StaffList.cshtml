@@ -22,67 +22,219 @@
     </div>
 
     <div class="card shadow-sm border-0 rounded-4">
+
+        <div class="card-header bg-white border-0 p-3">
+
+            <form method="get">
+
+                <div class="input-group">
+
+                    <input type="text"
+                           name="search"
+                           class="form-control"
+                           placeholder="Tìm theo tên hoặc email..." />
+
+                    <button class="btn btn-primary">
+                        <i class="bi bi-search"></i>
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
         <div class="card-body p-0">
+
             <div class="table-responsive">
+
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light text-secondary">
+
+                    <thead class="table-light">
+
                         <tr>
-                            <th class="ps-4">Họ tên</th>
+
+                            <th width="90">Ảnh</th>
+
+                            <th>Mã NV</th>
+                            
+                            <th>Họ tên</th>
+
+                            <th>Giới tính</th>
+
+                            <th>Ngày vào làm</th>
+
                             <th>Email</th>
+
+                            <th>Chi nhánh</th>
+
+                            <th>Chức vụ</th>
+
                             <th>Vai trò</th>
+
                             <th>Trạng thái</th>
-                            <th class="text-center">Thao tác</th>
+
+                            <th class="text-center">
+                                Thao tác
+                            </th>
+
                         </tr>
+
                     </thead>
+
                     <tbody>
+
                         @foreach (var item in Model)
                         {
                             <tr>
-                                <td class="ps-4 fw-bold text-dark">@item.FullName</td>
-                                <td>@item.Email</td>
+
                                 <td>
+
+                                    @if (!string.IsNullOrEmpty(item.Avatar))
+                                    {
+                                        <img src="@item.Avatar"
+                                             class="rounded-circle border"
+                                             width="55"
+                                             height="55"
+                                             style="object-fit:cover">
+                                    }
+                                    else
+                                    {
+                                        <img src="/images/default-avatar.png"
+                                             class="rounded-circle border"
+                                             width="55"
+                                             height="55">
+                                    }
+
+                                </td>
+
+                                <td>@item.EmployeeCode</td>
+
+                                <td class="fw-bold">
+                                    @item.FullName
+                                </td>
+
+                                <td>
+                                    @item.Email
+                                </td>
+
+                                
+
+                                <td>@item.Gender</td>
+
+                                <td>@item.HireDate?.ToString("dd/MM/yyyy")</td>
+
+                                <td>
+                                    @(item.Branch?.BranchName ?? "Chưa gán")
+                                </td>
+
+                                <td>
+                                    @(item.Position?.PositionName ?? "Chưa gán")
+                                </td>
+
+                                <td>
+
                                     @if (item.Role == "SuperAdmin")
                                     {
-                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-3">@item.Role</span>
+                                        <span class="badge bg-danger">
+                                            SuperAdmin
+                                        </span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-primary-subtle text-primary rounded-pill px-3">@item.Role</span>
+                                        <span class="badge bg-primary">
+                                            Staff
+                                        </span>
                                     }
+
                                 </td>
+
                                 <td>
+
                                     @if (item.IsActive)
                                     {
-                                        <span class="text-success small"><i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i> Hoạt động</span>
+                                        <span class="badge bg-success">
+                                            Hoạt động
+                                        </span>
                                     }
                                     else
                                     {
-                                        <span class="text-danger small"><i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i> Đã khóa</span>
+                                        <span class="badge bg-secondary">
+                                            Khóa
+                                        </span>
                                     }
+
                                 </td>
+
                                 <td class="text-center">
-                                    <div class="btn-group" role="group">
-                                        <a asp-action="DetailsStaff" asp-route-id="@item.AdminId"
-                                           class="btn btn-sm btn-outline-info border-0" title="Chi tiết">
+
+                                    <div class="btn-group">
+
+                                        <a asp-action="DetailsStaff"
+                                           asp-route-id="@item.AdminId"
+                                           class="btn btn-sm btn-outline-info">
+
                                             <i class="bi bi-eye"></i>
+
                                         </a>
-                                        <a asp-action="EditStaff" asp-route-id="@item.AdminId"
-                                           class="btn btn-sm btn-outline-warning border-0" title="Sửa">
+
+                                        <a asp-action="EditStaff"
+                                           asp-route-id="@item.AdminId"
+                                           class="btn btn-sm btn-outline-warning">
+
                                             <i class="bi bi-pencil"></i>
+
                                         </a>
-                                        <form asp-action="DeleteStaff" asp-route-id="@item.AdminId" method="post"
-                                              style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa nhân viên này?');">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Xóa">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
+
+                                        <a asp-action="ResetPassword"
+                                           asp-route-id="@item.AdminId"
+                                           class="btn btn-sm btn-outline-secondary"
+                                           title="Reset password">
+
+                                            <i class="bi bi-key"></i>
+
+                                        </a>
+
+                                        <form asp-action="ToggleStaffStatus"
+                                              asp-route-id="@item.AdminId"
+                                              method="post"
+                                              style="display:inline">
+
+                                            @if (item.IsActive)
+                                            {
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        title="Khóa tài khoản">
+
+                                                    <i class="bi bi-lock"></i>
+
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-outline-success"
+                                                        title="Mở khóa">
+
+                                                    <i class="bi bi-unlock"></i>
+
+                                                </button>
+                                            }
+
                                         </form>
+
                                     </div>
+
                                 </td>
+
                             </tr>
                         }
+
                     </tbody>
+
                 </table>
+
             </div>
+
         </div>
+
     </div>
 </div>

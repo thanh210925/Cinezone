@@ -1,0 +1,184 @@
+﻿@model CINEMA.ViewModels.EmployeeDashboardViewModel
+@using System.Text.Json
+
+@{
+    Layout = "_AdminLayout";
+}
+<div class="row">
+
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+
+                <h6>Tổng nhân viên</h6>
+
+                <h2>
+                    @Model.TotalEmployees
+                </h2>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+
+                <h6>Đang hoạt động</h6>
+
+                <h2 class="text-success">
+                    @Model.ActiveEmployees
+                </h2>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+
+                <h6>Đã khóa</h6>
+
+                <h2 class="text-danger">
+                    @Model.LockedEmployees
+                </h2>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-body">
+
+                <h6>Chi nhánh</h6>
+
+                <h2>
+                    @Model.TotalBranches
+                </h2>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+<div class="card mt-4 p-4">
+
+    <h5>
+        Nhân viên theo chi nhánh
+    </h5>
+
+    <canvas id="branchChart"></canvas>
+
+</div>
+<div class="card mt-4 p-4">
+
+    <h5>
+        Nhân viên theo chức vụ
+    </h5>
+
+    <canvas id="positionChart"></canvas>
+
+</div>
+<div class="card mt-4">
+
+    <div class="card-header">
+
+        Đăng nhập gần nhất
+
+    </div>
+
+    <table class="table">
+
+        <thead>
+
+            <tr>
+                <th>Nhân viên</th>
+                <th>Chi nhánh</th>
+                <th>Chức vụ</th>
+                <th>Last Login</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @foreach (var item in Model.RecentLogins)
+            {
+                <tr>
+
+                    <td>
+                        @item.FullName
+                    </td>
+
+                    <td>
+                        @(item.Branch?.BranchName)
+                    </td>
+
+                    <td>
+                        @(item.Position?.PositionName)
+                    </td>
+
+                    <td>
+                        @item.LastLogin
+                    </td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+    new Chart(
+    document.getElementById('branchChart'),
+    {
+    type:'bar',
+    data:
+    {
+    labels:
+    @Html.Raw(
+        JsonSerializer.Serialize(
+            Model.BranchLabels)),
+
+    datasets:
+    [{
+    label:'Nhân viên',
+
+    data:
+    @Html.Raw(
+        JsonSerializer.Serialize(
+            Model.BranchValues))
+    }]
+    }
+    });
+
+    new Chart(
+    document.getElementById('positionChart'),
+    {
+    type:'pie',
+    data:
+    {
+    labels:
+    @Html.Raw(
+        JsonSerializer.Serialize(
+            Model.PositionLabels)),
+
+    datasets:
+    [{
+    data:
+    @Html.Raw(
+        JsonSerializer.Serialize(
+            Model.PositionValues))
+    }]
+    }
+    });
+
+</script>

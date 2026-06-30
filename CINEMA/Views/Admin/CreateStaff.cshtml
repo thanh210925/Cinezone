@@ -1,49 +1,196 @@
 ﻿@model CINEMA.Models.Admin
+
 @{
     ViewData["Title"] = "Thêm nhân viên";
     Layout = "_AdminLayout";
 }
 
 <div class="container-fluid py-4">
+
     <div class="row justify-content-center">
-        <div class="col-md-6">
+
+        <div class="col-lg-8">
+
             <div class="card shadow-sm border-0 rounded-4 p-4">
-                <h4 class="fw-bold mb-4 text-primary"><i class="bi bi-person-plus-fill"></i> Thêm nhân viên mới</h4>
 
-                <form asp-action="CreateStaff" method="post">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Họ tên</label>
-                        <input asp-for="FullName" class="form-control" required />
-                    </div>
+                <h4 class="fw-bold text-primary mb-4">
+                    <i class="bi bi-person-plus-fill"></i>
+                    Thêm nhân viên mới
+                </h4>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Email</label>
-                        <input asp-for="Email" type="email" class="form-control" required />
-                        <span asp-validation-for="Email" class="text-danger small"></span>
-                    </div>
+                <form asp-action="CreateStaff"
+                      method="post"
+                      enctype="multipart/form-data">
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Mật khẩu</label>
-                        <input asp-for="PasswordHash" type="password" class="form-control" required />
-                    </div>
+                    <div class="row">
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Số điện thoại</label>
-                        <input asp-for="Phone" class="form-control" />
+                        <div class="col-md-4 text-center">
+
+                            <img id="preview"
+                                 src="/images/default-avatar.png"
+                                 class="rounded-circle border"
+                                 width="150"
+                                 height="150"
+                                 style="object-fit:cover" />
+
+                            <div class="mt-3">
+                                <input type="file"
+                                       name="avatar"
+                                       class="form-control"
+                                       onchange="previewImage(event)" />
+                            </div>
+
+                        </div>
+
+                        <div class="col-md-8">
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    Họ tên
+                                </label>
+
+                                <input asp-for="FullName"
+                                       class="form-control" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    Email
+                                </label>
+
+                                <input asp-for="Email"
+                                       class="form-control" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    Mật khẩu
+                                </label>
+
+                                <input asp-for="PasswordHash"
+                                       type="password"
+                                       class="form-control" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    Số điện thoại
+                                </label>
+
+                                <input asp-for="Phone"
+                                       class="form-control" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    Ngày sinh
+                                </label>
+
+                                <input asp-for="BirthDate"
+                                       type="date"
+                                       class="form-control" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    Địa chỉ
+                                </label>
+
+                                <textarea asp-for="Address"
+                                          class="form-control"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label>Chi nhánh</label>
+                                <select asp-for="BranchId"
+                                        asp-items="ViewBag.Branches"
+                                        class="form-select">
+                                    <option value="">--Chọn chi nhánh--</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label>Chức vụ</label>
+                                <select asp-for="PositionId"
+                                        asp-items="ViewBag.Positions"
+                                        class="form-select">
+                                    <option value="">--Chọn chức vụ--</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    Role
+                                </label>
+
+                                <select asp-for="Role"
+                                        class="form-select">
+
+                                    <option value="Staff">
+                                        Staff
+                                    </option>
+
+                                    <option value="SuperAdmin">
+                                        SuperAdmin
+                                    </option>
+
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label>Giới tính</label>
+                                <select asp-for="Gender" class="form-select">
+                                    <option value="">--Chọn--</option>
+                                    <option>Nam</option>
+                                    <option>Nữ</option>
+                                    <option>Khác</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label>CCCD</label>
+                                <input asp-for="CitizenId" class="form-control" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label>Thông tin công việc</label>
+                                <textarea asp-for="JobInfo" class="form-control"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label>Ngày vào làm</label>
+                                <input asp-for="HireDate" type="date" class="form-control" />
+                            </div>
+                        </div>
+
                     </div>
 
                     <div class="mt-4 d-flex gap-2">
-                        <a asp-action="StaffList" class="btn btn-outline-secondary rounded-pill flex-fill">Hủy</a>
-                        <button type="submit" class="btn btn-primary rounded-pill flex-fill">Tạo tài khoản</button>
+
+                        <a asp-action="StaffList"
+                           class="btn btn-secondary flex-fill">
+                            Hủy
+                        </a>
+
+                        <button class="btn btn-primary flex-fill">
+                            Tạo tài khoản
+                        </button>
+
                     </div>
+
                 </form>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
 
-@section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+<script>
+    function previewImage(event)
+    {
+        document.getElementById('preview').src =
+            URL.createObjectURL(event.target.files[0]);
     }
-}
+</script>

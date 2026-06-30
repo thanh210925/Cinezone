@@ -1,0 +1,92 @@
+﻿@model IEnumerable<CINEMA.Models.Branch>
+
+@{
+    ViewData["Title"] = "Quản lý chi nhánh";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between mb-3">
+        <h3>Quản lý chi nhánh</h3>
+
+        <a asp-action="Create"
+           class="btn btn-primary">
+            Thêm chi nhánh
+        </a>
+    </div>
+
+    <form method="get">
+        <div class="input-group mb-3">
+            <input name="search"
+                   class="form-control"
+                   placeholder="Tìm chi nhánh..." />
+
+            <button class="btn btn-secondary">
+                Tìm
+            </button>
+        </div>
+    </form>
+
+    <table class="table table-bordered table-hover">
+        <thead>
+            <tr>
+                <th>Mã</th>
+                <th>Tên chi nhánh</th>
+                <th>Địa chỉ</th>
+                <th>Điện thoại</th>
+                <th>Email</th>
+                <th>Trạng thái</th>
+                <th width="160"></th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.BranchCode</td>
+                    <td>@item.BranchName</td>
+                    <td>@item.Address</td>
+                    <td>@item.Phone</td>
+                    <td>@item.Email</td>
+
+                    <td>
+                        @if (item.IsActive)
+                        {
+                            <span class="badge bg-success">
+                                Hoạt động
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">
+                                Khóa
+                            </span>
+                        }
+                    </td>
+
+                    <td>
+                        <a asp-action="Edit"
+                           asp-route-id="@item.BranchId"
+                           class="btn btn-warning btn-sm">
+                            Sửa
+                        </a>
+
+                        <form asp-action="Delete"
+                              asp-route-id="@item.BranchId"
+                              method="post"
+                              style="display:inline">
+
+                            <button class="btn btn-danger btn-sm">
+                                Xóa
+                            </button>
+
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+</div>

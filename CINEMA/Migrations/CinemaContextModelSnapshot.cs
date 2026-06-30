@@ -51,7 +51,7 @@ namespace CINEMA.Migrations
 
                     b.HasIndex("AdminId");
 
-                    b.ToTable("ActivityLogs");
+                    b.ToTable("ActivityLogs", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.Admin", b =>
@@ -98,7 +98,7 @@ namespace CINEMA.Migrations
                     b.HasIndex(new[] { "Email" }, "UQ__Admins__A9D10534147CE3A1")
                         .IsUnique();
 
-                    b.ToTable("Admins");
+                    b.ToTable("Admins", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.Auditorium", b =>
@@ -136,7 +136,7 @@ namespace CINEMA.Migrations
 
                     b.HasIndex("TheaterId");
 
-                    b.ToTable("Auditoriums");
+                    b.ToTable("Auditoriums", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.Combo", b =>
@@ -170,7 +170,7 @@ namespace CINEMA.Migrations
                     b.HasKey("ComboId")
                         .HasName("PK__Combos__DD42582E26B5F1BA");
 
-                    b.ToTable("Combos");
+                    b.ToTable("Combos", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.Customer", b =>
@@ -247,7 +247,7 @@ namespace CINEMA.Migrations
                     b.HasIndex(new[] { "Email" }, "UQ__Customer__A9D10534C763062F")
                         .IsUnique();
 
-                    b.ToTable("Customers");
+                    b.ToTable("Customers", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.Genre", b =>
@@ -270,7 +270,7 @@ namespace CINEMA.Migrations
                     b.HasKey("GenreId")
                         .HasName("PK__Genres__0385057E94DA3A45");
 
-                    b.ToTable("Genres");
+                    b.ToTable("Genres", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.Movie", b =>
@@ -328,7 +328,7 @@ namespace CINEMA.Migrations
                     b.HasKey("MovieId")
                         .HasName("PK__Movies__4BD2941A4A7171D7");
 
-                    b.ToTable("Movies");
+                    b.ToTable("Movies", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.Order", b =>
@@ -382,7 +382,7 @@ namespace CINEMA.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("Orders");
+                    b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.OrderCombo", b =>
@@ -412,7 +412,7 @@ namespace CINEMA.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("OrderCombos");
+                    b.ToTable("OrderCombos", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.Popup", b =>
@@ -452,7 +452,7 @@ namespace CINEMA.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Popups");
+                    b.ToTable("Popups", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.Seat", b =>
@@ -487,7 +487,7 @@ namespace CINEMA.Migrations
 
                     b.HasIndex("AuditoriumId");
 
-                    b.ToTable("Seats");
+                    b.ToTable("Seats", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.Showtime", b =>
@@ -529,7 +529,7 @@ namespace CINEMA.Migrations
 
                     b.HasIndex("MovieId");
 
-                    b.ToTable("Showtimes");
+                    b.ToTable("Showtimes", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.Theater", b =>
@@ -568,7 +568,7 @@ namespace CINEMA.Migrations
                     b.HasKey("TheaterId")
                         .HasName("PK__Theaters__4D68B2190D1064CB");
 
-                    b.ToTable("Theaters");
+                    b.ToTable("Theaters", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.Ticket", b =>
@@ -618,7 +618,7 @@ namespace CINEMA.Migrations
 
                     b.HasIndex("ShowtimeId");
 
-                    b.ToTable("Tickets");
+                    b.ToTable("Tickets", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.TicketCombo", b =>
@@ -637,7 +637,7 @@ namespace CINEMA.Migrations
 
                     b.HasIndex("OrderComboId");
 
-                    b.ToTable("TicketCombos");
+                    b.ToTable("TicketCombos", (string)null);
                 });
 
             modelBuilder.Entity("CINEMA.Models.Voucher", b =>
@@ -681,7 +681,7 @@ namespace CINEMA.Migrations
 
                     b.HasKey("VoucherId");
 
-                    b.ToTable("Vouchers");
+                    b.ToTable("Vouchers", (string)null);
                 });
 
             modelBuilder.Entity("ComboShowtime", b =>
