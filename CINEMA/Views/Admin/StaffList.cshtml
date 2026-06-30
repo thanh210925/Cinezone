@@ -125,7 +125,19 @@
                                 <td>@item.HireDate?.ToString("dd/MM/yyyy")</td>
 
                                 <td>
-                                    @(item.Branch?.BranchName ?? "Chưa gán")
+                                    @{
+                                        var theaterDict = ViewBag.TheaterDict as Dictionary<int, string>;
+                                        int currentId = item.BranchId ?? 0; // Lấy ID rạp từ nhân viên
+
+                                        if (theaterDict != null && currentId > 0 && theaterDict.ContainsKey(currentId))
+                                        {
+                                            <span class="fw-bold text-dark">@theaterDict[currentId]</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted fst-italic">Chưa gán rạp</span>
+                                        }
+                                    }
                                 </td>
 
                                 <td>

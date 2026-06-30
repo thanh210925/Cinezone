@@ -3,24 +3,29 @@ using CINEMA.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
 
 namespace CINEMA.Controllers
 {
     public class AdminController : Controller
     {
         private readonly CinemaContext _context;
+
         private bool IsSuperAdmin()
         {
             return HttpContext.Session.GetString("Role") == "SuperAdmin";
         }
+
         private bool IsLoggedIn()
         {
             return !string.IsNullOrEmpty(HttpContext.Session.GetString("AdminId"));
         }
+
         public AdminController(CinemaContext context)
         {
             _context = context;
         }
+
         [HttpGet]
         public async Task<IActionResult> Register()
         {
@@ -30,24 +35,19 @@ namespace CINEMA.Controllers
         private string GenerateEmployeeCode()
         {
             var lastCode = _context.Admins
-        .Where(x => x.EmployeeCode != null)
-        .OrderByDescending(x => x.AdminId)
-        .Select(x => x.EmployeeCode)
-        .FirstOrDefault();
+                .Where(x => x.EmployeeCode != null)
+                .OrderByDescending(x => x.AdminId)
+                .Select(x => x.EmployeeCode)
+                .FirstOrDefault();
 
-            if (string.IsNullOrEmpty(lastCode))
-                return "NV001";
-
-            if (!lastCode.StartsWith("NV"))
+            if (string.IsNullOrEmpty(lastCode) || !lastCode.StartsWith("NV"))
                 return "NV001";
 
             var numberPart = lastCode.Substring(2);
-
             if (!int.TryParse(numberPart, out int number))
                 return "NV001";
 
             number++;
-
             return $"NV{number:D3}";
         }
 
@@ -82,6 +82,7 @@ namespace CINEMA.Controllers
 
             return RedirectToAction("Login", "Admin");
         }
+
         [HttpGet]
         public async Task<IActionResult> Login()
         {
@@ -100,8 +101,7 @@ namespace CINEMA.Controllers
 
                 if (!admin.IsActive)
                 {
-                    ViewBag.Error =
-                        "Tài khoản đã bị khóa";
+                    ViewBag.Error = "Tài khoản đã bị khóa";
                     return View();
                 }
 
@@ -118,19 +118,17 @@ namespace CINEMA.Controllers
             }
 
             ViewBag.Error = "Sai tài khoản hoặc mật khẩu!";
-
             return View();
         }
+
         public async Task<IActionResult> Dashboard()
         {
-            // Kiểm tra xem đã có AdminId trong session hay chưa
             if (string.IsNullOrEmpty(HttpContext.Session.GetString("AdminId")))
             {
                 return RedirectToAction("Login", "Admin");
             }
 
             ViewBag.Name = HttpContext.Session.GetString("Name");
-            // Lấy Role để view có thể hiển thị thông tin hoặc ẩn hiện menu
             ViewBag.Role = HttpContext.Session.GetString("Role");
 
             ViewBag.TotalMovies = _context.Movies.Count();
@@ -150,6 +148,7 @@ namespace CINEMA.Controllers
 
             return View();
         }
+
         public async Task<IActionResult> StaffList(string search)
         {
             if (!IsSuperAdmin())
@@ -157,9 +156,10 @@ namespace CINEMA.Controllers
                 TempData["Error"] = "Bạn không có quyền truy cập!";
                 return RedirectToAction("Dashboard");
             }
-
+            ViewBag.TheaterDict = _context.Theaters.ToDictionary(t => t.TheaterId, t => t.Name);
             var query = _context.Admins
                 .Include(x => x.Branch)
+                    .ThenInclude(b => b.Theater)
                 .Include(x => x.Position)
                 .AsQueryable();
 
@@ -181,101 +181,94 @@ namespace CINEMA.Controllers
                 return RedirectToAction("Dashboard");
             }
 
-            ViewBag.Branches = new SelectList(
-        _context.Branches.ToList(),
-        "BranchId",
-        "BranchName");
-
-            ViewBag.Positions = new SelectList(
-                _context.Positions.ToList(),
-                "PositionId",
-                "PositionName");
+            // Lấy trực tiếp từ bảng Theaters
+            ViewBag.Branches = new SelectList(_context.Theaters.ToList(), "TheaterId", "Name");
+            ViewBag.Positions = new SelectList(_context.Positions.ToList(), "PositionId", "PositionName");
 
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateStaff(
-    Admin admin,
-    IFormFile avatar)
+        public async Task<IActionResult> CreateStaff(Admin admin, IFormFile avatar)
         {
+            // 1. Kiểm tra quyền
             if (!IsSuperAdmin())
             {
                 TempData["Error"] = "Bạn không có quyền!";
                 return RedirectToAction("Dashboard");
             }
 
+            // 2. "Gỡ bỏ" các trường không cần người dùng nhập ở form
+            // Hệ thống sẽ tự xử lý các trường này trong code bên dưới
+            ModelState.Remove("Branch");
+            ModelState.Remove("Position");
+            ModelState.Remove("Theater");
+            ModelState.Remove("EmployeeCode");
+            ModelState.Remove("Avatar");
+            // 3. Kiểm tra tính hợp lệ của Model
             if (ModelState.IsValid)
             {
-
-                // AUTO CODE
-                admin.EmployeeCode = GenerateEmployeeCode();
-                // upload avatar
-                if (avatar != null)
+                try
                 {
-                    string folder =
-                        Path.Combine(
-                            Directory.GetCurrentDirectory(),
-                            "wwwroot/uploads/admin");
+                    // Tự động sinh mã nhân viên (NV001, NV002...)
+                    admin.EmployeeCode = GenerateEmployeeCode();
 
-                    if (!Directory.Exists(folder))
-                        Directory.CreateDirectory(folder);
-
-                    string fileName =
-                        Guid.NewGuid().ToString() +
-                        Path.GetExtension(
-                            avatar.FileName);
-
-                    string path =
-                        Path.Combine(
-                            folder,
-                            fileName);
-
-                    using (var stream =
-                        new FileStream(
-                            path,
-                            FileMode.Create))
+                    // Mật khẩu mặc định nếu chưa nhập
+                    if (string.IsNullOrEmpty(admin.PasswordHash))
                     {
-                        await avatar.CopyToAsync(stream);
+                        admin.PasswordHash = "123456";
                     }
 
-                    admin.Avatar =
-                        "/uploads/admin/" +
-                        fileName;
+                    // Xử lý Avatar
+                    if (avatar != null && avatar.Length > 0)
+                    {
+                        string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/admin");
+                        if (!Directory.Exists(folder))
+                            Directory.CreateDirectory(folder);
+
+                        string fileName = Guid.NewGuid().ToString() + Path.GetExtension(avatar.FileName);
+                        string path = Path.Combine(folder, fileName);
+
+                        using (var stream = new FileStream(path, FileMode.Create))
+                        {
+                            await avatar.CopyToAsync(stream);
+                        }
+                        admin.Avatar = "/uploads/admin/" + fileName;
+                    }
+
+                    // Gán các thông tin mặc định
+                    admin.CreatedAt = DateTime.Now;
+                    admin.IsActive = true;
+                    if (string.IsNullOrEmpty(admin.Role)) admin.Role = "Staff";
+
+                    // Lưu vào Database
+                    _context.Admins.Add(admin);
+                    await _context.SaveChangesAsync();
+
+                    TempData["Success"] = "Thêm nhân viên thành công!";
+                    return RedirectToAction(nameof(StaffList));
                 }
-
-                admin.CreatedAt = DateTime.Now;
-
-                if (string.IsNullOrEmpty(admin.Role))
-                    admin.Role = "Staff";
-
-                admin.IsActive = true;
-
-                _context.Admins.Add(admin);
-
-                await _context.SaveChangesAsync();
-
-                return RedirectToAction(nameof(StaffList));
+                catch (Exception ex)
+                {
+                    ViewBag.Error = "Có lỗi xảy ra khi lưu: " + ex.Message;
+                }
+            }
+            else
+            {
+                // Debug lỗi nếu Model không hợp lệ
+                var errors = ModelState.Values.SelectMany(v => v.Errors);
+                ViewBag.Error = "Thông tin không hợp lệ. Vui lòng kiểm tra lại các trường!";
             }
 
-            ViewBag.Branches =
-                new SelectList(
-                    _context.Branches,
-                    "BranchId",
-                    "BranchName");
-
-            ViewBag.Positions =
-                new SelectList(
-                    _context.Positions,
-                    "PositionId",
-                    "PositionName");
+            // 4. Nạp lại Dropdown nếu bị lỗi (để người dùng không phải chọn lại)
+            ViewBag.Branches = new SelectList(_context.Theaters.ToList(), "TheaterId", "Name", admin.BranchId);
+            ViewBag.Positions = new SelectList(_context.Positions.ToList(), "PositionId", "PositionName", admin.PositionId);
 
             return View(admin);
         }
-        
+
         public async Task<IActionResult> EditStaff(int id)
         {
-            // Chỉ SuperAdmin mới được chỉnh sửa nhân viên
             if (!IsSuperAdmin())
             {
                 TempData["Error"] = "Bạn không có quyền!";
@@ -283,31 +276,17 @@ namespace CINEMA.Controllers
             }
 
             var admin = _context.Admins.Find(id);
+            if (admin == null) return NotFound();
 
-            if (admin == null)
-                return NotFound();
-
-            ViewBag.Branches =
-                new SelectList(
-                    _context.Branches,
-                    "BranchId",
-                    "BranchName",
-                    admin.BranchId);
-
-            ViewBag.Positions =
-                new SelectList(
-                    _context.Positions,
-                    "PositionId",
-                    "PositionName",
-                    admin.PositionId);
+            // Load rạp và gán giá trị đang có của NV
+            ViewBag.Branches = new SelectList(_context.Theaters.ToList(), "TheaterId", "Name", admin.BranchId);
+            ViewBag.Positions = new SelectList(_context.Positions, "PositionId", "PositionName", admin.PositionId);
 
             return View(admin);
         }
 
         [HttpPost]
-        public async Task<IActionResult> EditStaff(
-    Admin admin,
-    IFormFile avatar)
+        public async Task<IActionResult> EditStaff(Admin admin, IFormFile avatar)
         {
             if (!IsSuperAdmin())
             {
@@ -315,20 +294,14 @@ namespace CINEMA.Controllers
                 return RedirectToAction("Dashboard");
             }
 
-            var oldAdmin =
-                await _context.Admins
-                    .FirstOrDefaultAsync(
-                        x => x.AdminId == admin.AdminId);
-
-            if (oldAdmin == null)
-                return NotFound();
-
+            var oldAdmin = await _context.Admins.FirstOrDefaultAsync(x => x.AdminId == admin.AdminId);
+            if (oldAdmin == null) return NotFound();
 
             oldAdmin.FullName = admin.FullName;
             oldAdmin.Email = admin.Email;
             oldAdmin.Phone = admin.Phone;
             oldAdmin.Role = admin.Role;
-            oldAdmin.BranchId = admin.BranchId;
+            oldAdmin.BranchId = admin.BranchId; // Lưu mã Rạp
             oldAdmin.PositionId = admin.PositionId;
             oldAdmin.Address = admin.Address;
             oldAdmin.BirthDate = admin.BirthDate;
@@ -339,46 +312,26 @@ namespace CINEMA.Controllers
             oldAdmin.JobInfo = admin.JobInfo;
             oldAdmin.HireDate = admin.HireDate;
 
-
             if (avatar != null)
             {
-                string folder =
-                    Path.Combine(
-                        Directory.GetCurrentDirectory(),
-                        "wwwroot/uploads/admin");
+                string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/admin");
+                string fileName = Guid.NewGuid() + Path.GetExtension(avatar.FileName);
+                string path = Path.Combine(folder, fileName);
 
-                string fileName =
-                    Guid.NewGuid() +
-                    Path.GetExtension(
-                        avatar.FileName);
-
-                string path =
-                    Path.Combine(
-                        folder,
-                        fileName);
-
-                using (var stream =
-                    new FileStream(
-                        path,
-                        FileMode.Create))
+                using (var stream = new FileStream(path, FileMode.Create))
                 {
                     await avatar.CopyToAsync(stream);
                 }
-
-                oldAdmin.Avatar =
-                    "/uploads/admin/" +
-                    fileName;
+                oldAdmin.Avatar = "/uploads/admin/" + fileName;
             }
 
             await _context.SaveChangesAsync();
-
             return RedirectToAction(nameof(StaffList));
         }
 
         [HttpPost]
         public async Task<IActionResult> DeleteStaff(int id)
         {
-            // Chỉ SuperAdmin mới được xóa nhân viên
             if (!IsSuperAdmin())
             {
                 TempData["Error"] = "Bạn không có quyền thực hiện thao tác này!";
@@ -393,165 +346,112 @@ namespace CINEMA.Controllers
             }
             return RedirectToAction(nameof(StaffList));
         }
+
         public async Task<IActionResult> Logout()
         {
             HttpContext.Session.Clear();
             return RedirectToAction("Login", "Admin");
         }
+
         public async Task<IActionResult> DetailsStaff(int id)
         {
             var admin = _context.Admins
-        .Include(x => x.Branch)
-        .Include(x => x.Position)
-        .FirstOrDefault(x => x.AdminId == id);
+                .Include(x => x.Branch)
+                .Include(x => x.Position)
+                .FirstOrDefault(x => x.AdminId == id);
 
-            if (admin == null)
-                return NotFound();
-
+            if (admin == null) return NotFound();
             return View(admin);
         }
+
         [HttpPost]
         public async Task<IActionResult> ToggleStaffStatus(int id)
         {
             if (!IsSuperAdmin())
             {
-                TempData["Error"] =
-                    "Bạn không có quyền!";
-
+                TempData["Error"] = "Bạn không có quyền!";
                 return RedirectToAction("Dashboard");
             }
 
-            var admin =
-                _context.Admins
-                    .FirstOrDefault(
-                        x => x.AdminId == id);
+            var admin = _context.Admins.FirstOrDefault(x => x.AdminId == id);
+            if (admin == null) return NotFound();
 
-            if (admin == null)
-                return NotFound();
-
-            // không cho khóa chính mình
-            var currentAdmin =
-                HttpContext.Session
-                    .GetString("AdminId");
-
-            if (currentAdmin ==
-                admin.AdminId.ToString())
+            var currentAdmin = HttpContext.Session.GetString("AdminId");
+            if (currentAdmin == admin.AdminId.ToString())
             {
-                TempData["Error"] =
-                    "Không thể khóa chính mình.";
-
+                TempData["Error"] = "Không thể khóa chính mình.";
                 return RedirectToAction(nameof(StaffList));
             }
 
-            admin.IsActive =
-                !admin.IsActive;
-
+            admin.IsActive = !admin.IsActive;
             await _context.SaveChangesAsync();
-
-            TempData["Success"] =
-                admin.IsActive
-                ? "Đã mở khóa tài khoản."
-                : "Đã khóa tài khoản.";
+            TempData["Success"] = admin.IsActive ? "Đã mở khóa tài khoản." : "Đã khóa tài khoản.";
 
             return RedirectToAction(nameof(StaffList));
         }
+
         public async Task<IActionResult> ResetPassword(int id)
         {
-            if (!IsSuperAdmin())
-                return RedirectToAction("Dashboard");
+            if (!IsSuperAdmin()) return RedirectToAction("Dashboard");
 
-            var admin =
-                _context.Admins.Find(id);
-
-            if (admin == null)
-                return NotFound();
+            var admin = _context.Admins.Find(id);
+            if (admin == null) return NotFound();
 
             return View(admin);
         }
+
         [HttpPost]
-        public async Task<IActionResult> ResetPassword(
-    int id,
-    string newPassword)
+        public async Task<IActionResult> ResetPassword(int id, string newPassword)
         {
-            if (!IsSuperAdmin())
-                return RedirectToAction("Dashboard");
+            if (!IsSuperAdmin()) return RedirectToAction("Dashboard");
 
-            var admin =
-                _context.Admins.Find(id);
+            var admin = _context.Admins.Find(id);
+            if (admin == null) return NotFound();
 
-            if (admin == null)
-                return NotFound();
-
-            admin.PasswordHash =
-                newPassword;
-
+            admin.PasswordHash = newPassword;
             await _context.SaveChangesAsync();
-
-            TempData["Success"] =
-                "Đặt lại mật khẩu thành công";
+            TempData["Success"] = "Đặt lại mật khẩu thành công";
 
             return RedirectToAction(nameof(StaffList));
         }
+
         public async Task<IActionResult> EmployeeDashboard()
         {
-            if (!IsSuperAdmin())
-                return RedirectToAction("Dashboard");
+            if (!IsSuperAdmin()) return RedirectToAction("Dashboard");
 
             var model = new EmployeeDashboardViewModel();
 
-            model.TotalEmployees =
-                _context.Admins.Count();
+            model.TotalEmployees = _context.Admins.Count();
+            model.ActiveEmployees = _context.Admins.Count(x => x.IsActive);
+            model.LockedEmployees = _context.Admins.Count(x => !x.IsActive);
 
-            model.ActiveEmployees =
-                _context.Admins.Count(x => x.IsActive);
+            // Cập nhật lấy dữ liệu thống kê từ bảng Theaters
+            model.TotalBranches = _context.Theaters.Count();
+            model.TotalPositions = _context.Positions.Count();
 
-            model.LockedEmployees =
-                _context.Admins.Count(x => !x.IsActive);
+            model.BranchLabels = _context.Theaters.Select(x => x.Name).ToList();
+            model.BranchValues = _context.Theaters
+                .Select(x => _context.Admins.Count(a => a.BranchId == x.TheaterId))
+                .ToList();
 
-            model.TotalBranches =
-                _context.Branches.Count();
+            model.PositionLabels = _context.Positions.Select(x => x.PositionName).ToList();
+            model.PositionValues = _context.Positions
+                .Select(x => _context.Admins.Count(a => a.PositionId == x.PositionId))
+                .ToList();
 
-            model.TotalPositions =
-                _context.Positions.Count();
-
-            model.BranchLabels =
-                _context.Branches
-                    .Select(x => x.BranchName)
-                    .ToList();
-
-            model.BranchValues =
-                _context.Branches
-                    .Select(x =>
-                        _context.Admins.Count(a =>
-                            a.BranchId == x.BranchId))
-                    .ToList();
-
-            model.PositionLabels =
-                _context.Positions
-                    .Select(x => x.PositionName)
-                    .ToList();
-
-            model.PositionValues =
-                _context.Positions
-                    .Select(x =>
-                        _context.Admins.Count(a =>
-                            a.PositionId == x.PositionId))
-                    .ToList();
-
-            model.RecentLogins =
-                _context.Admins
-                    .OrderByDescending(x => x.LastLogin)
-                    .Take(10)
-                    .Include(x => x.Branch)
-                    .Include(x => x.Position)
-                    .ToList();
+            model.RecentLogins = _context.Admins
+                .OrderByDescending(x => x.LastLogin)
+                .Take(10)
+                .Include(x => x.Branch)
+                .Include(x => x.Position)
+                .ToList();
 
             return View(model);
         }
+
         public async Task<IActionResult> ActivityLogs(string search, string action)
         {
-            if (!IsSuperAdmin())
-                return RedirectToAction("Dashboard");
+            if (!IsSuperAdmin()) return RedirectToAction("Dashboard");
 
             var query = _context.ActivityLogs
                 .AsNoTracking()
@@ -564,14 +464,10 @@ namespace CINEMA.Controllers
             if (!string.IsNullOrWhiteSpace(action))
                 query = query.Where(x => x.Action == action);
 
-            var data = await query
-                .OrderByDescending(x => x.LogDate)
-                .ToListAsync();
-
+            var data = await query.OrderByDescending(x => x.LogDate).ToListAsync();
             ViewBag.Count = data.Count;
 
             return View(data);
         }
     }
 }
-

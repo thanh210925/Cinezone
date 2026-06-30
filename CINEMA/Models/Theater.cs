@@ -5,6 +5,7 @@ namespace CINEMA.Models;
 
 public partial class Theater
 {
+
     public int TheaterId { get; set; }
 
     public string Name { get; set; } = null!;
@@ -18,6 +19,6 @@ public partial class Theater
     public DateTime? CreatedAt { get; set; }
 
     public bool? IsActive { get; set; }
-
+    public virtual Branch? Branch { get; set; }
     public virtual ICollection<Auditorium> Auditoria { get; set; } = new List<Auditorium>();
 }

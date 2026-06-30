@@ -17,7 +17,8 @@
                     <i class="bi bi-person-plus-fill"></i>
                     Thêm nhân viên mới
                 </h4>
-
+                <!-- Thêm đoạn này để xem lỗi cụ thể là gì -->
+                <div asp-validation-summary="All" class="alert alert-danger"></div>
                 <form asp-action="CreateStaff"
                       method="post"
                       enctype="multipart/form-data">

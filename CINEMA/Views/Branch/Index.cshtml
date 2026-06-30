@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CINEMA.Models.Branch>
+﻿@model IEnumerable<CINEMA.Models.Theater>
 
 @{
     ViewData["Title"] = "Quản lý chi nhánh";
@@ -7,18 +7,20 @@
 
 <div class="container-fluid">
 
-    <div class="d-flex justify-content-between mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>Quản lý chi nhánh</h3>
 
-        <a asp-action="Create"
+        <a asp-controller="Theater"
+           asp-action="Index"
            class="btn btn-primary">
-            Thêm chi nhánh
+            Quản lý rạp
         </a>
     </div>
 
     <form method="get">
         <div class="input-group mb-3">
             <input name="search"
+                   value="@Context.Request.Query["search"]"
                    class="form-control"
                    placeholder="Tìm chi nhánh..." />
 
@@ -28,65 +30,87 @@
         </div>
     </form>
 
-    <table class="table table-bordered table-hover">
-        <thead>
+    <table class="table table-bordered table-hover align-middle">
+        <thead class="table-light">
             <tr>
-                <th>Mã</th>
+                <th>ID</th>
                 <th>Tên chi nhánh</th>
                 <th>Địa chỉ</th>
                 <th>Điện thoại</th>
-                <th>Email</th>
+                <th>Google Map</th>
                 <th>Trạng thái</th>
-                <th width="160"></th>
+                <th width="120">Thao tác</th>
             </tr>
         </thead>
 
-        <tbody>
-            @foreach (var item in Model)
-            {
-                <tr>
-                    <td>@item.BranchCode</td>
-                    <td>@item.BranchName</td>
-                    <td>@item.Address</td>
-                    <td>@item.Phone</td>
-                    <td>@item.Email</td>
+    <tbody>
+    @if (Model.Any())
+    {
+        int stt = 1;
 
-                    <td>
-                        @if (item.IsActive)
-                        {
-                            <span class="badge bg-success">
-                                Hoạt động
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-danger">
-                                Khóa
-                            </span>
-                        }
-                    </td>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@stt</td>
 
-                    <td>
-                        <a asp-action="Edit"
-                           asp-route-id="@item.BranchId"
-                           class="btn btn-warning btn-sm">
-                            Sửa
+                <td>@item.Name</td>
+
+                <td>@item.Address</td>
+
+                <td>@item.Phone</td>
+
+                <td>
+                    @if (!string.IsNullOrEmpty(item.GoogleMapUrl))
+                    {
+                        <a href="@item.GoogleMapUrl"
+                           target="_blank"
+                           class="btn btn-sm btn-info">
+                            Xem
                         </a>
+                    }
+                    else
+                    {
+                        <span class="text-muted">Không có</span>
+                    }
+                </td>
 
-                        <form asp-action="Delete"
-                              asp-route-id="@item.BranchId"
-                              method="post"
-                              style="display:inline">
+                <td>
+                    @if (item.IsActive == true)
+                    {
+                        <span class="badge bg-success">
+                            Hoạt động
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">
+                            Ngừng
+                        </span>
+                    }
+                </td>
 
-                            <button class="btn btn-danger btn-sm">
-                                Xóa
-                            </button>
+                <td>
+                    <a asp-controller="Theater"
+                       asp-action="Edit"
+                       asp-route-id="@item.TheaterId"
+                       class="btn btn-warning btn-sm">
+                        Sửa
+                    </a>
+                </td>
+            </tr>
 
-                        </form>
-                    </td>
-                </tr>
-            }
-        </tbody>
+            stt++;
+        }
+    }
+    else
+    {
+        <tr>
+            <td colspan="7" class="text-center text-muted">
+                Không có dữ liệu.
+            </td>
+        </tr>
+    }
+</tbody>
     </table>
 
 </div>

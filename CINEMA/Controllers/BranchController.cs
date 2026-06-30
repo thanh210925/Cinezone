@@ -13,93 +13,22 @@ namespace CINEMA.Controllers
             _context = context;
         }
 
-        // Danh sách
         public async Task<IActionResult> Index(string search)
         {
-            var query = _context.Branches.AsQueryable();
+            var query = _context.Theaters.AsQueryable();
 
-            if (!string.IsNullOrEmpty(search))
+            if (!string.IsNullOrWhiteSpace(search))
             {
-                query = query.Where(x =>
-                    x.BranchName.Contains(search) ||
-                    x.BranchCode.Contains(search));
+                query = query.Where(t =>
+                    t.Name.Contains(search) ||
+                    (t.Address != null && t.Address.Contains(search)));
             }
 
-            return View(await query
-                .OrderBy(x => x.BranchId)
-                .ToListAsync());
-        }
+            var data = await query
+                .OrderBy(t => t.TheaterId)
+                .ToListAsync();
 
-        // GET
-        public IActionResult Create()
-        {
-            return View();
-        }
-
-        // POST
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Branch branch)
-        {
-            if (ModelState.IsValid)
-            {
-                branch.CreatedAt = DateTime.Now;
-                branch.IsActive = true;
-
-                _context.Branches.Add(branch);
-                await _context.SaveChangesAsync();
-
-                return RedirectToAction(nameof(Index));
-            }
-
-            return View(branch);
-        }
-
-        // GET
-        public async Task<IActionResult> Edit(int id)
-        {
-            var branch = await _context.Branches.FindAsync(id);
-
-            if (branch == null)
-                return NotFound();
-
-            return View(branch);
-        }
-
-        // POST
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Branch branch)
-        {
-            if (id != branch.BranchId)
-                return NotFound();
-
-            if (ModelState.IsValid)
-            {
-                _context.Update(branch);
-                await _context.SaveChangesAsync();
-
-                return RedirectToAction(nameof(Index));
-            }
-
-            return View(branch);
-        }
-
-        // Xóa mềm
-        [HttpPost]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var branch = await _context.Branches.FindAsync(id);
-
-            if (branch != null)
-            {
-                branch.IsActive = false;
-
-                _context.Update(branch);
-                await _context.SaveChangesAsync();
-            }
-
-            return RedirectToAction(nameof(Index));
+            return View(data);
         }
     }
 }

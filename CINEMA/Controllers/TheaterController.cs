@@ -32,16 +32,32 @@ namespace CINEMA.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Create(Theater theater)
         {
-            if (ModelState.IsValid)
-            {
-                theater.CreatedAt = DateTime.Now;
-                theater.IsActive = true;
+            if (!ModelState.IsValid)
+                return View(theater);
 
-                _context.Theaters.Add(theater);
-                _context.SaveChanges();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(theater);
+            theater.CreatedAt = DateTime.Now;
+            theater.IsActive = true;
+
+            _context.Theaters.Add(theater);
+            _context.SaveChanges();
+
+            // Tạo Branch tương ứng
+            Branch branch = new Branch
+            {
+                TheaterId = theater.TheaterId,
+                BranchCode = $"CN{theater.TheaterId:D3}",
+                BranchName = theater.Name,
+                Address = theater.Address,
+                Phone = theater.Phone,
+                Email = "",
+                IsActive = theater.IsActive ?? true,
+                CreatedAt = DateTime.Now
+            };
+
+            _context.Branches.Add(branch);
+            _context.SaveChanges();
+
+            return RedirectToAction(nameof(Index));
         }
 
         // ✏️ Trang chỉnh sửa
@@ -58,13 +74,27 @@ namespace CINEMA.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Edit(Theater theater)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+                return View(theater);
+
+            _context.Theaters.Update(theater);
+
+            var branch = _context.Branches
+                .FirstOrDefault(b => b.TheaterId == theater.TheaterId);
+
+            if (branch != null)
             {
-                _context.Theaters.Update(theater);
-                _context.SaveChanges();
-                return RedirectToAction(nameof(Index));
+                branch.BranchName = theater.Name;
+                branch.Address = theater.Address;
+                branch.Phone = theater.Phone;
+                branch.IsActive = theater.IsActive ?? true;
+
+                _context.Branches.Update(branch);
             }
-            return View(theater);
+
+            _context.SaveChanges();
+
+            return RedirectToAction(nameof(Index));
         }
 
         // 🗑️ Trang xác nhận xóa
@@ -82,11 +112,22 @@ namespace CINEMA.Controllers
         public IActionResult DeleteConfirmed(int id)
         {
             var theater = _context.Theaters.Find(id);
-            if (theater != null)
+
+            if (theater == null)
+                return RedirectToAction(nameof(Index));
+
+            theater.IsActive = false;
+
+            var branch = _context.Branches
+                .FirstOrDefault(b => b.TheaterId == id);
+
+            if (branch != null)
             {
-                _context.Theaters.Remove(theater);
-                _context.SaveChanges();
+                branch.IsActive = false;
             }
+
+            _context.SaveChanges();
+
             return RedirectToAction(nameof(Index));
         }
     }
