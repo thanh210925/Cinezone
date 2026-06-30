@@ -1,0 +1,113 @@
+﻿@model CINEMA.Models.Branch
+
+@{
+    ViewData["Title"] = "Sửa chi nhánh";
+    Layout = "_AdminLayout";
+}
+
+<div class="container mt-4">
+
+    <h3 class="mb-4">Sửa chi nhánh</h3>
+
+    <form asp-action="Edit" method="post">
+
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" asp-for="BranchId" />
+
+        <div asp-validation-summary="ModelOnly"
+             class="text-danger mb-3"></div>
+
+        <div class="mb-3">
+            <label asp-for="BranchCode" class="form-label">
+                Mã chi nhánh
+            </label>
+
+            <input asp-for="BranchCode"
+                   class="form-control" />
+
+            <span asp-validation-for="BranchCode"
+                  class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="BranchName"
+                   class="form-label">
+                Tên chi nhánh
+            </label>
+
+            <input asp-for="BranchName"
+                   class="form-control" />
+
+            <span asp-validation-for="BranchName"
+                  class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Address"
+                   class="form-label">
+                Địa chỉ
+            </label>
+
+            <input asp-for="Address"
+                   class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Phone"
+                   class="form-label">
+                Điện thoại
+            </label>
+
+            <input asp-for="Phone"
+                   class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Email"
+                   class="form-label">
+                Email
+            </label>
+
+            <input asp-for="Email"
+                   class="form-control" />
+        </div>
+
+        <div class="mb-3">
+
+            <label>Trạng thái</label>
+
+            <select asp-for="IsActive"
+                    class="form-select">
+
+                <option value="true">
+                    Hoạt động
+                </option>
+
+                <option value="false">
+                    Khóa
+                </option>
+
+            </select>
+
+        </div>
+
+        <button type="submit"
+                class="btn btn-success">
+            Lưu
+        </button>
+
+        <a asp-action="Index"
+           class="btn btn-secondary">
+            Quay lại
+        </a>
+
+    </form>
+
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

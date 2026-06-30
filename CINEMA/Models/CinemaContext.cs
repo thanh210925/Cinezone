@@ -49,53 +49,118 @@ public partial class CinemaContext : DbContext
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
     //        => optionsBuilder.UseSqlServer("Server=DESKTOP-11TEUJ3\\BANGTHANH;Database=CINEMA;User Id=BANGTHANH;Password=12345678;TrustServerCertificate=True;");
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public override int SaveChanges()
     {
         var entries = ChangeTracker.Entries()
-            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted);
+            .Where(e =>
+                (e.State == EntityState.Added ||
+         e.State == EntityState.Modified ||
+         e.State == EntityState.Deleted))
+    .ToList();
 
-        var adminIdStr = _httpContextAccessor?.HttpContext?.Session.GetString("AdminId");
-        int adminId = int.TryParse(adminIdStr, out int id) ? id : 0;
+        var adminIdStr =
+            _httpContextAccessor?
+            .HttpContext?
+            .Session
+            .GetString("AdminId");
+
+        int adminId =
+            int.TryParse(adminIdStr, out int id)
+            ? id
+            : 0;
 
         foreach (var entry in entries)
         {
-            if (entry.Entity is ActivityLog) continue;
+            if (entry.Entity is ActivityLog)
+                continue;
 
-            var log = new ActivityLog
-            {
-                AdminId = adminId,
-                Action = entry.State.ToString().ToUpper(),
-                Entity = entry.Entity.GetType().Name,
-                EntityId = (int)entry.Metadata.FindPrimaryKey().Properties[0].PropertyInfo.GetValue(entry.Entity),
-                LogDate = System.DateTime.Now
-            };
-            this.ActivityLogs.Add(log);
+            ActivityLogs.Add(
+                new ActivityLog
+                {
+                    AdminId = adminId,
+                    Action = entry.State.ToString(),
+                    Entity = entry.Entity.GetType().Name,
+                    EntityId = 0,
+                    LogDate = DateTime.Now
+                });
         }
+
+        return base.SaveChanges();
+    }
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var entries = ChangeTracker.Entries()
+        .Where(e =>
+            e.State == EntityState.Added ||
+            e.State == EntityState.Modified ||
+            e.State == EntityState.Deleted)
+        .ToList();
+
+        var adminIdStr =
+            _httpContextAccessor?
+            .HttpContext?
+            .Session?
+            .GetString("AdminId");
+
+        int adminId =
+            int.TryParse(adminIdStr, out int id)
+            ? id
+            : 0;
+
+        foreach (var entry in entries)
+        {
+            if (entry.Entity is ActivityLog)
+                continue;
+
+            int entityId = 0;
+
+            try
+            {
+                var pk =
+                    entry.Metadata
+                    .FindPrimaryKey()?
+                    .Properties
+                    .FirstOrDefault();
+
+                if (pk != null)
+                {
+                    var value =
+                        entry.Property(pk.Name)
+                             .CurrentValue;
+
+                    if (value != null)
+                        entityId =
+                            Convert.ToInt32(value);
+                }
+            }
+            catch
+            {
+                entityId = 0;
+            }
+
+            ActivityLogs.Add(
+    new ActivityLog
+    {
+        AdminId = adminId,
+        Action = entry.State switch
+        {
+            EntityState.Added => "THÊM",
+            EntityState.Modified => "SỬA",
+            EntityState.Deleted => "XÓA",
+            _ => ""
+        },
+        Entity = entry.Entity.GetType().Name,
+        EntityId = entityId,
+        LogDate = DateTime.Now
+    });
+        }
+
         return await base.SaveChangesAsync(cancellationToken);
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<ActivityLog>(entity =>
-        {
-            entity.HasOne(d => d.Admin)
-                  .WithMany()
-                  .HasForeignKey(d => d.AdminId);
-        });
-        modelBuilder.Entity<Admin>(entity =>
-        {
-            entity.HasKey(e => e.AdminId).HasName("PK__Admins__719FE4888C53A24F");
-
-            entity.HasIndex(e => e.Email, "UQ__Admins__A9D10534147CE3A1").IsUnique();
-
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-            entity.Property(e => e.Email).HasMaxLength(100);
-            entity.Property(e => e.FullName).HasMaxLength(100);
-            entity.Property(e => e.LastLogin).HasColumnType("datetime");
-            entity.Property(e => e.PasswordHash).HasMaxLength(200);
-            entity.Property(e => e.Phone).HasMaxLength(20);
-        });
+        
+        
 
         modelBuilder.Entity<Auditorium>(entity =>
         {
@@ -345,8 +410,99 @@ public partial class CinemaContext : DbContext
 
             entity.Property(e => e.IsActive).HasDefaultValue(true);
         });
+
+        modelBuilder.Entity<Branch>(entity =>
+        {
+            entity.HasKey(e => e.BranchId);
+
+            entity.Property(e => e.BranchCode)
+                  .HasMaxLength(20);
+
+            entity.Property(e => e.BranchName)
+                  .HasMaxLength(100);
+
+            entity.Property(e => e.Address)
+                  .HasMaxLength(255);
+
+            entity.Property(e => e.Phone)
+                  .HasMaxLength(20);
+
+            entity.Property(e => e.Email)
+                  .HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Position>(entity =>
+        {
+            entity.HasKey(e => e.PositionId);
+
+            entity.Property(e => e.PositionName)
+                  .HasMaxLength(100);
+
+            entity.Property(e => e.Description)
+                  .HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<Admin>(entity =>
+        {
+            entity.HasKey(e => e.AdminId)
+      .HasName("PK__Admins__719FE4888C53A24F");
+
+            entity.HasIndex(e => e.Email,
+                  "UQ__Admins__A9D10534147CE3A1")
+                  .IsUnique();
+
+            entity.Property(e => e.CreatedAt)
+                  .HasDefaultValueSql("(getdate())")
+                  .HasColumnType("datetime");
+
+            entity.Property(e => e.Email)
+                  .HasMaxLength(100);
+
+            entity.Property(e => e.FullName)
+                  .HasMaxLength(100);
+
+            entity.Property(e => e.LastLogin)
+                  .HasColumnType("datetime");
+
+            entity.Property(e => e.PasswordHash)
+                  .HasMaxLength(200);
+
+            entity.Property(e => e.Phone)
+                  .HasMaxLength(20);
+
+            // THÊM PHẦN NÀY
+            entity.HasOne(d => d.Branch)
+      .WithMany(p => p.Admins)
+      .HasForeignKey(d => d.BranchId);
+
+            entity.HasOne(d => d.Position)
+                  .WithMany(p => p.Admins)
+                  .HasForeignKey(d => d.PositionId);
+        });
         OnModelCreatingPartial(modelBuilder);
+
+        modelBuilder.Entity<ActivityLog>(entity =>
+        {
+            entity.HasKey(e => e.LogId);
+
+            entity.Property(e => e.Action)
+                .HasMaxLength(50);
+
+            entity.Property(e => e.Entity)
+                .HasMaxLength(100);
+
+            entity.Property(e => e.LogDate)
+                .HasColumnType("datetime");
+
+            entity.HasOne(e => e.Admin)
+      .WithMany(a => a.ActivityLogs)
+      .HasForeignKey(e => e.AdminId)
+      .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+
+    public DbSet<Branch> Branches { get; set; }
+    public DbSet<Position> Positions { get; set; }
 }

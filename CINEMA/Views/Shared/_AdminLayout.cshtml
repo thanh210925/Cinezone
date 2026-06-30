@@ -48,6 +48,32 @@
                         <i class="bi bi-building"></i><span>Quản lý Nhân viên</span>
                     </a>
                 </li>
+                    //<li class="nav-item">
+
+                      //  <a class="nav-link"
+                        //   asp-controller="Admin"
+                          // asp-action="ActivityLogs">
+
+                            //<i class="bi bi-clock-history"></i>
+
+                            //Nhật ký hoạt động
+
+                        //</a>
+
+                    //</li>
+                    <li>
+                        <a asp-controller="Branch" asp-action="Index">
+                            <i class="bi bi-building"></i>
+                            <span>Quản lý chi nhánh</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a asp-controller="Position" asp-action="Index">
+                            <i class="bi bi-person-badge"></i>
+                            <span>Quản lý chức vụ</span>
+                        </a>
+                    </li>
     <li>
         <a asp-controller="Log" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Log" ? "active" : "")">
             <i class="bi bi-building"></i><span>Quản lý Nhật ký</span>

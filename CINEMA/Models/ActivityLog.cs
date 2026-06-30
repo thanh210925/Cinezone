@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CINEMA.Models
 {
@@ -7,19 +8,21 @@ namespace CINEMA.Models
         [Key]
         public int LogId { get; set; }
 
+        [ForeignKey("Admin")]
         public int AdminId { get; set; }
 
-        [Required]
-        public string Action { get; set; } // Ví dụ: "THÊM", "SỬA", "XÓA"
+        public virtual Admin Admin { get; set; }
 
         [Required]
-        public string Entity { get; set; } // Ví dụ: "Movies", "Showtimes"
+        public string Action { get; set; }
+
+        [Required]
+        public string Entity { get; set; }
 
         public int EntityId { get; set; }
 
         public DateTime LogDate { get; set; } = DateTime.Now;
 
-        // Quan hệ với Admin
-        public virtual Admin Admin { get; set; }
+
     }
 }
