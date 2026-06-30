@@ -323,6 +323,7 @@ namespace CINEMA.Controllers
             if (oldAdmin == null)
                 return NotFound();
 
+
             oldAdmin.FullName = admin.FullName;
             oldAdmin.Email = admin.Email;
             oldAdmin.Phone = admin.Phone;
@@ -332,6 +333,12 @@ namespace CINEMA.Controllers
             oldAdmin.Address = admin.Address;
             oldAdmin.BirthDate = admin.BirthDate;
             oldAdmin.IsActive = admin.IsActive;
+            oldAdmin.CitizenId = admin.CitizenId;
+            oldAdmin.CreatedAt = admin.CreatedAt;
+            oldAdmin.Gender = admin.Gender;
+            oldAdmin.JobInfo = admin.JobInfo;
+            oldAdmin.HireDate = admin.HireDate;
+
 
             if (avatar != null)
             {
