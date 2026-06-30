@@ -74,6 +74,18 @@
                             <span>Quản lý chức vụ</span>
                         </a>
                     </li>
+                    <li>
+                        <a asp-controller="Shift" asp-action="Index">
+                            <i class="bi bi-person-badge"></i>
+                            <span>Quản lý ca</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="DutySchedule" asp-action="Index">
+                            <i class="bi bi-person-badge"></i>
+                            <span>Quản lý lịch làm việc</span>
+                        </a>
+                    </li>
     <li>
         <a asp-controller="Log" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Log" ? "active" : "")">
             <i class="bi bi-building"></i><span>Quản lý Nhật ký</span>

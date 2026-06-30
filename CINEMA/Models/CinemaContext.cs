@@ -505,4 +505,7 @@ public partial class CinemaContext : DbContext
 
     public DbSet<Branch> Branches { get; set; }
     public DbSet<Position> Positions { get; set; }
+
+    public DbSet<Shift> Shifts { get; set; }
+    public DbSet<WorkSchedule> WorkSchedules { get; set; }
 }

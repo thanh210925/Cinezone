@@ -82,7 +82,7 @@ namespace CINEMA.Controllers
             return View(position);
         }
 
-        // Delete mềm
+        // Xóa hẳn (Hard Delete)
         [HttpPost]
         public async Task<IActionResult> Delete(int id)
         {
@@ -90,9 +90,7 @@ namespace CINEMA.Controllers
 
             if (position != null)
             {
-                position.IsActive = false;
-
-                _context.Update(position);
+                _context.Positions.Remove(position); // Lệnh xóa hoàn toàn khỏi DB
                 await _context.SaveChangesAsync();
             }
 

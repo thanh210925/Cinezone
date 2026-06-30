@@ -80,5 +80,6 @@ namespace CINEMA.Models
             set;
         }
 = new List<ActivityLog>();
+        public virtual ICollection<WorkSchedule> WorkSchedules { get; set; } = new List<WorkSchedule>();
     }
 }
