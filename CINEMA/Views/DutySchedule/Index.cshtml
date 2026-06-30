@@ -1,0 +1,190 @@
+﻿@model IEnumerable<CINEMA.Models.Admin>
+
+@{
+    ViewData["Title"] = "Quản lý phân ca";
+    Layout = "_AdminLayout";
+
+    List<DateTime> weekDates = ViewBag.WeekDates;
+    DateTime currentStart = ViewBag.CurrentStart;
+
+    // Hàm hỗ trợ dịch thứ sang tiếng Việt
+    string GetVietnameseDayOfWeek(DayOfWeek day)
+    {
+        return day switch
+        {
+            DayOfWeek.Monday => "Thứ 2",
+            DayOfWeek.Tuesday => "Thứ 3",
+            DayOfWeek.Wednesday => "Thứ 4",
+            DayOfWeek.Thursday => "Thứ 5",
+            DayOfWeek.Friday => "Thứ 6",
+            DayOfWeek.Saturday => "Thứ 7",
+            DayOfWeek.Sunday => "CN",
+            _ => ""
+        };
+    }
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">Quản lý phân ca</h3>
+        <div class="d-flex align-items-center bg-white border rounded p-1 shadow-sm">
+            <a asp-action="Index" asp-route-startDate="@currentStart.AddDays(-7).ToString("yyyy-MM-dd")" class="btn btn-sm btn-light border">
+                <i class="bi bi-chevron-left"></i> Tuần trước
+            </a>
+            <span class="mx-4 fw-bold text-primary">
+                @currentStart.ToString("dd/MM/yyyy") - @weekDates.Last().ToString("dd/MM/yyyy")
+            </span>
+            <a asp-action="Index" asp-route-startDate="@currentStart.AddDays(7).ToString("yyyy-MM-dd")" class="btn btn-sm btn-light border">
+                Tuần sau <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
+        <a asp-action="Create" class="btn btn-success shadow-sm">
+            <i class="bi bi-calendar-plus me-1"></i> Thêm ca mới
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0" style="overflow-x: auto;">
+            <table class="table table-bordered mb-0 schedule-table">
+                <thead class="bg-light text-center align-middle" style="font-size: 0.85rem;">
+                    <tr>
+                        <th class="text-start text-uppercase text-muted" style="min-width: 200px; width: 250px;">
+                            Nhân viên
+                        </th>
+                        @foreach (var date in weekDates)
+                        {
+                            <th style="min-width: 140px;">
+                                @GetVietnameseDayOfWeek(date.DayOfWeek), @date.ToString("dd/MM")
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var emp in Model)
+                    {
+                        <tr>
+                            <td class="align-middle bg-light">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle bg-secondary text-white me-2">
+                                        <i class="bi bi-person"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark" style="font-size: 0.9rem;">@emp.FullName</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">@emp.WorkSchedules.Count ca tuần này</div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            @foreach (var date in weekDates)
+                            {
+                                <td class="p-1 align-top cell-hover">
+                                    @{
+                                        // Tìm các ca làm việc của nhân viên này trong ngày cụ thể
+                                        var schedulesToday = emp.WorkSchedules.Where(s => s.WorkDate.Date == date.Date).ToList();
+                                    }
+
+                                    @if (schedulesToday.Any())
+                                    {
+                                        foreach (var schedule in schedulesToday)
+                                        {
+                                            <div class="shift-block mb-1 position-relative">
+
+                                                <a asp-action="Edit" asp-route-id="@schedule.ScheduleId" class="text-decoration-none text-dark d-block">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <span class="fw-bold time-text">@schedule.Shift?.StartTime.ToString(@"hh\:mm") - @schedule.Shift?.EndTime.ToString(@"hh\:mm")</span>
+                                                    </div>
+                                                    <div class="shift-name pe-4">@schedule.Shift?.ShiftName</div>
+                                                </a>
+
+                                                <form asp-action="Delete" asp-route-id="@schedule.ScheduleId" method="post" class="position-absolute top-0 end-0 m-1 z-index-1">
+                                                    <button type="submit" class="btn btn-sm text-danger p-0 border-0 btn-delete-shift" onclick="return confirm('Bạn muốn xóa lịch làm việc này?');" title="Xóa lịch này">
+                                                        <i class="bi bi-x-circle-fill"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        }
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        /* Thêm vào phần style có sẵn */
+        .shift-block {
+            /* ... giữ nguyên các thuộc tính cũ ... */
+            position: relative; /* Thêm cái này để định vị nút Xóa */
+        }
+
+            .shift-block .pe-4 {
+                padding-right: 1.5rem !important; /* Tạo khoảng trống để text không đè lên nút X */
+            }
+
+        .btn-delete-shift {
+            background: transparent;
+            opacity: 0.6;
+            transition: all 0.2s;
+            font-size: 1.1rem; /* Kích thước icon X */
+            line-height: 1;
+        }
+
+            .btn-delete-shift:hover {
+                opacity: 1;
+                transform: scale(1.1);
+            }
+
+        .z-index-1 {
+            z-index: 10;
+        }
+
+        .schedule-table th, .schedule-table td {
+            border-color: #e0e4e8;
+        }
+
+        .avatar-circle {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .cell-hover:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Thiết kế khối lịch làm việc giống ảnh mẫu */
+        .shift-block {
+            background-color: #e8f5e9; /* Màu nền xanh lá nhạt */
+            border-left: 3px solid #2e7d32; /* Viền trái xanh lá đậm */
+            padding: 6px 8px;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+            .shift-block:hover {
+                background-color: #c8e6c9;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+
+            .shift-block .time-text {
+                color: #555;
+                font-size: 0.75rem;
+            }
+
+            .shift-block .shift-name {
+                color: #2e7d32;
+                font-weight: 500;
+            }
+    </style>
+}

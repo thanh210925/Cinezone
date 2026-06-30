@@ -1,0 +1,59 @@
+﻿@model CINEMA.Models.WorkSchedule
+
+@{
+    ViewData["Title"] = "Phân ca làm việc";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid">
+    <div class="mb-4">
+        <h3>Phân ca làm việc mới</h3>
+    </div>
+
+    <div class="card shadow-sm border-0" style="max-width: 600px;">
+        <div class="card-body p-4">
+            <form asp-action="Create" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="WorkDate" class="form-label fw-bold">Ngày làm việc <span class="text-danger">*</span></label>
+                    <input asp-for="WorkDate" type="date" class="form-control" />
+                    <span asp-validation-for="WorkDate" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="AdminId" class="form-label fw-bold">Nhân viên <span class="text-danger">*</span></label>
+                    <select asp-for="AdminId" class="form-select" asp-items="ViewBag.AdminId">
+                        <option value="">-- Chọn nhân viên --</option>
+                    </select>
+                    <span asp-validation-for="AdminId" class="text-danger"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="ShiftId" class="form-label fw-bold">Ca làm việc <span class="text-danger">*</span></label>
+                    <select asp-for="ShiftId" class="form-select" asp-items="ViewBag.ShiftId">
+                        <option value="">-- Chọn ca làm --</option>
+                    </select>
+                    <span asp-validation-for="ShiftId" class="text-danger"></span>
+                </div>
+
+                <hr class="my-4" />
+
+                <div class="d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Quay lại
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check2-circle"></i> Xác nhận phân ca
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

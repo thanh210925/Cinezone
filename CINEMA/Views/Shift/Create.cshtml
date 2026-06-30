@@ -1,0 +1,57 @@
+﻿@model CINEMA.Models.Shift
+
+@{
+    ViewData["Title"] = "Thêm ca làm";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid">
+    <div class="mb-4">
+        <h3>Thêm ca làm việc mới</h3>
+    </div>
+
+    <div class="card shadow-sm border-0" style="max-width: 600px;">
+        <div class="card-body p-4">
+            <form asp-action="Create" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="ShiftName" class="form-label fw-bold">Tên ca làm <span class="text-danger">*</span></label>
+                    <input asp-for="ShiftName" class="form-control" placeholder="Ví dụ: Ca Sáng, Ca Chiều..." autocomplete="off" />
+                    <span asp-validation-for="ShiftName" class="text-danger"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="StartTime" class="form-label fw-bold">Giờ bắt đầu <span class="text-danger">*</span></label>
+                        <input asp-for="StartTime" type="time" class="form-control" />
+                        <span asp-validation-for="StartTime" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="EndTime" class="form-label fw-bold">Giờ kết thúc <span class="text-danger">*</span></label>
+                        <input asp-for="EndTime" type="time" class="form-control" />
+                        <span asp-validation-for="EndTime" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <div class="d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Quay lại
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Lưu ca làm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
