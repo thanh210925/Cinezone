@@ -71,11 +71,11 @@ namespace CINEMA.Controllers
         // POST: Payroll/Calculate
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Calculate(int month, int year, decimal baseSalaryPerDay)
+        public async Task<IActionResult> Calculate(int month, int year, decimal baseSalaryPerHour)
         {
-            if (baseSalaryPerDay <= 0)
+            if (baseSalaryPerHour <= 0)
             {
-                ModelState.AddModelError("BaseSalaryPerDay", "Mức lương cơ bản ngày công phải lớn hơn 0");
+                ModelState.AddModelError("BaseSalaryPerHour", "Mức lương cơ bản mỗi giờ công phải lớn hơn 0");
                 ViewBag.Month = month;
                 ViewBag.Year = year;
                 return View();
@@ -118,14 +118,13 @@ namespace CINEMA.Controllers
                     continue;
                 }
 
-                // 1. Tính số ngày đi làm thực tế
-                int workingDays = attendanceLogs
-                    .Where(a => a.AdminId == admin.AdminId)
-                    .Select(a => a.Date.Date)
-                    .Distinct()
-                    .Count();
+                // 1. Tính tổng số giờ làm việc thực tế (giờ, phút, giây) từ chấm công
+                double totalSecs = attendanceLogs
+                    .Where(a => a.AdminId == admin.AdminId && a.CheckInTime.HasValue && a.CheckOutTime.HasValue && a.CheckOutTime > a.CheckInTime)
+                    .Sum(a => (a.CheckOutTime.Value - a.CheckInTime.Value).TotalSeconds);
+                decimal workingHours = Math.Round((decimal)totalSecs / 3600m, 2);
 
-                // 2. Tính số ngày nghỉ phép có lương (ví dụ: "Nghỉ phép năm" hoặc chứa từ "phép")
+                // 2. Tính số giờ nghỉ phép có lương (ví dụ: "Nghỉ phép năm" hoặc chứa từ "phép", mỗi ngày = 8 tiếng)
                 int paidLeaveDays = 0;
                 var myLeaves = approvedLeaves.Where(l => l.AdminId == admin.AdminId).ToList();
                 foreach (var leave in myLeaves)
@@ -141,6 +140,7 @@ namespace CINEMA.Controllers
                         }
                     }
                 }
+                decimal paidLeaveHours = paidLeaveDays * 8.0m;
 
                 // 3. Hệ số lương
                 decimal coeff = admin.Position?.SalaryCoefficient ?? 1.0m;
@@ -164,11 +164,11 @@ namespace CINEMA.Controllers
                     isNew = true;
                 }
 
-                payroll.WorkingDays = workingDays;
-                payroll.PaidLeaveDays = paidLeaveDays;
+                payroll.WorkingHours = workingHours;
+                payroll.PaidLeaveHours = paidLeaveHours;
                 payroll.SalaryCoefficient = coeff;
-                payroll.BaseSalaryPerDay = baseSalaryPerDay;
-                payroll.TotalSalary = (workingDays + paidLeaveDays) * baseSalaryPerDay * coeff + payroll.Bonus - payroll.Deductions;
+                payroll.BaseSalaryPerHour = baseSalaryPerHour;
+                payroll.TotalSalary = (workingHours + paidLeaveHours) * baseSalaryPerHour * coeff + payroll.Bonus - payroll.Deductions;
                 
                 if (isNew)
                 {
@@ -209,7 +209,7 @@ namespace CINEMA.Controllers
         // POST: Payroll/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("PayrollId,AdminId,Month,Year,WorkingDays,PaidLeaveDays,SalaryCoefficient,BaseSalaryPerDay,Bonus,Deductions,TotalSalary,Status,Notes")] Payroll payroll)
+        public async Task<IActionResult> Edit(int id, [Bind("PayrollId,AdminId,Month,Year,WorkingHours,PaidLeaveHours,SalaryCoefficient,BaseSalaryPerHour,Bonus,Deductions,TotalSalary,Status,Notes")] Payroll payroll)
         {
             if (id != payroll.PayrollId) return NotFound();
 
@@ -236,7 +236,7 @@ namespace CINEMA.Controllers
                     }
 
                     // Tính lại tổng lương trước khi lưu để đảm bảo chính xác
-                    payroll.TotalSalary = (payroll.WorkingDays + payroll.PaidLeaveDays) * payroll.BaseSalaryPerDay * payroll.SalaryCoefficient + payroll.Bonus - payroll.Deductions;
+                    payroll.TotalSalary = (payroll.WorkingHours + payroll.PaidLeaveHours) * payroll.BaseSalaryPerHour * payroll.SalaryCoefficient + payroll.Bonus - payroll.Deductions;
 
                     _context.Update(payroll);
                     await _context.SaveChangesAsync();
@@ -310,7 +310,25 @@ namespace CINEMA.Controllers
             if (string.IsNullOrEmpty(adminIdStr)) return Unauthorized();
 
             var superAdmin = await _context.Admins.FindAsync(int.Parse(adminIdStr));
-            if (superAdmin == null || superAdmin.PasswordHash != confirmPassword)
+            if (superAdmin == null) return NotFound();
+
+            bool isPasswordCorrect = false;
+            try
+            {
+                isPasswordCorrect = BCrypt.Net.BCrypt.Verify(confirmPassword, superAdmin.PasswordHash);
+            }
+            catch
+            {
+                isPasswordCorrect = (superAdmin.PasswordHash == confirmPassword);
+                if (isPasswordCorrect)
+                {
+                    // Tự động nâng cấp mật khẩu sang BCrypt
+                    superAdmin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(confirmPassword);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            if (!isPasswordCorrect)
             {
                 TempData["Error"] = "Mật khẩu xác nhận không chính xác! Không thể mở khóa bảng lương.";
                 return RedirectToAction(nameof(Index), new { month = payroll.Month, year = payroll.Year });

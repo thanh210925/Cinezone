@@ -561,8 +561,10 @@ public partial class CinemaContext : DbContext
         {
             entity.ToTable("Payrolls");
             entity.HasKey(e => e.PayrollId);
+            entity.Property(e => e.WorkingHours).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PaidLeaveHours).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.SalaryCoefficient).HasColumnType("decimal(10, 2)");
-            entity.Property(e => e.BaseSalaryPerDay).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.BaseSalaryPerHour).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Bonus).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Deductions).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.TotalSalary).HasColumnType("decimal(18, 2)");

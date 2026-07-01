@@ -18,19 +18,21 @@ namespace CINEMA.Models
         [Required]
         public int Year { get; set; }
 
-        // Số ngày đi làm thực tế (IsApproved = true trong bảng Attendance)
-        public int WorkingDays { get; set; }
+        // Số giờ đi làm thực tế (Tính từ CheckInTime đến CheckOutTime trong bảng Attendance)
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal WorkingHours { get; set; }
 
-        // Số ngày nghỉ được duyệt có lương (ví dụ: Nghỉ phép năm)
-        public int PaidLeaveDays { get; set; }
+        // Số giờ nghỉ được duyệt có lương (ví dụ: Nghỉ phép năm quy đổi sang giờ)
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal PaidLeaveHours { get; set; }
 
         // Hệ số lương tại thời điểm tính lương
         [Column(TypeName = "decimal(10, 2)")]
         public decimal SalaryCoefficient { get; set; } = 1.0m;
 
-        // Lương cơ bản mỗi ngày công
+        // Lương cơ bản mỗi giờ công
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal BaseSalaryPerDay { get; set; }
+        public decimal BaseSalaryPerHour { get; set; }
 
         // Phụ cấp / Thưởng thêm
         [Column(TypeName = "decimal(18, 2)")]
@@ -40,7 +42,7 @@ namespace CINEMA.Models
         [Column(TypeName = "decimal(18, 2)")]
         public decimal Deductions { get; set; } = 0;
 
-        // Tổng lương thực nhận: (WorkingDays + PaidLeaveDays) * BaseSalaryPerDay * SalaryCoefficient + Bonus - Deductions
+        // Tổng lương thực nhận: (WorkingHours + PaidLeaveHours) * BaseSalaryPerHour * SalaryCoefficient + Bonus - Deductions
         [Column(TypeName = "decimal(18, 2)")]
         public decimal TotalSalary { get; set; }
 

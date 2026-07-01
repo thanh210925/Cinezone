@@ -151,8 +151,8 @@
                         <th class="ps-4">Nhân viên</th>
                         <th>Chức vụ</th>
                         <th class="text-center">Hệ số</th>
-                        <th class="text-center">Ngày công (A + B)</th>
-                        <th class="text-end">Lương/ngày</th>
+                        <th class="text-center">Giờ công (A + B)</th>
+                        <th class="text-end">Lương/giờ</th>
                         <th class="text-end">Thưởng</th>
                         <th class="text-end">Khấu trừ</th>
                         <th class="text-end">Thực nhận</th>
@@ -187,12 +187,12 @@
                                 <td>@item.Admin?.Position?.PositionName</td>
                                 <td class="text-center fw-semibold text-secondary">@item.SalaryCoefficient</td>
                                 <td class="text-center">
-                                    <span class="fw-bold text-dark">@(item.WorkingDays + item.PaidLeaveDays) ngày</span>
+                                    <span class="fw-bold text-dark">@(item.WorkingHours + item.PaidLeaveHours) giờ</span>
                                     <div class="small text-muted" style="font-size: 0.75rem;">
-                                        (Làm: @item.WorkingDays ngày - Phép: @item.PaidLeaveDays ngày)
+                                        (Làm: @item.WorkingHours giờ - Phép: @item.PaidLeaveHours giờ)
                                     </div>
                                 </td>
-                                <td class="text-end fw-semibold">@string.Format("{0:N0} đ", item.BaseSalaryPerDay)</td>
+                                <td class="text-end fw-semibold">@string.Format("{0:N0} đ", item.BaseSalaryPerHour)</td>
                                 <td class="text-end text-success fw-semibold">+@string.Format("{0:N0} đ", item.Bonus)</td>
                                 <td class="text-end text-danger fw-semibold">-@string.Format("{0:N0} đ", item.Deductions)</td>
                                 <td class="text-end fw-bold text-primary">@string.Format("{0:N0} đ", item.TotalSalary)</td>

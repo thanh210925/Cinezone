@@ -43,27 +43,27 @@
                         </div>
 
                         <div class="row g-4 mb-4">
-                            <!-- Working Days -->
+                            <!-- Working Hours -->
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold text-dark">Số ngày đi làm thực tế (A)</label>
-                                <input type="number" asp-for="WorkingDays" class="form-control form-control-lg calc-trigger" min="0" max="31" required />
-                                <span asp-validation-for="WorkingDays" class="text-danger small"></span>
+                                <label class="form-label fw-semibold text-dark">Số giờ đi làm thực tế (A)</label>
+                                <input type="number" asp-for="WorkingHours" class="form-control form-control-lg calc-trigger" step="0.01" min="0" required />
+                                <span asp-validation-for="WorkingHours" class="text-danger small"></span>
                             </div>
 
-                            <!-- Paid Leave Days -->
+                            <!-- Paid Leave Hours -->
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold text-dark">Số ngày nghỉ phép có lương (B)</label>
-                                <input type="number" asp-for="PaidLeaveDays" class="form-control form-control-lg calc-trigger" min="0" max="31" required />
-                                <span asp-validation-for="PaidLeaveDays" class="text-danger small"></span>
+                                <label class="form-label fw-semibold text-dark">Số giờ nghỉ phép có lương (B)</label>
+                                <input type="number" asp-for="PaidLeaveHours" class="form-control form-control-lg calc-trigger" step="0.01" min="0" required />
+                                <span asp-validation-for="PaidLeaveHours" class="text-danger small"></span>
                             </div>
                         </div>
 
                         <div class="row g-4 mb-4">
-                            <!-- Base Salary per Day -->
+                            <!-- Base Salary per Hour -->
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold text-dark">Lương ngày công (VND)</label>
-                                <input type="number" asp-for="BaseSalaryPerDay" class="form-control form-control-lg calc-trigger" min="0" required />
-                                <span asp-validation-for="BaseSalaryPerDay" class="text-danger small"></span>
+                                <label class="form-label fw-semibold text-dark">Lương giờ công (VND)</label>
+                                <input type="number" asp-for="BaseSalaryPerHour" class="form-control form-control-lg calc-trigger" min="0" required />
+                                <span asp-validation-for="BaseSalaryPerHour" class="text-danger small"></span>
                             </div>
 
                             <!-- Salary Coefficient (ReadOnly or Editable) -->
@@ -137,9 +137,9 @@
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const workingDaysInput = document.getElementById("WorkingDays");
-            const paidLeaveDaysInput = document.getElementById("PaidLeaveDays");
-            const baseSalaryInput = document.getElementById("BaseSalaryPerDay");
+            const workingHoursInput = document.getElementById("WorkingHours");
+            const paidLeaveHoursInput = document.getElementById("PaidLeaveHours");
+            const baseSalaryInput = document.getElementById("BaseSalaryPerHour");
             const coefficientInput = document.getElementById("SalaryCoefficient");
             const bonusInput = document.getElementById("Bonus");
             const deductionsInput = document.getElementById("Deductions");
@@ -147,15 +147,15 @@
             const totalSalaryDisplay = document.getElementById("totalSalaryDisplay");
 
             function calculateSalary() {
-                const workingDays = parseInt(workingDaysInput.value) || 0;
-                const paidLeaveDays = parseInt(paidLeaveDaysInput.value) || 0;
+                const workingHours = parseFloat(workingHoursInput.value) || 0;
+                const paidLeaveHours = parseFloat(paidLeaveHoursInput.value) || 0;
                 const baseSalary = parseFloat(baseSalaryInput.value) || 0;
                 const coefficient = parseFloat(coefficientInput.value) || 0;
                 const bonus = parseFloat(bonusInput.value) || 0;
                 const deductions = parseFloat(deductionsInput.value) || 0;
 
-                // Công thức: (WorkingDays + PaidLeaveDays) * BaseSalaryPerDay * SalaryCoefficient + Bonus - Deductions
-                let totalSalary = ((workingDays + paidLeaveDays) * baseSalary * coefficient) + bonus - deductions;
+                // Công thức: (WorkingHours + PaidLeaveHours) * BaseSalaryPerHour * SalaryCoefficient + Bonus - Deductions
+                let totalSalary = ((workingHours + paidLeaveHours) * baseSalary * coefficient) + bonus - deductions;
                 if (totalSalary < 0) totalSalary = 0;
 
                 // Cập nhật giá trị vào trường input ẩn và hiển thị lên màn hình
