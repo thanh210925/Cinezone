@@ -1,0 +1,96 @@
+@{
+    ViewData["Title"] = "Tính lương mới";
+    Layout = "_AdminLayout";
+
+    int currentMonth = ViewBag.Month;
+    int currentYear = ViewBag.Year;
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <!-- Back button -->
+            <a asp-action="Index" class="btn btn-link link-secondary p-0 mb-3 text-decoration-none d-flex align-items-center gap-1">
+                <i class="bi bi-arrow-left"></i> Quay lại danh sách
+            </a>
+
+            <div class="card border-0 shadow-lg rounded-3">
+                <div class="card-header bg-primary text-white py-4 px-4 border-bottom-0 rounded-top-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="fs-1"><i class="bi bi-calculator"></i></div>
+                        <div>
+                            <h4 class="mb-1 fw-bold">Tính lương tháng mới</h4>
+                            <p class="mb-0 text-white-50 small">Khởi tạo và tính toán tự động bảng lương cho tất cả nhân viên.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4 p-md-5">
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            <div asp-validation-summary="All" class="small"></div>
+                        </div>
+                    }
+
+                    <form asp-action="Calculate" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark">Tháng tính lương</label>
+                                <select name="month" class="form-select form-select-lg">
+                                    @for (int i = 1; i <= 12; i++)
+                                    {
+                                        <!option value="@i" @(i == currentMonth ? "selected" : "")>Tháng @i</!option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark">Năm tính lương</label>
+                                <select name="year" class="form-select form-select-lg">
+                                    @for (int i = DateTime.Now.Year - 2; i <= DateTime.Now.Year + 2; i++)
+                                    {
+                                        <!option value="@i" @(i == currentYear ? "selected" : "")>Năm @i</!option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-dark">Lương cơ bản mỗi ngày công (VND)</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light text-muted border-end-0">đ</span>
+                                <input type="number" name="baseSalaryPerDay" class="form-control border-start-0" placeholder="Ví dụ: 200000" value="200000" step="1000" min="1000" required />
+                            </div>
+                            <div class="form-text text-muted">Mức lương này sẽ được dùng làm mức lương cơ sở cho 1 ngày công thực tế, sau đó nhân với Hệ số chức vụ của mỗi nhân viên.</div>
+                        </div>
+
+                        <!-- Info Card -->
+                        <div class="card border-0 bg-light rounded-3 mb-5">
+                            <div class="card-body p-4">
+                                <h6 class="fw-bold text-primary mb-3"><i class="bi bi-info-circle-fill me-2"></i>Thông tin cách tính toán lương:</h6>
+                                <ul class="mb-0 small text-secondary ps-3 d-flex flex-column gap-2">
+                                    <li><strong>Ngày công đi làm:</strong> Hệ thống tự động đếm số ngày mà nhân viên có chấm công (check-in) và đã được duyệt (`IsApproved = true`).</li>
+                                    <li><strong>Nghỉ phép có lương:</strong> Các đơn xin nghỉ phép có trạng thái "Đã duyệt" và thuộc loại "Nghỉ phép năm".</li>
+                                    <li><strong>Hệ số lương:</strong> Hệ số được thiết lập tại bảng Chức vụ của nhân viên đó (Ví dụ: Nhân viên bán vé = 1.0, Quản lý = 2.0).</li>
+                                    <li><strong>Công thức:</strong> <code>Lương thực nhận = (Ngày đi làm + Nghỉ phép có lương) * Lương/ngày * Hệ số lương + Thưởng - Phạt</code>.</li>
+                                    <li><span class="text-warning fw-bold">Lưu ý:</span> Nếu tháng/năm được chọn đã có bảng lương, các bản ghi chưa thanh toán sẽ được tính toán lại và ghi đè. Các bản ghi đã thanh toán (Paid) sẽ được giữ nguyên.</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex gap-3">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 py-3 shadow-sm fw-bold">
+                                <i class="bi bi-play-circle me-2"></i> Bắt đầu tính toán
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-lg w-100 py-3 fw-bold">
+                                Hủy bỏ
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

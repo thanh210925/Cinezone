@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Http
 @using Microsoft.AspNetCore.Http
 @inject IHttpContextAccessor HttpContextAccessor
 <!DOCTYPE html>
@@ -89,6 +89,11 @@
                     <li>
                         <a asp-controller="Admin" asp-action="ManageLeave" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "ManageLeave" ? "active" : "")">
                             <i class="bi bi-calendar-x"></i><span>Quản lý nghỉ phép</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Payroll" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Payroll" ? "active" : "")">
+                            <i class="bi bi-cash-coin"></i><span>Quản lý lương</span>
                         </a>
                     </li>
 

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CINEMA.Models
@@ -81,5 +81,6 @@ namespace CINEMA.Models
         }
 = new List<ActivityLog>();
         public virtual ICollection<WorkSchedule> WorkSchedules { get; set; } = new List<WorkSchedule>();
+        public virtual ICollection<Payroll> Payrolls { get; set; } = new List<Payroll>();
     }
 }

@@ -1,0 +1,176 @@
+@model CINEMA.Models.Payroll
+@{
+    ViewData["Title"] = "Điều chỉnh bảng lương";
+    Layout = "_AdminLayout";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <!-- Back button -->
+            <a asp-action="Index" asp-route-month="@Model.Month" asp-route-year="@Model.Year" class="btn btn-link link-secondary p-0 mb-3 text-decoration-none d-flex align-items-center gap-1">
+                <i class="bi bi-arrow-left"></i> Quay lại bảng lương
+            </a>
+
+            <div class="card border-0 shadow-lg rounded-3">
+                <div class="card-header bg-warning text-dark py-4 px-4 border-bottom-0 rounded-top-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="fs-1"><i class="bi bi-pencil-square text-dark"></i></div>
+                        <div>
+                            <h4 class="mb-1 fw-bold">Điều chỉnh chi tiết lương</h4>
+                            <p class="mb-0 text-dark-50 small">Nhân viên: <strong>@Model.Admin?.FullName</strong> | Tháng: @Model.Month/@Model.Year</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4 p-md-5">
+                    <form asp-action="Edit" method="post" id="payrollForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="PayrollId" />
+                        <input type="hidden" asp-for="AdminId" />
+                        <input type="hidden" asp-for="Month" />
+                        <input type="hidden" asp-for="Year" />
+
+                        <!-- Employee Info Section -->
+                        <div class="row g-3 mb-4 p-3 bg-light rounded-3">
+                            <div class="col-sm-6">
+                                <span class="text-muted small">Mã nhân viên:</span>
+                                <div class="fw-bold">@Model.Admin?.EmployeeCode</div>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted small">Chức vụ:</span>
+                                <div class="fw-bold">@Model.Admin?.Position?.PositionName</div>
+                            </div>
+                        </div>
+
+                        <div class="row g-4 mb-4">
+                            <!-- Working Days -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark">Số ngày đi làm thực tế (A)</label>
+                                <input type="number" asp-for="WorkingDays" class="form-control form-control-lg calc-trigger" min="0" max="31" required />
+                                <span asp-validation-for="WorkingDays" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Paid Leave Days -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark">Số ngày nghỉ phép có lương (B)</label>
+                                <input type="number" asp-for="PaidLeaveDays" class="form-control form-control-lg calc-trigger" min="0" max="31" required />
+                                <span asp-validation-for="PaidLeaveDays" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="row g-4 mb-4">
+                            <!-- Base Salary per Day -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark">Lương ngày công (VND)</label>
+                                <input type="number" asp-for="BaseSalaryPerDay" class="form-control form-control-lg calc-trigger" min="0" required />
+                                <span asp-validation-for="BaseSalaryPerDay" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Salary Coefficient (ReadOnly or Editable) -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark">Hệ số lương chức vụ</label>
+                                <input type="number" asp-for="SalaryCoefficient" class="form-control form-control-lg calc-trigger" step="0.01" min="0.1" required />
+                                <span asp-validation-for="SalaryCoefficient" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="row g-4 mb-4">
+                            <!-- Bonus -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark">Thưởng / Phụ cấp (VND)</label>
+                                <input type="number" asp-for="Bonus" class="form-control form-control-lg calc-trigger" min="0" />
+                                <span asp-validation-for="Bonus" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Deductions -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark">Khấu trừ / Phạt (VND)</label>
+                                <input type="number" asp-for="Deductions" class="form-control form-control-lg calc-trigger" min="0" />
+                                <span asp-validation-for="Deductions" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="row g-4 mb-4">
+                            <!-- Status -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark">Trạng thái thanh toán</label>
+                                <select asp-for="Status" class="form-select form-select-lg">
+                                    <!option value="Unpaid" @(Model.Status == "Unpaid" ? "selected" : "")>Chưa thanh toán</!option>
+                                    <!option value="Paid" @(Model.Status == "Paid" ? "selected" : "")>Đã thanh toán</!option>
+                                </select>
+                                <span asp-validation-for="Status" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Total Salary Display -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-primary">Tổng lương thực lĩnh (Tính toán tự động)</label>
+                                <div class="form-control form-control-lg bg-primary bg-opacity-10 text-primary fw-bold fs-4 d-flex align-items-center justify-content-end" id="totalSalaryDisplay" style="height: calc(3.5rem + 2px);">
+                                    0 đ
+                                </div>
+                                <input type="hidden" asp-for="TotalSalary" id="totalSalaryInput" />
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-dark">Ghi chú chi tiết</label>
+                            <textarea asp-for="Notes" class="form-control" rows="3" placeholder="Nhập lý do thưởng/phạt hoặc ghi chú khác cho nhân viên..."></textarea>
+                            <span asp-validation-for="Notes" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-3">
+                            <button type="submit" class="btn btn-warning btn-lg w-100 py-3 shadow-sm fw-bold">
+                                <i class="bi bi-save me-2"></i> Lưu thay đổi
+                            </button>
+                            <a asp-action="Index" asp-route-month="@Model.Month" asp-route-year="@Model.Year" class="btn btn-outline-secondary btn-lg w-100 py-3 fw-bold">
+                                Hủy bỏ
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const workingDaysInput = document.getElementById("WorkingDays");
+            const paidLeaveDaysInput = document.getElementById("PaidLeaveDays");
+            const baseSalaryInput = document.getElementById("BaseSalaryPerDay");
+            const coefficientInput = document.getElementById("SalaryCoefficient");
+            const bonusInput = document.getElementById("Bonus");
+            const deductionsInput = document.getElementById("Deductions");
+            const totalSalaryInput = document.getElementById("totalSalaryInput");
+            const totalSalaryDisplay = document.getElementById("totalSalaryDisplay");
+
+            function calculateSalary() {
+                const workingDays = parseInt(workingDaysInput.value) || 0;
+                const paidLeaveDays = parseInt(paidLeaveDaysInput.value) || 0;
+                const baseSalary = parseFloat(baseSalaryInput.value) || 0;
+                const coefficient = parseFloat(coefficientInput.value) || 0;
+                const bonus = parseFloat(bonusInput.value) || 0;
+                const deductions = parseFloat(deductionsInput.value) || 0;
+
+                // Công thức: (WorkingDays + PaidLeaveDays) * BaseSalaryPerDay * SalaryCoefficient + Bonus - Deductions
+                let totalSalary = ((workingDays + paidLeaveDays) * baseSalary * coefficient) + bonus - deductions;
+                if (totalSalary < 0) totalSalary = 0;
+
+                // Cập nhật giá trị vào trường input ẩn và hiển thị lên màn hình
+                totalSalaryInput.value = totalSalary.toFixed(0);
+                totalSalaryDisplay.textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalSalary);
+            }
+
+            // Gắn sự kiện lắng nghe sự thay đổi trên tất cả các trường đầu vào
+            const triggers = document.querySelectorAll(".calc-trigger");
+            triggers.forEach(trigger => {
+                trigger.addEventListener("input", calculateSalary);
+            });
+
+            // Chạy tính toán lần đầu khi trang được tải xong
+            calculateSalary();
+        });
+    </script>
+}
