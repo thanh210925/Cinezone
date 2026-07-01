@@ -1,0 +1,331 @@
+@model IEnumerable<CINEMA.Models.Payroll>
+@{
+    ViewData["Title"] = "Quản lý lương";
+    Layout = "_AdminLayout";
+
+    int currentMonth = ViewBag.SelectedMonth;
+    int currentYear = ViewBag.SelectedYear;
+}
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h3 mb-1 text-gray-800 fw-bold">Quản lý tính lương</h2>
+            <p class="text-muted mb-0">Tính toán và quản lý tiền lương của nhân viên dựa trên chấm công thực tế và chức vụ.</p>
+        </div>
+        <a asp-action="Calculate" class="btn btn-primary d-flex align-items-center gap-2 px-4 py-2 shadow-sm">
+            <i class="bi bi-calculator"></i>
+            <span>Tính lương tháng mới</span>
+        </a>
+    </div>
+
+    <!-- Message Alerts -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Stat Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 bg-gradient" style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white;">
+                <div class="card-body py-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-uppercase text-white-50 small fw-bold mb-1">Tổng quỹ lương</h6>
+                            <h4 class="mb-0 fw-bold">@string.Format("{0:N0} đ", ViewBag.TotalSalary)</h4>
+                        </div>
+                        <div class="fs-1 text-white-50"><i class="bi bi-wallet2"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 bg-gradient" style="background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); color: white;">
+                <div class="card-body py-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-uppercase text-white-50 small fw-bold mb-1">Đã thanh toán</h6>
+                            <h4 class="mb-0 fw-bold">@string.Format("{0:N0} đ", ViewBag.PaidSalary)</h4>
+                        </div>
+                        <div class="fs-1 text-white-50"><i class="bi bi-check-circle"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 bg-gradient" style="background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); color: white;">
+                <div class="card-body py-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-uppercase text-white-50 small fw-bold mb-1">Chưa thanh toán</h6>
+                            <h4 class="mb-0 fw-bold">@string.Format("{0:N0} đ", ViewBag.UnpaidSalary)</h4>
+                        </div>
+                        <div class="fs-1 text-white-50"><i class="bi bi-hourglass-split"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 bg-gradient" style="background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); color: white;">
+                <div class="card-body py-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="text-uppercase text-white-50 small fw-bold mb-1">Nhân viên tính lương</h6>
+                            <h4 class="mb-0 fw-bold">@ViewBag.EmployeeCount người</h4>
+                        </div>
+                        <div class="fs-1 text-white-50"><i class="bi bi-people"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter and Search Card -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-body">
+            <form method="get" asp-action="Index" class="row g-3 align-items-center">
+                <div class="col-md-2 col-6">
+                    <label class="form-label small text-muted">Tháng</label>
+                    <select name="month" class="form-select">
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            <!option value="@i" @(i == currentMonth ? "selected" : "")>Tháng @i</!option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2 col-6">
+                    <label class="form-label small text-muted">Năm</label>
+                    <select name="year" class="form-select">
+                        @for (int i = DateTime.Now.Year - 2; i <= DateTime.Now.Year + 2; i++)
+                        {
+                            <!option value="@i" @(i == currentYear ? "selected" : "")>Năm @i</!option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label small text-muted">Tìm kiếm nhân viên</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" name="search" class="form-control border-start-0" placeholder="Tên nhân viên hoặc mã nhân viên..." value="@ViewBag.SearchQuery" />
+                    </div>
+                </div>
+                <div class="col-md-3 d-flex gap-2 pt-4">
+                    <button type="submit" class="btn btn-secondary w-100 px-3 py-2 d-flex align-items-center justify-content-center gap-1">
+                        <i class="bi bi-funnel"></i> Lọc kết quả
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary w-100 py-2 text-decoration-none text-center">Xóa lọc</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payroll Table Card -->
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom-0">
+            <h5 class="mb-0 fw-bold text-gray-800">Chi tiết bảng lương tháng @currentMonth/@currentYear</h5>
+            <div class="d-flex gap-2">
+                <a href="@Url.Action("PayrollReport", "Admin", new { month = currentMonth, year = currentYear })" class="btn btn-outline-info btn-sm d-flex align-items-center gap-1">
+                    <i class="bi bi-calendar3"></i> Xem bảng công
+                </a>
+                <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onclick="window.print()">
+                    <i class="bi bi-printer"></i> In bảng lương
+                </button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Nhân viên</th>
+                        <th>Chức vụ</th>
+                        <th class="text-center">Hệ số</th>
+                        <th class="text-center">Ngày công (A + B)</th>
+                        <th class="text-end">Lương/ngày</th>
+                        <th class="text-end">Thưởng</th>
+                        <th class="text-end">Khấu trừ</th>
+                        <th class="text-end">Thực nhận</th>
+                        <th class="text-center">Trạng thái</th>
+                        <th class="text-center pe-4" width="220">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;">
+                                            @if (!string.IsNullOrEmpty(item.Admin?.FullName) && item.Admin.FullName.Length > 0)
+                                            {
+                                                @item.Admin.FullName.Substring(0, 1).ToUpper()
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-person"></i>
+                                            }
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">@item.Admin?.FullName</h6>
+                                            <small class="text-muted">MSNV: @item.Admin?.EmployeeCode</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>@item.Admin?.Position?.PositionName</td>
+                                <td class="text-center fw-semibold text-secondary">@item.SalaryCoefficient</td>
+                                <td class="text-center">
+                                    <span class="fw-bold text-dark">@(item.WorkingDays + item.PaidLeaveDays) ngày</span>
+                                    <div class="small text-muted" style="font-size: 0.75rem;">
+                                        (Làm: @item.WorkingDays ngày - Phép: @item.PaidLeaveDays ngày)
+                                    </div>
+                                </td>
+                                <td class="text-end fw-semibold">@string.Format("{0:N0} đ", item.BaseSalaryPerDay)</td>
+                                <td class="text-end text-success fw-semibold">+@string.Format("{0:N0} đ", item.Bonus)</td>
+                                <td class="text-end text-danger fw-semibold">-@string.Format("{0:N0} đ", item.Deductions)</td>
+                                <td class="text-end fw-bold text-primary">@string.Format("{0:N0} đ", item.TotalSalary)</td>
+                                <td class="text-center">
+                                    @if (item.Status == "Paid")
+                                    {
+                                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill small">
+                                            <i class="bi bi-check2-circle me-1"></i> Đã thanh toán
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill small">
+                                            <i class="bi bi-hourglass-split me-1"></i> Chưa thanh toán
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-center pe-4">
+                                     <div class="d-flex justify-content-center align-items-center gap-2">
+                                         @if (item.Status != "Paid")
+                                         {
+                                             <form asp-action="MarkAsPaid" asp-route-id="@item.PayrollId" method="post" style="display:inline;" onsubmit="return confirm('Xác nhận đã thanh toán lương cho nhân viên @item.Admin?.FullName?\n\nHành động này sẽ khóa bản ghi lương tháng @currentMonth/@currentYear và KHÔNG thể chỉnh sửa hay xóa được nữa.')">
+                                                 <button type="submit" class="btn btn-sm btn-success d-flex align-items-center gap-1" title="Thanh toán lương">
+                                                     <i class="bi bi-cash"></i> Trả lương
+                                                 </button>
+                                             </form>
+                                             <a asp-action="Edit" asp-route-id="@item.PayrollId" class="btn btn-sm btn-outline-warning d-flex align-items-center gap-1" title="Chỉnh sửa">
+                                                 <i class="bi bi-pencil-square"></i> Sửa
+                                             </a>
+                                             <form asp-action="Delete" asp-route-id="@item.PayrollId" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bản ghi lương của nhân viên này không?')" style="display:inline;">
+                                                 <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" title="Xóa">
+                                                     <i class="bi bi-trash"></i> Xóa
+                                                 </button>
+                                             </form>
+                                         }
+                                         else
+                                         {
+                                             <div class="d-flex align-items-center gap-2">
+                                                 <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill small">
+                                                     <i class="bi bi-lock-fill me-1"></i> Đã khóa
+                                                 </span>
+                                                 <button type="button" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" data-id="@item.PayrollId" data-name="@item.Admin?.FullName" data-bs-toggle="modal" data-bs-target="#unlockModal" title="Mở khóa để sửa lại">
+                                                     <i class="bi bi-unlock"></i> Mở khóa
+                                                 </button>
+                                             </div>
+                                         }
+                                     </div>
+                                 </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="bi bi-folder-x fs-1 mb-3 d-block"></i>
+                                    <p class="mb-0 fs-5">Chưa có bảng lương cho tháng @currentMonth/@currentYear.</p>
+                                    <p class="small">Bấm nút "Tính lương tháng mới" phía trên để tạo bảng lương tự động.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Mở Khóa Bảng Lương -->
+<div class="modal fade" id="unlockModal" tabindex="-1" aria-labelledby="unlockModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <form asp-action="Unlock" method="post" id="unlockForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="unlockPayrollId" />
+                
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold" id="unlockModalLabel">
+                        <i class="bi bi-unlock-fill me-2"></i> Xác nhận mở khóa bảng lương
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-warning small mb-3">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Hành động này sẽ chuyển trạng thái bảng lương của nhân viên về <strong>Chưa thanh toán (Unpaid)</strong>, cho phép chỉnh sửa hoặc tính toán lại.
+                    </div>
+                    
+                    <p class="mb-3">Bạn đang yêu cầu mở khóa bảng lương của nhân viên: <strong id="unlockEmployeeName" class="text-danger"></strong></p>
+                    
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label fw-semibold">Nhập mật khẩu SuperAdmin để xác nhận:</label>
+                        <input type="password" name="confirmPassword" id="confirmPassword" class="form-control form-control-lg" placeholder="Nhập mật khẩu của bạn..." required autocomplete="off" />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-danger px-4">Xác nhận mở khóa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const unlockModal = document.getElementById('unlockModal');
+            if (unlockModal) {
+                unlockModal.addEventListener('show.bs.modal', function (event) {
+                    // Button that triggered the modal
+                    const button = event.relatedTarget;
+                    // Extract info from data-* attributes
+                    const payrollId = button.getAttribute('data-id');
+                    const employeeName = button.getAttribute('data-name');
+                    
+                    // Update the modal's content.
+                    const modalPayrollId = unlockModal.querySelector('#unlockPayrollId');
+                    const modalEmployeeName = unlockModal.querySelector('#unlockEmployeeName');
+                    const passwordInput = unlockModal.querySelector('#confirmPassword');
+                    
+                    modalPayrollId.value = payrollId;
+                    modalEmployeeName.textContent = employeeName;
+                    passwordInput.value = ''; // Reset password input
+                });
+                
+                // Focus on password input when modal is shown
+                unlockModal.addEventListener('shown.bs.modal', function () {
+                    const passwordInput = unlockModal.querySelector('#confirmPassword');
+                    passwordInput.focus();
+                });
+            }
+        });
+    </script>
+}

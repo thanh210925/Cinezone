@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http; // Thêm thư viện này
@@ -556,6 +556,25 @@ public partial class CinemaContext : DbContext
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // Cấu hình bảng Lương (Payroll)
+        modelBuilder.Entity<Payroll>(entity =>
+        {
+            entity.ToTable("Payrolls");
+            entity.HasKey(e => e.PayrollId);
+            entity.Property(e => e.SalaryCoefficient).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.BaseSalaryPerDay).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Bonus).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Deductions).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotalSalary).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Status).HasMaxLength(20);
+            entity.Property(e => e.Notes).HasMaxLength(500);
+
+            entity.HasOne(d => d.Admin)
+                  .WithMany(p => p.Payrolls)
+                  .HasForeignKey(d => d.AdminId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<UserActivityLog>()
     .HasKey(x => x.LogId);
 
@@ -577,6 +596,7 @@ public partial class CinemaContext : DbContext
     public virtual DbSet<Attendance> Attendance { get; set; }
     public virtual DbSet<LeaveRequest> LeaveRequests { get; set; }
     public virtual DbSet<LeaveType> LeaveTypes { get; set; }
+    public virtual DbSet<Payroll> Payrolls { get; set; }
 }
 
 
