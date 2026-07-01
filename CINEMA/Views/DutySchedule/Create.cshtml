@@ -1,59 +1,181 @@
 ﻿@model CINEMA.Models.WorkSchedule
-
 @{
-    ViewData["Title"] = "Phân ca làm việc";
+    ViewData["Title"] = "Phân ca làm việc hàng loạt";
     Layout = "_AdminLayout";
+    var shifts = ViewBag.Shifts as List<CINEMA.Models.Shift>;
 }
 
 <div class="container-fluid">
     <div class="mb-4">
-        <h3>Phân ca làm việc mới</h3>
+        <h3>Phân ca làm việc theo tháng</h3>
     </div>
 
-    <div class="card shadow-sm border-0" style="max-width: 600px;">
-        <div class="card-body p-4">
-            <form asp-action="Create" method="post">
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+    <form asp-action="Create" method="post" id="scheduleForm">
+        <div asp-validation-summary="All" class="text-danger fw-bold mb-3"></div>
 
-                <div class="mb-3">
-                    <label asp-for="WorkDate" class="form-label fw-bold">Ngày làm việc <span class="text-danger">*</span></label>
-                    <input asp-for="WorkDate" type="date" class="form-control" />
-                    <span asp-validation-for="WorkDate" class="text-danger"></span>
+        <div class="row mb-4">
+            <!-- Chọn nhân viên -->
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary mb-3">1. Thông tin chung</h5>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nhân viên <span class="text-danger">*</span></label>
+                            <select name="AdminId" class="form-select" asp-items="ViewBag.AdminId" required>
+                                <option value="">-- Chọn nhân viên --</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Chọn Tháng/Năm <span class="text-danger">*</span></label>
+                            <input type="month" id="MonthYear" class="form-control" value="@DateTime.Now.ToString("yyyy-MM")" required onchange="generateTable()" />
+                        </div>
+
+                        <div class="alert alert-info mt-4" style="font-size: 0.85rem;">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Chọn tháng xong, bảng danh sách ngày sẽ tự động cập nhật bên phải. Hãy tích vào các ca muốn phân công.
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                <div class="mb-3">
-                    <label asp-for="AdminId" class="form-label fw-bold">Nhân viên <span class="text-danger">*</span></label>
-                    <select asp-for="AdminId" class="form-select" asp-items="ViewBag.AdminId">
-                        <option value="">-- Chọn nhân viên --</option>
-                    </select>
-                    <span asp-validation-for="AdminId" class="text-danger"></span>
+            <!-- Lưới chọn ngày và ca -->
+            <div class="col-md-8">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title text-success mb-0">2. Lịch làm việc trong tháng</h5>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="checkAll()">
+                                <i class="bi bi-check-all"></i> Chọn / Bỏ chọn tất cả
+                            </button>
+                        </div>
+
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-bordered table-hover schedule-matrix">
+                                <thead class="table-light position-sticky top-0" style="z-index: 1;">
+                                    <tr class="text-center align-middle">
+                                        <th style="width: 150px;">Ngày</th>
+                                        @foreach (var shift in shifts)
+                                        {
+                                            <th>
+                                                <div>@shift.ShiftName</div>
+                                                <div class="text-muted fw-normal" style="font-size: 0.75rem;">
+                                                    @shift.StartTime.ToString(@"hh\:mm") - @shift.EndTime.ToString(@"hh\:mm")
+                                                </div>
+                                            </th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody id="scheduleBody">
+                                    <!-- Javascript sẽ đổ dữ liệu vào đây -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="mb-4">
-                    <label asp-for="ShiftId" class="form-label fw-bold">Ca làm việc <span class="text-danger">*</span></label>
-                    <select asp-for="ShiftId" class="form-select" asp-items="ViewBag.ShiftId">
-                        <option value="">-- Chọn ca làm --</option>
-                    </select>
-                    <span asp-validation-for="ShiftId" class="text-danger"></span>
-                </div>
-
-                <hr class="my-4" />
-
-                <div class="d-flex justify-content-between">
-                    <a asp-action="Index" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Quay lại
-                    </a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check2-circle"></i> Xác nhận phân ca
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-3 d-flex justify-content-between">
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Quay lại
+                </a>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-save me-1"></i> Lưu toàn bộ lịch
+                </button>
+            </div>
+        </div>
+    </form>
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    <script>
+        // Lấy danh sách ca làm việc từ C# sang Javascript
+        const shiftList = [
+            @foreach (var s in shifts)
+            {
+                    <text>{ id: '@s.ShiftId', name: '@s.ShiftName' },</text>
+            }
+        ];
+
+        // Hàm dịch thứ sang Tiếng Việt
+        function getVietnameseDay(dayIndex) {
+            const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+            return days[dayIndex];
+        }
+
+        // Hàm vẽ bảng khi trang được tải hoặc khi thay đổi tháng
+        function generateTable() {
+            const monthVal = document.getElementById('MonthYear').value; // Định dạng "yyyy-MM"
+            if (!monthVal) return;
+
+            const parts = monthVal.split('-');
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]);
+
+            // Tìm số ngày trong tháng (bằng cách set ngày = 0 của tháng tiếp theo)
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const tbody = document.getElementById('scheduleBody');
+
+            // Xóa dữ liệu cũ
+            tbody.innerHTML = '';
+
+            // Vẽ các hàng (mỗi hàng 1 ngày)
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateObj = new Date(year, month - 1, d);
+                const dayOfWeek = dateObj.getDay();
+
+                // Chuẩn hóa chuỗi ngày: "yyyy-MM-dd"
+                const dateString = year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+
+                const tr = document.createElement('tr');
+
+                // Nếu là thứ 7 hoặc CN thì bôi nền xám nhẹ cho dễ nhìn
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                    tr.classList.add('table-secondary');
+                }
+
+                // Cột: Hiển thị Ngày tháng
+                const tdDate = document.createElement('td');
+                tdDate.className = 'align-middle';
+                tdDate.innerHTML = `<span class="${dayOfWeek === 0 ? 'text-danger fw-bold' : 'fw-bold'}">${getVietnameseDay(dayOfWeek)}</span>, ${String(d).padStart(2, '0')}/${String(month).padStart(2, '0')}`;
+                tr.appendChild(tdDate);
+
+                // Các cột: Checkbox của từng Ca làm
+                shiftList.forEach(shift => {
+                    const td = document.createElement('td');
+                    td.className = 'text-center align-middle';
+
+                    // Giá trị (value) gửi đi: "yyyy-MM-dd_ShiftId"
+                    const checkboxHtml = `
+                        <input type="checkbox" class="form-check-input matrix-checkbox"
+                               name="SelectedSchedules"
+                               value="${dateString}_${shift.id}"
+                               style="width: 20px; height: 20px; cursor: pointer;">
+                    `;
+                    td.innerHTML = checkboxHtml;
+                    tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+            }
+        }
+
+        // Chức năng tick Chọn tất cả / Bỏ chọn tất cả
+        let isAllChecked = false;
+        function checkAll() {
+            isAllChecked = !isAllChecked;
+            const checkboxes = document.querySelectorAll('.matrix-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = isAllChecked;
+            });
+        }
+
+        // Chạy lần đầu khi load trang
+        document.addEventListener("DOMContentLoaded", function() {
+            generateTable();
+        });
+    </script>
 }

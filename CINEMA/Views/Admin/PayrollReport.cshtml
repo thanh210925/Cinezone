@@ -3,7 +3,6 @@
     ViewData["Title"] = "Bảng công tháng";
     Layout = "_AdminLayout";
 }
-
 <div class="container mt-4">
     <div class="card shadow">
         <div class="card-header bg-success text-white">
@@ -15,21 +14,25 @@
                     <tr>
                         <th>Mã NV</th>
                         <th>Tên nhân viên</th>
-                        <th>Số ngày công (Đã duyệt)</th>
+                        <th>Số ngày làm</th>
+                        <th>Tổng thời gian làm việc</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var item in Model)
                     {
                         <tr>
-                            <td>@item.EmployeeCode</td>
-                            <td>@item.FullName</td>
-                            <td><span class="badge bg-info text-dark">@item.TotalDays ngày</span></td>
+                            <td class="align-middle">@item.EmployeeCode</td>
+                            <td class="align-middle fw-bold">@item.FullName</td>
+                            <td class="align-middle">@item.TotalDays ngày</td>
+                            <td class="align-middle">
+                                <span class="badge bg-info text-dark fs-6 py-2">@item.TotalTimeFormatted</span>
+                            </td>
                         </tr>
                     }
                 </tbody>
             </table>
-            <button class="btn btn-primary" onclick="window.print()">In báo cáo</button>
+            <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> In báo cáo</button>
         </div>
     </div>
 </div>

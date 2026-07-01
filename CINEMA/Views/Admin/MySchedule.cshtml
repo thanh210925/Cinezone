@@ -1,0 +1,94 @@
+﻿@model IEnumerable<CINEMA.Models.WorkSchedule>
+
+@{
+    ViewData["Title"] = "Lịch làm việc của tôi";
+    Layout = "_AdminLayout";
+
+    List<DateTime> weekDates = ViewBag.WeekDates;
+    DateTime currentStart = ViewBag.CurrentStart;
+
+    // Hàm hỗ trợ dịch thứ sang tiếng Việt
+    string GetVietnameseDayOfWeek(DayOfWeek day)
+    {
+        return day switch
+        {
+            DayOfWeek.Monday => "Thứ 2",
+            DayOfWeek.Tuesday => "Thứ 3",
+            DayOfWeek.Wednesday => "Thứ 4",
+            DayOfWeek.Thursday => "Thứ 5",
+            DayOfWeek.Friday => "Thứ 6",
+            DayOfWeek.Saturday => "Thứ 7",
+            DayOfWeek.Sunday => "Chủ Nhật",
+            _ => ""
+        };
+    }
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0 text-primary"><i class="bi bi-calendar-person"></i> Lịch làm việc cá nhân</h3>
+
+        <div class="d-flex align-items-center bg-white border rounded p-1 shadow-sm">
+            <a asp-action="MySchedule" asp-route-startDate="@currentStart.AddDays(-7).ToString("yyyy-MM-dd")" class="btn btn-sm btn-light border">
+                <i class="bi bi-chevron-left"></i> Tuần trước
+            </a>
+            <span class="mx-4 fw-bold text-dark">
+                @currentStart.ToString("dd/MM/yyyy") - @weekDates.Last().ToString("dd/MM/yyyy")
+            </span>
+            <a asp-action="MySchedule" asp-route-startDate="@currentStart.AddDays(7).ToString("yyyy-MM-dd")" class="btn btn-sm btn-light border">
+                Tuần sau <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        @foreach (var date in weekDates)
+        {
+            // Lọc ra các ca làm việc trong ngày hiện tại của vòng lặp
+            var shiftsToday = Model.Where(s => s.WorkDate.Date == date.Date).ToList();
+            bool isToday = date.Date == DateTime.Today;
+
+            <div class="col-md-12 mb-3">
+                <div class="card shadow-sm border-0 @(isToday ? "border-start border-4 border-primary" : "")">
+                    <div class="card-body d-flex align-items-center">
+
+                        <div class="text-center pe-4 me-4 border-end" style="min-width: 120px;">
+                            <h5 class="mb-0 @(date.DayOfWeek == DayOfWeek.Sunday ? "text-danger" : "text-dark")">
+                                @GetVietnameseDayOfWeek(date.DayOfWeek)
+                            </h5>
+                            <small class="text-muted">@date.ToString("dd/MM/yyyy")</small>
+                            @if (isToday)
+                            {
+                                <div class="badge bg-primary mt-1">Hôm nay</div>
+                            }
+                        </div>
+
+                        <div class="flex-grow-1 d-flex flex-wrap gap-2">
+                            @if (shiftsToday.Any())
+                            {
+                                foreach (var schedule in shiftsToday)
+                                {
+                                    <div class="bg-light border rounded p-2 d-flex align-items-center" style="min-width: 200px;">
+                                        <div class="bg-success text-white rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 40px; height: 40px;">
+                                            <i class="bi bi-clock-history"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 text-success fw-bold">@schedule.Shift?.ShiftName</h6>
+                                            <small class="text-muted fw-bold">
+                                                @schedule.Shift?.StartTime.ToString(@"hh\:mm") - @schedule.Shift?.EndTime.ToString(@"hh\:mm")
+                                            </small>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted fst-italic">Không có ca làm việc</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

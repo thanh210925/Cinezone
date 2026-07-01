@@ -86,6 +86,13 @@
                             <span>Quản lý lịch làm việc</span>
                         </a>
                     </li>
+                    <li>
+                        <a asp-controller="Admin" asp-action="ManageLeave" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "ManageLeave" ? "active" : "")">
+                            <i class="bi bi-calendar-x"></i><span>Quản lý nghỉ phép</span>
+                        </a>
+                    </li>
+
+
 
 
     <li>
@@ -94,28 +101,27 @@
         </a>
     </li>
 }
- <li>
-     <li class="menu-divider" style="padding: 10px 20px; font-size: 0.8rem; color: #6c757d; text-transform: uppercase;">
-    Nhân sự
-</li>
+                <li class="menu-divider" style="padding: 10px 20px; font-size: 0.8rem; color: #6c757d; text-transform: uppercase;">
+                    Nhân sự
+                </li>
+                <li>
+                    <a asp-controller="Admin" asp-action="MySchedule" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "MySchedule" ? "active" : "")">
+                        <i class="bi bi-calendar-week"></i><span>Lịch của tôi</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Admin" asp-action="LeaveRequest" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "ApproveLeave" ? "active" : "")">
+                        <i class="bi bi-check2-square"></i><span>Đơn xin nghỉ phép</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Admin" asp-action="CheckInOut" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "CheckInOut" ? "active" : "")">
+                        <i class="bi bi-camera"></i><span>Chấm công</span>
+                    </a>
+                </li>
 
-<li>
-    <a asp-controller="Admin" asp-action="CheckInOut" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "CheckInOut" ? "active" : "")">
-        <i class="bi bi-camera"></i><span>Chấm công</span>
-    </a>
-</li>
 
-<li>
-    <a asp-controller="Admin" asp-action="ManageLeave" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "ManageLeave" ? "active" : "")">
-        <i class="bi bi-calendar-x"></i><span>Quản lý nghỉ phép</span>
-    </a>
-</li>
-
-<li>
-    <a asp-controller="Admin" asp-action="ApproveLeave" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "ApproveLeave" ? "active" : "")">
-        <i class="bi bi-check2-square"></i><span>Duyệt đơn nghỉ phép</span>
-    </a>
-</li>
+                <li>
                     <a asp-controller="Admin" asp-action="CustomerActivityLogs" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Admin" && ViewContext.RouteData.Values["Action"]?.ToString() == "CustomerActivityLogs" ? "active" : "")">
                         <i class="bi bi-clock-history"></i><span>Nhật ký hoạt động KH</span>
                     </a>

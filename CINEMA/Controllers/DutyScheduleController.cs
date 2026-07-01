@@ -56,32 +56,56 @@ namespace CINEMA.Controllers
         // GET: DutySchedule/Create
         public IActionResult Create()
         {
-            // Chỉ hiển thị các nhân viên đang hoạt động (IsActive = true)
+            // Lấy danh sách nhân viên
             ViewData["AdminId"] = new SelectList(_context.Admins.Where(a => a.IsActive), "AdminId", "FullName");
-            ViewData["ShiftId"] = new SelectList(_context.Shifts, "ShiftId", "ShiftName");
+
+            // Lấy toàn bộ danh sách ca làm việc để vẽ cột trên bảng
+            ViewBag.Shifts = _context.Shifts.OrderBy(s => s.StartTime).ToList();
+
             return View();
         }
 
         // POST: DutySchedule/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ScheduleId,AdminId,ShiftId,WorkDate")] WorkSchedule workSchedule)
+        public async Task<IActionResult> Create(int AdminId, List<string> SelectedSchedules)
         {
-            // Loại bỏ kiểm tra xác thực trên thuộc tính điều hướng để tránh lỗi ModelState.IsValid = false
-            ModelState.Remove("Admin");
-            ModelState.Remove("Shift");
+            // SelectedSchedules sẽ chứa các chuỗi có định dạng "yyyy-MM-dd_ShiftId"
+            // Ví dụ: "2026-07-01_2" (Ngày 01/07/2026, làm ca ID = 2)
 
-            if (ModelState.IsValid)
+            if (AdminId <= 0 || SelectedSchedules == null || !SelectedSchedules.Any())
             {
-                _context.Add(workSchedule);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                ModelState.AddModelError("", "Vui lòng chọn nhân viên và tích chọn ít nhất 1 ca làm việc trong tháng.");
+                ViewData["AdminId"] = new SelectList(_context.Admins.Where(a => a.IsActive), "AdminId", "FullName", AdminId);
+                ViewBag.Shifts = _context.Shifts.OrderBy(s => s.StartTime).ToList();
+                return View();
             }
 
-            // Nếu có lỗi, nạp lại danh sách Dropdown để form không bị trống
-            ViewData["AdminId"] = new SelectList(_context.Admins.Where(a => a.IsActive), "AdminId", "FullName", workSchedule.AdminId);
-            ViewData["ShiftId"] = new SelectList(_context.Shifts, "ShiftId", "ShiftName", workSchedule.ShiftId);
-            return View(workSchedule);
+            foreach (var scheduleStr in SelectedSchedules)
+            {
+                var parts = scheduleStr.Split('_');
+                if (parts.Length == 2 && DateTime.TryParse(parts[0], out DateTime workDate) && int.TryParse(parts[1], out int shiftId))
+                {
+                    // Kiểm tra xem lịch này đã tồn tại trong DB chưa để tránh trùng lặp
+                    bool isExist = await _context.WorkSchedules
+                        .AnyAsync(ws => ws.AdminId == AdminId && ws.WorkDate.Date == workDate.Date && ws.ShiftId == shiftId);
+
+                    if (!isExist)
+                    {
+                        var workSchedule = new WorkSchedule
+                        {
+                            AdminId = AdminId,
+                            WorkDate = workDate,
+                            ShiftId = shiftId
+                        };
+                        _context.Add(workSchedule);
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Đã phân ca thành công!";
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: DutySchedule/Edit/5

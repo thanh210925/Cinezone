@@ -474,31 +474,61 @@ namespace CINEMA.Controllers
 
         // --- MODULE CHẤM CÔNG ---
         // 1. Hàm hiển thị (Có chọn ngày)
+        // --- MODULE CHẤM CÔNG ---
+        // 1. Hàm hiển thị (Có chọn ngày & Phân quyền)
         [HttpGet]
         public IActionResult CheckInOut(DateTime? date)
         {
+            // 1. Kiểm tra đăng nhập và lấy thông tin người dùng hiện tại
+            var adminIdStr = HttpContext.Session.GetString("AdminId");
+            if (string.IsNullOrEmpty(adminIdStr)) return RedirectToAction("Login");
+
+            int myAdminId = int.Parse(adminIdStr);
+            bool isSuperAdmin = HttpContext.Session.GetString("Role") == "SuperAdmin";
+
             DateTime targetDate = date ?? DateTime.Now.Date;
             ViewBag.SelectedDate = targetDate;
 
-            // 1. Dữ liệu chấm công hàng ngày
-            var attendanceList = _context.Attendance
+            // 2. Tạo câu truy vấn cơ bản (chưa thực thi)
+            var attendanceQuery = _context.Attendance
                 .Include(a => a.Admin)
-                .Where(a => a.Date.Date == targetDate.Date)
-                .ToList();
+                .Where(a => a.Date.Date == targetDate.Date);
 
-            // 2. Dữ liệu tổng hợp công tháng (Payroll)
-            var payrollList = _context.Attendance
+            var payrollQuery = _context.Attendance
                 .Include(a => a.Admin)
-                .Where(a => a.Date.Month == targetDate.Month && a.Date.Year == targetDate.Year && a.IsApproved == true)
+                .Where(a => a.Date.Month == targetDate.Month && a.Date.Year == targetDate.Year && a.IsApproved == true);
+
+            // 3. PHÂN QUYỀN: Nếu KHÔNG PHẢI SuperAdmin thì chỉ lấy dữ liệu của chính mình
+            if (!isSuperAdmin)
+            {
+                attendanceQuery = attendanceQuery.Where(a => a.AdminId == myAdminId);
+                payrollQuery = payrollQuery.Where(a => a.AdminId == myAdminId);
+            }
+
+            var attendanceList = attendanceQuery.ToList();
+
+            // Lấy dữ liệu lên RAM trước khi tính toán phức tạp
+            var rawPayrollData = payrollQuery.ToList();
+
+            var payrollList = rawPayrollData
                 .GroupBy(a => a.AdminId)
-                .Select(g => new PayrollViewModel
+                .Select(g =>
                 {
-                    FullName = g.FirstOrDefault().Admin.FullName,
-                    EmployeeCode = g.FirstOrDefault().Admin.EmployeeCode,
-                    TotalDays = g.Count()
+                    // Chỉ cộng thời gian của những bản ghi có đầy đủ Giờ Vào và Giờ Ra
+                    var validRecords = g.Where(x => x.CheckInTime.HasValue && x.CheckOutTime.HasValue);
+                    long totalTicks = validRecords.Sum(x => (x.CheckOutTime.Value - x.CheckInTime.Value).Ticks);
+                    TimeSpan totalTime = TimeSpan.FromTicks(totalTicks);
+
+                    return new PayrollViewModel
+                    {
+                        FullName = g.FirstOrDefault().Admin.FullName,
+                        EmployeeCode = g.FirstOrDefault().Admin.EmployeeCode,
+                        TotalDays = g.Select(x => x.Date.Date).Distinct().Count(),
+                        // Định dạng chuỗi: Tính tổng số giờ (có thể > 24h), phút, giây
+                        TotalTimeFormatted = $"{(int)totalTime.TotalHours} giờ {totalTime.Minutes} phút {totalTime.Seconds} giây"
+                    };
                 }).ToList();
 
-            // Dùng Tuple hoặc ViewModel bao gồm cả 2 list để truyền vào View
             var model = new Tuple<IEnumerable<Attendance>, IEnumerable<PayrollViewModel>>(attendanceList, payrollList);
             return View(model);
         }
@@ -523,15 +553,27 @@ namespace CINEMA.Controllers
             int m = month ?? DateTime.Now.Month;
             int y = year ?? DateTime.Now.Year;
 
-            var report = _context.Attendance
+            // Lấy dữ liệu thô lên trước
+            var rawData = _context.Attendance
                 .Include(a => a.Admin)
-                .Where(a => a.Date.Month == m && a.Date.Year == y && a.IsApproved == true) // Chỉ lấy công đã duyệt
+                .Where(a => a.Date.Month == m && a.Date.Year == y && a.IsApproved == true)
+                .ToList();
+
+            var report = rawData
                 .GroupBy(a => a.AdminId)
-                .Select(g => new PayrollViewModel
+                .Select(g =>
                 {
-                    FullName = g.FirstOrDefault().Admin.FullName,
-                    EmployeeCode = g.FirstOrDefault().Admin.EmployeeCode,
-                    TotalDays = g.Count()
+                    var validRecords = g.Where(x => x.CheckInTime.HasValue && x.CheckOutTime.HasValue);
+                    long totalTicks = validRecords.Sum(x => (x.CheckOutTime.Value - x.CheckInTime.Value).Ticks);
+                    TimeSpan totalTime = TimeSpan.FromTicks(totalTicks);
+
+                    return new PayrollViewModel
+                    {
+                        FullName = g.FirstOrDefault().Admin.FullName,
+                        EmployeeCode = g.FirstOrDefault().Admin.EmployeeCode,
+                        TotalDays = g.Select(x => x.Date.Date).Distinct().Count(),
+                        TotalTimeFormatted = $"{(int)totalTime.TotalHours} giờ {totalTime.Minutes} phút {totalTime.Seconds} giây"
+                    };
                 })
                 .ToList();
 
@@ -600,6 +642,9 @@ namespace CINEMA.Controllers
         [HttpPost]
         public async Task<IActionResult> ApproveLeave(int id, string status)
         {
+            // Thêm dòng kiểm tra quyền này
+            if (!IsSuperAdmin()) return RedirectToAction("Dashboard");
+
             var request = _context.LeaveRequests.Find(id);
             if (request != null)
             {
@@ -622,28 +667,60 @@ namespace CINEMA.Controllers
 
             var adminId = int.Parse(adminIdString);
 
-            // Lưu ảnh vào wwwroot/uploads/attendance
+            // 1. Lưu file ảnh
             string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/attendance");
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
             string fileName = $"{adminId}_{DateTime.Now:yyyyMMddHHmmss}.png";
             string path = Path.Combine(folder, fileName);
 
-            // Giải mã Base64 và lưu file
             byte[] bytes = Convert.FromBase64String(model.imageBase64.Split(',')[1]);
             System.IO.File.WriteAllBytes(path, bytes);
 
-            var record = new Attendance
-            {
-                AdminId = adminId,
-                Date = DateTime.Now.Date,
-                CheckInTime = model.type == "in" ? DateTime.Now : null,
-                CheckOutTime = model.type == "out" ? DateTime.Now : null,
-                CheckInPhoto = model.type == "in" ? "/uploads/attendance/" + fileName : null,
-                CheckOutPhoto = model.type == "out" ? "/uploads/attendance/" + fileName : null
-            };
+            DateTime today = DateTime.Now.Date;
 
-            _context.Attendance.Add(record);
+            // 2. Xử lý Logic Check-in / Check-out
+            if (model.type == "in")
+            {
+                // Nếu là Check-in -> Luôn tạo dòng mới
+                var record = new Attendance
+                {
+                    AdminId = adminId,
+                    Date = today,
+                    CheckInTime = DateTime.Now,
+                    CheckInPhoto = "/uploads/attendance/" + fileName
+                };
+                _context.Attendance.Add(record);
+            }
+            else if (model.type == "out")
+            {
+                // Nếu là Check-out -> TÌM DÒNG CHECK-IN GẦN NHẤT CHƯA CÓ GIỜ RA để cập nhật
+                var existingRecord = await _context.Attendance
+                    .Where(a => a.AdminId == adminId && a.Date.Date == today && a.CheckOutTime == null)
+                    .OrderByDescending(a => a.CheckInTime)
+                    .FirstOrDefaultAsync();
+
+                if (existingRecord != null)
+                {
+                    // Update giờ ra và ảnh ra vào dòng cũ
+                    existingRecord.CheckOutTime = DateTime.Now;
+                    existingRecord.CheckOutPhoto = "/uploads/attendance/" + fileName;
+                    _context.Attendance.Update(existingRecord);
+                }
+                else
+                {
+                    // (Trường hợp hiếm) NV quên check-in mà bấm luôn check-out -> Buộc tạo dòng mới
+                    var newRecord = new Attendance
+                    {
+                        AdminId = adminId,
+                        Date = today,
+                        CheckOutTime = DateTime.Now,
+                        CheckOutPhoto = "/uploads/attendance/" + fileName
+                    };
+                    _context.Attendance.Add(newRecord);
+                }
+            }
+
             await _context.SaveChangesAsync();
             return Json(new { success = true });
         }
@@ -826,6 +903,50 @@ namespace CINEMA.Controllers
             ViewBag.Customer = await _context.Customers.FindAsync(customerId);
 
             return View(recommended);
+        }
+        // GET: Admin/MySchedule
+        public async Task<IActionResult> MySchedule(DateTime? startDate)
+        {
+            // 1. Kiểm tra trạng thái đăng nhập
+            if (!IsLoggedIn()) return RedirectToAction("Login");
+
+            // 2. Lấy AdminId của người đang đăng nhập từ Session
+            var adminIdStr = HttpContext.Session.GetString("AdminId");
+            if (string.IsNullOrEmpty(adminIdStr)) return RedirectToAction("Login");
+
+            int myAdminId = int.Parse(adminIdStr);
+
+            // 3. Tính toán ngày bắt đầu của tuần (Thứ 2)
+            DateTime today = DateTime.Today;
+            DateTime startOfWeek = startDate ?? today.AddDays(-(int)today.DayOfWeek + (int)DayOfWeek.Monday);
+
+            // Xử lý riêng cho ngày Chủ Nhật (C# quy ước Sunday = 0)
+            if (today.DayOfWeek == DayOfWeek.Sunday && startDate == null)
+            {
+                startOfWeek = today.AddDays(-6);
+            }
+
+            // 4. Tạo danh sách 7 ngày trong tuần
+            List<DateTime> weekDates = new List<DateTime>();
+            for (int i = 0; i < 7; i++)
+            {
+                weekDates.Add(startOfWeek.AddDays(i));
+            }
+            DateTime endOfWeek = weekDates.Last();
+
+            // 5. CHỈ QUERY LỊCH CỦA NHÂN VIÊN ĐANG ĐĂNG NHẬP
+            var mySchedules = await _context.WorkSchedules
+                .Include(ws => ws.Shift)
+                .Where(ws => ws.AdminId == myAdminId && ws.WorkDate >= startOfWeek && ws.WorkDate <= endOfWeek)
+                .OrderBy(ws => ws.WorkDate)
+                .ThenBy(ws => ws.Shift.StartTime)
+                .ToListAsync();
+
+            // Truyền dữ liệu ra View
+            ViewBag.WeekDates = weekDates;
+            ViewBag.CurrentStart = startOfWeek;
+
+            return View(mySchedules);
         }
 
     }

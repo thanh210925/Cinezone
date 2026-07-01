@@ -96,38 +96,33 @@
                     <tr>
                         <th>Mã NV</th>
                         <th>Tên nhân viên</th>
-                        <th>Số ngày công (Đã duyệt)</th>
+                        <th>Số ngày làm</th>
+                        <th>Tổng thời gian thực tế</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var item in Model.Item2)
                     {
                         <tr>
-                            <td>@item.EmployeeCode</td>
-                            <td>@item.FullName</td>
-                            <td><span class="badge bg-info text-dark">@item.TotalDays ngày</span></td>
+                            <td class="align-middle">@item.EmployeeCode</td>
+                            <td class="align-middle fw-bold">@item.FullName</td>
+                            <td class="align-middle">@item.TotalDays ngày</td>
+                            <td class="align-middle">
+                                @if (!string.IsNullOrEmpty(item.TotalTimeFormatted) && item.TotalTimeFormatted != "0 giờ 0 phút 0 giây")
+                                {
+                                    <span class="badge bg-info text-dark fs-6 py-2">@item.TotalTimeFormatted</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted fst-italic">Chưa có dữ liệu hợp lệ</span>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
-                <tbody>
-    @foreach (var item in Model.Item2) {
-        <tr>
-            <td>@item.EmployeeCode</td>
-            <td>@item.FullName</td>
-            <td>
-                @if (item.TotalDays > 0) {
-                    <span class="badge bg-info text-dark">@item.TotalDays ngày</span>
-                } else {
-                    <span class="text-muted">Chưa đủ công</span>
-                }
-            </td>
-        </tr>
-    }
-</tbody>
             </table>
         </div>
     </div>
-</div>
 
 @section Scripts {
     <script>
