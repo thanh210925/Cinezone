@@ -92,6 +92,26 @@
         </a>
     </li>
 }
+ <li>
+                    <a asp-controller="Admin" asp-action="CustomerActivityLogs" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Admin" && ViewContext.RouteData.Values["Action"]?.ToString() == "CustomerActivityLogs" ? "active" : "")">
+                        <i class="bi bi-clock-history"></i><span>Nhật ký hoạt động KH</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Admin" asp-action="MovieViewStats" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Admin" && ViewContext.RouteData.Values["Action"]?.ToString() == "MovieViewStats" ? "active" : "")">
+                        <i class="bi bi-eye"></i><span>Thống kê lượt xem phim</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Admin" asp-action="CustomerSearchLogs" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Admin" && ViewContext.RouteData.Values["Action"]?.ToString() == "CustomerSearchLogs" ? "active" : "")">
+                        <i class="bi bi-search"></i><span>Lịch sử tìm kiếm</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Admin" asp-action="TopSearchKeywords" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Admin" && ViewContext.RouteData.Values["Action"]?.ToString() == "TopSearchKeywords" ? "active" : "")">
+                        <i class="bi bi-graph-up"></i><span>Top từ khóa tìm kiếm</span>
+                    </a>
+                </li>
                 <li>
                     <a asp-controller="Theater" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Theater" ? "active" : "")">
                         <i class="bi bi-building"></i><span>Quản lý Rạp</span>

@@ -1,0 +1,47 @@
+﻿@{
+    ViewBag.Title = "Nhật ký hoạt động khách hàng";
+    Layout = "_AdminLayout";
+}
+<h3>Nhật ký hoạt động khách hàng (@ViewBag.Count)</h3>
+
+<form method="get" class="mb-3">
+    <select name="activityType" class="form-select w-auto d-inline-block" onchange="this.form.submit()">
+        <option value="">-- Tất cả --</option>
+        @foreach (var type in (List<string>)ViewBag.ActivityTypes)
+        {
+            <option value="@type" selected="@(type == ViewBag.ActivityType)">@type</option>
+        }
+    </select>
+</form>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Thời gian</th>
+            <th>Khách hàng</th>
+            <th>Hành động</th>
+            <th>Phim</th>
+            <th>Thiết bị</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var log in Model)
+        {
+            <tr>
+                <td>@log.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                <td>@(log.Customer?.FullName ?? "Khách vãng lai")</td>
+                <td><span class="badge bg-info">@log.ActivityType</span></td>
+                <td>@(log.Movie?.Title ?? "-")</td>
+                <td>@log.DeviceType</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div>
+    @for (int i = 1; i <= (int)ViewBag.TotalPages; i++)
+    {
+        <a asp-action="CustomerActivityLogs" asp-route-page="@i" asp-route-activityType="@ViewBag.ActivityType"
+           class="btn btn-sm @(i == (int)ViewBag.Page ? "btn-primary" : "btn-outline-primary")">@i</a>
+    }
+</div>

@@ -22,7 +22,6 @@ namespace CINEMA.Controllers
         // ====================== TRANG CHỦ ====================
         // =====================================================
         [HttpGet]
-        [HttpGet]
         public IActionResult Search(string keyword)
         {
             if (string.IsNullOrWhiteSpace(keyword))
@@ -40,6 +39,17 @@ namespace CINEMA.Controllers
                     RemoveDiacritics(m.Title ?? "")
                         .Contains(keywordNoSign))
                 .ToList();
+
+            // 📌 GHI LOG TÌM KIẾM
+            _context.UserSearchLogs.Add(new UserSearchLog
+            {
+                CustomerId = GetCurrentCustomerId(),
+                Keyword = keyword,
+                ResultCount = movies.Count,
+                CreatedAt = DateTime.Now
+            });
+            _context.SaveChanges();
+
             if (!movies.Any())
             {
                 ViewBag.SuggestMovies = _context.Movies
@@ -53,6 +63,7 @@ namespace CINEMA.Controllers
 
             return View(movies);
         }
+
         public IActionResult Index()
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
@@ -155,6 +166,10 @@ namespace CINEMA.Controllers
             if (movie == null)
                 return NotFound("Không tìm thấy phim.");
 
+            // 📌 GHI LOG XEM PHIM
+            LogActivity("VIEW_MOVIE", movieId: id);
+            TrackMovieView(id);
+
             // Lấy tất cả suất chiếu trước
             var showtimes = _context.Showtimes
                 .Include(s => s.Auditorium)
@@ -196,11 +211,11 @@ namespace CINEMA.Controllers
                 .Include(t => t.Seat)
                 .Include(t => t.Order)
                 .Where(t => t.ShowtimeId == showtime.ShowtimeId
-                && t.Order != null
-        && t.Order.Status == "Đã thanh toán")
-    // ✅ CHỈ GHẾ ĐÃ THANH TOÁN
-    .Select(t => t.Seat.RowLabel + t.Seat.SeatNumber)
-    .ToList();
+                    && t.Order != null
+                    && t.Order.Status == "Đã thanh toán")
+                // ✅ CHỈ GHẾ ĐÃ THANH TOÁN
+                .Select(t => t.Seat.RowLabel + t.Seat.SeatNumber)
+                .ToList();
 
 
             var combos = _context.Combos
@@ -316,11 +331,17 @@ namespace CINEMA.Controllers
                 RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
             });
         }
+
         [HttpPost]
         public IActionResult ConfirmPayment(int showtimeId, string selectedSeats, int comboId)
         {
-            // ⚠️ Lấy user (tuỳ bạn login kiểu gì)
-            int customerId = int.Parse(HttpContext.Session.GetString("CustomerId"));
+            // ⚠️ Lấy user hiện tại (an toàn hơn, không crash nếu chưa đăng nhập)
+            var customerId = GetCurrentCustomerId();
+            if (customerId == null)
+            {
+                TempData["Error"] = "Vui lòng đăng nhập để đặt vé.";
+                return RedirectToAction("Login", "Account"); // đổi lại route đăng nhập thực tế của bạn
+            }
 
             var showtime = _context.Showtimes.Find(showtimeId);
             var combo = _context.Combos.FirstOrDefault(c => c.ComboId == comboId);
@@ -337,7 +358,7 @@ namespace CINEMA.Controllers
             // 🧾 Tạo Order
             var order = new Order
             {
-                CustomerId = customerId,
+                CustomerId = customerId.Value,
                 CreatedAt = DateTime.Now,
                 Status = "Đã thanh toán",
                 TotalAmount = totalAmount
@@ -371,8 +392,11 @@ namespace CINEMA.Controllers
 
             _context.SaveChanges();
 
-            // 💎 UPDATE MEMBERSHIP (CHỈ THÊM DÒNG NÀY)
-            var customer = _context.Customers.Find(customerId);
+            // 📌 GHI LOG ĐẶT VÉ THÀNH CÔNG (tín hiệu quan trọng nhất cho gợi ý)
+            LogActivity("BOOK_TICKET", movieId: showtime.MovieId);
+
+            // 💎 UPDATE MEMBERSHIP
+            var customer = _context.Customers.Find(customerId.Value);
             if (customer != null)
             {
                 customer.TotalSpent += totalAmount;
@@ -381,6 +405,7 @@ namespace CINEMA.Controllers
 
             return RedirectToAction("Index"); // hoặc trang success
         }
+
         [HttpGet]
         public IActionResult CheckVoucher(string code, decimal total)
         {
@@ -421,6 +446,7 @@ namespace CINEMA.Controllers
                 discount = discount
             });
         }
+
         private string RemoveDiacritics(string text)
         {
             if (string.IsNullOrEmpty(text))
@@ -442,6 +468,103 @@ namespace CINEMA.Controllers
                      .Replace('đ', 'd')
                      .Replace('Đ', 'D')
                      .ToLower();
+        }
+
+        // =====================================================
+        // ================ TRACKING HELPERS ====================
+        // =====================================================
+
+        private int? GetCurrentCustomerId()
+        {
+            var idStr = HttpContext.Session.GetString("CustomerId");
+            return int.TryParse(idStr, out var id) ? id : (int?)null;
+        }
+
+        private void LogActivity(string activityType, int? movieId = null, int? genreId = null, string? metadata = null)
+        {
+            var log = new UserActivityLog
+            {
+                CustomerId = GetCurrentCustomerId(),
+                SessionId = HttpContext.Session.Id,
+                ActivityType = activityType,
+                MovieId = movieId,
+                GenreId = genreId,
+                Metadata = metadata,
+                DeviceType = Request.Headers["User-Agent"].ToString().Contains("Mobile") ? "mobile" : "web",
+                CreatedAt = DateTime.Now
+            };
+            _context.UserActivityLogs.Add(log);
+            _context.SaveChanges();
+        }
+
+        private void TrackMovieView(int movieId)
+        {
+            var customerId = GetCurrentCustomerId();
+            if (customerId == null) return; // chỉ track khách đã đăng nhập cho bảng này
+
+            var view = _context.UserMovieViews
+                .FirstOrDefault(v => v.CustomerId == customerId && v.MovieId == movieId);
+
+            if (view != null)
+            {
+                view.ViewCount += 1;
+                view.LastViewedAt = DateTime.Now;
+            }
+            else
+            {
+                _context.UserMovieViews.Add(new UserMovieView
+                {
+                    CustomerId = customerId.Value,
+                    MovieId = movieId,
+                    ViewCount = 1,
+                    LastViewedAt = DateTime.Now
+                });
+            }
+            _context.SaveChanges();
+        }
+
+        // =====================================================
+        // ================ GỢI Ý PHIM (RECOMMEND) ===============
+        // =====================================================
+
+        [HttpGet]
+        public IActionResult Recommend()
+        {
+            var customerId = GetCurrentCustomerId();
+            if (customerId == null)
+                return Json(new List<object>());
+
+            var genreScores = _context.Genres
+                .Select(g => new
+                {
+                    g.GenreId,
+                    g.Name,
+                    Score =
+                        _context.Tickets.Count(t =>
+                            t.Showtime.Movie.Genres.Any(mg => mg.GenreId == g.GenreId) &&
+                            t.Order!.CustomerId == customerId) * 3
+                        +
+                        (_context.UserMovieViews
+                            .Where(v => v.CustomerId == customerId &&
+                                        v.Movie.Genres.Any(mg => mg.GenreId == g.GenreId))
+                            .Sum(v => (int?)v.ViewCount) ?? 0)
+                })
+                .OrderByDescending(x => x.Score)
+                .Take(3)
+                .Select(x => x.GenreId)
+                .ToList();
+
+            var recommended = _context.Movies
+                .Where(m => m.IsActive == true &&
+                            m.Genres.Any(g => genreScores.Contains(g.GenreId)) &&
+                            !_context.Tickets.Any(t =>
+                                t.Showtime.MovieId == m.MovieId &&
+                                t.Order!.CustomerId == customerId))
+                .OrderByDescending(m => m.ReleaseDate)
+                .Take(10)
+                .ToList();
+
+            return Json(recommended.Select(m => new { m.MovieId, m.Title, m.PosterUrl }));
         }
     }
 }
