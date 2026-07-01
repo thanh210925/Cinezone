@@ -1,0 +1,24 @@
+﻿@{
+    ViewBag.Title = "Thống kê lượt xem phim";
+    Layout = "_AdminLayout";
+}
+<h3>Top phim được xem nhiều nhất</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Phim</th>
+            <th>Tổng lượt xem</th>
+            <th>Số khách xem</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Title</td>
+                <td>@item.TotalViews</td>
+                <td>@item.UniqueViewers</td>
+            </tr>
+        }
+    </tbody>
+</table>

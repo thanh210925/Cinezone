@@ -1,0 +1,25 @@
+﻿@{
+    ViewBag.Title = "Từ khóa tìm kiếm nhiều nhất";
+    Layout = "_AdminLayout";
+}
+<h3>Top từ khóa tìm kiếm</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Từ khóa</th>
+            <th>Số lần tìm</th>
+            <th>TB kết quả trả về</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr class="@(item.AvgResultCount == 0 ? "table-danger" : "")">
+                <td>@item.Keyword</td>
+                <td>@item.SearchCount</td>
+                <td>@item.AvgResultCount.ToString("0.0")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+<p class="text-muted">🔴 Dòng đỏ = từ khóa tìm nhiều nhưng không ra kết quả → cân nhắc bổ sung phim/gắn từ khóa liên quan.</p>

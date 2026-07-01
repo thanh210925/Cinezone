@@ -46,9 +46,23 @@ public partial class CinemaContext : DbContext
 
     public virtual DbSet<TicketCombo> TicketCombos { get; set; }
     public virtual DbSet<Voucher> Vouchers { get; set; }
+    public DbSet<UserActivityLog> UserActivityLogs { get; set; }
+    public DbSet<UserMovieView> UserMovieViews { get; set; }
+    public DbSet<UserSearchLog> UserSearchLogs { get; set; }
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
     //        => optionsBuilder.UseSqlServer("Server=DESKTOP-11TEUJ3\\BANGTHANH;Database=CINEMA;User Id=BANGTHANH;Password=12345678;TrustServerCertificate=True;");
+
+    // Các entity KHÔNG được ghi vào ActivityLogs (audit log dành riêng cho Admin).
+    // Bao gồm chính ActivityLog và 3 bảng tracking hành vi khách hàng.
+    private static bool ShouldSkipAudit(object entity)
+    {
+        return entity is ActivityLog
+            || entity is UserActivityLog
+            || entity is UserMovieView
+            || entity is UserSearchLog;
+    }
+
     public override int SaveChanges()
     {
         var entries = ChangeTracker.Entries()
@@ -69,20 +83,24 @@ public partial class CinemaContext : DbContext
             ? id
             : 0;
 
-        foreach (var entry in entries)
+        // ❗ Chỉ ghi audit log khi có Admin thực sự đăng nhập (tránh vi phạm FK khi khách hàng thao tác)
+        if (adminId > 0)
         {
-            if (entry.Entity is ActivityLog)
-                continue;
+            foreach (var entry in entries)
+            {
+                if (ShouldSkipAudit(entry.Entity))
+                    continue;
 
-            ActivityLogs.Add(
-                new ActivityLog
-                {
-                    AdminId = adminId,
-                    Action = entry.State.ToString(),
-                    Entity = entry.Entity.GetType().Name,
-                    EntityId = 0,
-                    LogDate = DateTime.Now
-                });
+                ActivityLogs.Add(
+                    new ActivityLog
+                    {
+                        AdminId = adminId,
+                        Action = entry.State.ToString(),
+                        Entity = entry.Entity.GetType().Name,
+                        EntityId = 0,
+                        LogDate = DateTime.Now
+                    });
+            }
         }
 
         return base.SaveChanges();
@@ -107,60 +125,67 @@ public partial class CinemaContext : DbContext
             ? id
             : 0;
 
-        foreach (var entry in entries)
+        // ❗ Chỉ ghi audit log khi có Admin thực sự đăng nhập (tránh vi phạm FK khi khách hàng thao tác)
+        if (adminId > 0)
         {
-            if (entry.Entity is ActivityLog)
-                continue;
-
-            int entityId = 0;
-
-            try
+            foreach (var entry in entries)
             {
-                var pk =
-                    entry.Metadata
-                    .FindPrimaryKey()?
-                    .Properties
-                    .FirstOrDefault();
+                if (ShouldSkipAudit(entry.Entity))
+                    continue;
 
-                if (pk != null)
+                int entityId = 0;
+
+                try
                 {
-                    var value =
-                        entry.Property(pk.Name)
-                             .CurrentValue;
+                    var pk =
+                        entry.Metadata
+                        .FindPrimaryKey()?
+                        .Properties
+                        .FirstOrDefault();
 
-                    if (value != null)
-                        entityId =
-                            Convert.ToInt32(value);
+                    if (pk != null)
+                    {
+                        var value =
+                            entry.Property(pk.Name)
+                                 .CurrentValue;
+
+                        if (value != null)
+                            entityId =
+                                Convert.ToInt32(value);
+                    }
                 }
-            }
-            catch
-            {
-                entityId = 0;
-            }
+                catch
+                {
+                    entityId = 0;
+                }
 
-            ActivityLogs.Add(
-    new ActivityLog
-    {
-        AdminId = adminId,
-        Action = entry.State switch
+                ActivityLogs.Add(
+        new ActivityLog
         {
-            EntityState.Added => "THÊM",
-            EntityState.Modified => "SỬA",
-            EntityState.Deleted => "XÓA",
-            _ => ""
-        },
-        Entity = entry.Entity.GetType().Name,
-        EntityId = entityId,
-        LogDate = DateTime.Now
-    });
+            AdminId = adminId,
+            Action = entry.State switch
+            {
+                EntityState.Added => "THÊM",
+                EntityState.Modified => "SỬA",
+                EntityState.Deleted => "XÓA",
+                _ => ""
+            },
+            Entity = entry.Entity.GetType().Name,
+            EntityId = entityId,
+            LogDate = DateTime.Now
+        });
+            }
         }
 
         return await base.SaveChangesAsync(cancellationToken);
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        
-        
+        modelBuilder.Entity<UserMovieView>()
+    .HasIndex(v => new { v.CustomerId, v.MovieId })
+    .IsUnique();
+
+
 
         modelBuilder.Entity<Auditorium>(entity =>
         {
@@ -499,36 +524,6 @@ public partial class CinemaContext : DbContext
       .HasForeignKey(e => e.AdminId)
       .OnDelete(DeleteBehavior.Restrict);
         });
-
-        // Cấu hình bảng Chấm công
-        modelBuilder.Entity<Attendance>(entity =>
-        {
-            entity.HasKey(e => e.AttendanceId);
-            entity.Property(e => e.Date).HasColumnType("date");
-            entity.Property(e => e.CheckInTime).HasColumnType("datetime");
-            entity.Property(e => e.CheckOutTime).HasColumnType("datetime");
-            entity.Property(e => e.CheckInPhoto).HasMaxLength(500);
-            entity.Property(e => e.CheckOutPhoto).HasMaxLength(500);
-
-            entity.HasOne(d => d.Admin)
-                  .WithMany() // Nếu Admin không có danh sách Attendance
-                  .HasForeignKey(d => d.AdminId)
-                  .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        // Cấu hình bảng Nghỉ phép
-        modelBuilder.Entity<LeaveRequest>(entity =>
-        {
-            entity.HasKey(e => e.RequestId);
-            entity.Property(e => e.Status).HasMaxLength(50).HasDefaultValue("Chờ duyệt");
-            entity.Property(e => e.Reason).HasMaxLength(500);
-            entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("GETDATE()");
-
-            entity.HasOne(d => d.Admin)
-                  .WithMany() // Nếu Admin không có danh sách LeaveRequest
-                  .HasForeignKey(d => d.AdminId)
-                  .OnDelete(DeleteBehavior.Cascade);
-        });
     }
 
 
@@ -542,8 +537,4 @@ public partial class CinemaContext : DbContext
 
     public DbSet<Shift> Shifts { get; set; }
     public DbSet<WorkSchedule> WorkSchedules { get; set; }
-
-    public virtual DbSet<Attendance> Attendance { get; set; }
-    public virtual DbSet<LeaveRequest> LeaveRequests { get; set; }
-    public virtual DbSet<LeaveType> LeaveTypes { get; set; }
 }
