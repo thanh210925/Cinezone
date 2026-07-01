@@ -1,4 +1,4 @@
-﻿using CINEMA.Helpers;
+using CINEMA.Helpers;
 using CINEMA.Models;
 using CINEMA.Services;
 using CINEMA.ViewModels;
@@ -167,6 +167,37 @@ namespace CINEMA.Controllers
 
             try
             {
+                // 1. Kiểm tra xem có ghế nào đã được đặt hoặc giữ chỗ (chưa hết hạn) hay chưa
+                var now = DateTime.Now;
+                var bookedSeatsForShowtime = _context.Tickets
+                    .Include(t => t.Seat)
+                    .Include(t => t.Order)
+                    .Where(t => t.ShowtimeId == model.ShowtimeId
+                        && t.Order != null
+                        && (t.Order.Status == "Đã thanh toán" 
+                            || ((t.Order.Status == "Chờ thanh toán" || t.Order.Status == "Đang chờ thanh toán") 
+                                && t.Order.ExpiredAt > now)))
+                    .Select(t => t.Seat.RowLabel + t.Seat.SeatNumber)
+                    .ToList();
+
+                foreach (var seatStr in model.SelectedSeats)
+                {
+                    if (bookedSeatsForShowtime.Contains(seatStr))
+                    {
+                        transaction.Rollback();
+                        TempData["Error"] = $"Ghế {seatStr} đã bị người khác chọn hoặc đang trong quá trình thanh toán!";
+                        return RedirectToAction("BookTicket", "Home", new { id = model.MovieId, showtimeId = model.ShowtimeId });
+                    }
+                }
+
+                // 2. Lấy thông tin suất chiếu để lấy phòng chiếu (AuditoriumId)
+                var showtime = _context.Showtimes.FirstOrDefault(s => s.ShowtimeId == model.ShowtimeId);
+                if (showtime == null)
+                {
+                    transaction.Rollback();
+                    return NotFound("Không tìm thấy suất chiếu.");
+                }
+
                 decimal comboTotal = model.Combos?.Sum(c => c.Price * c.Quantity) ?? 0;
                 decimal ticketOnlyTotal = model.TotalPrice - comboTotal;
 
@@ -231,10 +262,10 @@ namespace CINEMA.Controllers
                 _context.SaveChanges();
 
                 // 🔹 Tạo vé
-                foreach (var seatStr in model.SelectedSeats)
+                 foreach (var seatStr in model.SelectedSeats)
                 {
                     var seat = _context.Seats
-                        .FirstOrDefault(s => (s.RowLabel + s.SeatNumber.ToString()) == seatStr);
+                        .FirstOrDefault(s => s.AuditoriumId == showtime.AuditoriumId && (s.RowLabel + s.SeatNumber.ToString()) == seatStr);
 
                     _context.Tickets.Add(new Ticket
                     {
@@ -362,12 +393,20 @@ namespace CINEMA.Controllers
             if (!validSignature)
                 return View("PaymentError");
 
-            var order = _context.Orders
+             var order = _context.Orders
                 .Include(o => o.Tickets)
                 .FirstOrDefault(o => o.OrderId == orderId);
 
             if (order == null)
                 return View("PaymentError");
+
+            // Kiểm tra số tiền thực nhận từ VNPAY
+            string sAmount = pay.GetResponseData("vnp_Amount");
+            if (!long.TryParse(sAmount, out long amountCents) || Math.Abs(((decimal)amountCents / 100) - (order.TotalAmount ?? 0)) > 1.0m)
+            {
+                _logger.LogWarning("VNPay amount mismatch. Order: {OrderId}, Expected: {Expected}, Received: {Received}", orderId, order.TotalAmount, (decimal)amountCents / 100);
+                return View("PaymentError");
+            }
 
             if (responseCode == "00")
             {
@@ -502,7 +541,85 @@ namespace CINEMA.Controllers
                 Combos = combos
             };
 
-            return View("Index", vm);
+             return View("Index", vm);
+        }
+
+        // =================== [5] API Thanh toán lại ===================
+        [HttpGet]
+        public IActionResult CreatePayment(int orderId)
+        {
+            var customerId = HttpContext.Session.GetInt32("CustomerId");
+            if (customerId == null)
+                return RedirectToAction("Login", "Customer");
+
+            var order = _context.Orders
+                .Include(o => o.Tickets)
+                .FirstOrDefault(o => o.OrderId == orderId);
+
+            if (order == null)
+                return NotFound("Không tìm thấy đơn hàng.");
+
+            if (order.CustomerId != customerId)
+                return Forbid();
+
+            if (order.Status != "Chờ thanh toán" && order.Status != "Đang chờ thanh toán")
+            {
+                TempData["ErrorMessage"] = "Đơn hàng này không ở trạng thái chờ thanh toán!";
+                return RedirectToAction("MyTickets", "Tickets");
+            }
+
+            if (order.ExpiredAt < DateTime.Now)
+            {
+                order.Status = "Đã hủy";
+                foreach (var t in order.Tickets)
+                {
+                    t.Status = "Đã hủy";
+                    t.PaymentStatus = "Đã hủy";
+                }
+                _context.SaveChanges();
+                TempData["ErrorMessage"] = "Đơn hàng đã hết hạn thanh toán!";
+                return RedirectToAction("MyTickets", "Tickets");
+            }
+
+            if (order.PaymentMethod == "Chuyển khoản")
+            {
+                var pay = new VnpayLibrary();
+                string baseUrl = _config["Vnpay:BaseUrl"];
+                string returnUrl = _config["Vnpay:ReturnUrl"];
+                if (!returnUrl.StartsWith("http"))
+                {
+                    returnUrl = $"{Request.Scheme}://{Request.Host}{returnUrl}";
+                }
+                string tmnCode = _config["Vnpay:TmnCode"];
+                string hashSecret = _config["Vnpay:HashSecret"];
+
+                pay.AddRequestData("vnp_Version", "2.1.0");
+                pay.AddRequestData("vnp_Command", "pay");
+                pay.AddRequestData("vnp_TmnCode", tmnCode);
+                long finalAmount = Convert.ToInt64(Math.Round((order.TotalAmount ?? 0) * 100));
+                pay.AddRequestData("vnp_Amount", finalAmount.ToString());
+                pay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+                pay.AddRequestData("vnp_CurrCode", "VND");
+                string ipAddr = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+                if (ipAddr == "::1") ipAddr = "127.0.0.1";
+                pay.AddRequestData("vnp_IpAddr", ipAddr);
+                pay.AddRequestData("vnp_Locale", "vn");
+                pay.AddRequestData("vnp_OrderInfo", $"Thanh toán đơn #{order.OrderId}");
+                pay.AddRequestData("vnp_OrderType", "billpayment");
+                pay.AddRequestData("vnp_ReturnUrl", returnUrl);
+                pay.AddRequestData("vnp_TxnRef", order.OrderId.ToString());
+                string paymentUrl = pay.CreateRequestUrl(baseUrl, hashSecret);
+
+                order.Status = "Đang chờ thanh toán";
+                _context.SaveChanges();
+
+                return Redirect(paymentUrl);
+            }
+            else
+            {
+                TempData["SuccessMessage"] = "Đơn hàng của bạn sẽ được thanh toán tại quầy.";
+                return RedirectToAction("MyTickets", "Tickets");
+            }
         }
     }
 }

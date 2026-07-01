@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CINEMA.Models;
 
@@ -69,10 +69,20 @@ namespace CINEMA.Controllers
         // =================== [2] Thanh toán ===================
         public async Task<IActionResult> Pay(int orderId)
         {
+            var customerId = HttpContext.Session.GetInt32("CustomerId");
+            if (customerId == null)
+                return RedirectToAction("Login", "Customer");
+
             var order = await _context.Orders.FindAsync(orderId);
 
             if (order == null)
                 return NotFound();
+
+            if (order.CustomerId != customerId)
+            {
+                TempData["ErrorMessage"] = "Bạn không có quyền thực hiện thao tác này!";
+                return RedirectToAction("MyTickets");
+            }
 
             // ❌ hết hạn → hủy luôn
             if (order.ExpiredAt < DateTime.Now)
@@ -96,12 +106,22 @@ namespace CINEMA.Controllers
         [HttpPost]
         public async Task<IActionResult> CancelOrder(int orderId)
         {
+            var customerId = HttpContext.Session.GetInt32("CustomerId");
+            if (customerId == null)
+                return RedirectToAction("Login", "Customer");
+
             var order = await _context.Orders
                 .Include(o => o.Tickets)
                 .FirstOrDefaultAsync(o => o.OrderId == orderId);
 
             if (order == null)
                 return NotFound();
+
+            if (order.CustomerId != customerId)
+            {
+                TempData["ErrorMessage"] = "Bạn không có quyền thực hiện thao tác này!";
+                return RedirectToAction("MyTickets");
+            }
 
             if (order.Status == "Chờ thanh toán" || order.Status == "Đang chờ thanh toán")
             {

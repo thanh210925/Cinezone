@@ -1,10 +1,10 @@
-﻿using CINEMA.Models;
+using CINEMA.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CINEMA.Controllers
 {
-    public class LogController : Controller
+    public class LogController : AdminBaseController
     {
         private readonly CinemaContext _context;
 

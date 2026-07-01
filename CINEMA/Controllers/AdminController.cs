@@ -1,4 +1,4 @@
-﻿using CINEMA.Models;
+using CINEMA.Models;
 using CINEMA.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -72,7 +72,7 @@ namespace CINEMA.Controllers
             {
                 FullName = fullName,
                 Email = email,
-                PasswordHash = password,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
                 Phone = phone,
                 Role = "Staff",
                 CreatedAt = DateTime.Now
@@ -93,29 +93,49 @@ namespace CINEMA.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(string email, string password)
         {
-            var admin = _context.Admins.FirstOrDefault(a => a.Email == email && a.PasswordHash == password);
+            var admin = _context.Admins.FirstOrDefault(a => a.Email == email);
             if (admin != null)
             {
-                HttpContext.Session.SetString("AdminId", admin.AdminId.ToString());
-                HttpContext.Session.SetString("Role", admin.Role ?? "Staff");
-                HttpContext.Session.SetString("Name", admin.FullName);
-
-                if (!admin.IsActive)
+                bool checkPassword = false;
+                try
                 {
-                    ViewBag.Error = "Tài khoản đã bị khóa";
-                    return View();
+                    checkPassword = BCrypt.Net.BCrypt.Verify(password, admin.PasswordHash);
+                }
+                catch
+                {
+                    // Cơ chế nâng cấp bảo mật: Nếu chưa băm bằng BCrypt, đối chiếu văn bản thuần
+                    checkPassword = (admin.PasswordHash == password);
+                    if (checkPassword)
+                    {
+                        // Tự động nâng cấp mật khẩu sang BCrypt
+                        admin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+                        await _context.SaveChangesAsync();
+                    }
                 }
 
-                if (string.IsNullOrEmpty(admin.EmployeeCode))
+                if (checkPassword)
                 {
-                    admin.EmployeeCode = GenerateEmployeeCode();
+                    if (!admin.IsActive)
+                    {
+                        ViewBag.Error = "Tài khoản đã bị khóa";
+                        return View();
+                    }
+
+                    HttpContext.Session.SetString("AdminId", admin.AdminId.ToString());
+                    HttpContext.Session.SetString("Role", admin.Role ?? "Staff");
+                    HttpContext.Session.SetString("Name", admin.FullName);
+
+                    if (string.IsNullOrEmpty(admin.EmployeeCode))
+                    {
+                        admin.EmployeeCode = GenerateEmployeeCode();
+                        await _context.SaveChangesAsync();
+                    }
+
+                    admin.LastLogin = DateTime.Now;
                     await _context.SaveChangesAsync();
+
+                    return RedirectToAction("Dashboard", "Admin");
                 }
-
-                admin.LastLogin = DateTime.Now;
-                await _context.SaveChangesAsync();
-
-                return RedirectToAction("Dashboard", "Admin");
             }
 
             ViewBag.Error = "Sai tài khoản hoặc mật khẩu!";
@@ -219,6 +239,7 @@ namespace CINEMA.Controllers
                     {
                         admin.PasswordHash = "123456";
                     }
+                    admin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(admin.PasswordHash);
 
                     // Xử lý Avatar
                     if (avatar != null && avatar.Length > 0)
@@ -409,7 +430,7 @@ namespace CINEMA.Controllers
             var admin = _context.Admins.Find(id);
             if (admin == null) return NotFound();
 
-            admin.PasswordHash = newPassword;
+            admin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
             await _context.SaveChangesAsync();
             TempData["Success"] = "Đặt lại mật khẩu thành công";
 
