@@ -1,0 +1,52 @@
+﻿@model IEnumerable<CINEMA.Models.LeaveRequest>
+@{
+    ViewData["Title"] = "Quản lý nghỉ phép";
+}
+
+
+@{
+    ViewData["Title"] = "Nhật ký hoạt động";
+    Layout = "_AdminLayout";
+}
+
+<div class="container mt-4">
+    <h3>Danh sách đơn xin nghỉ phép</h3>
+    <table class="table table-hover table-striped">
+        <thead class="thead-dark">
+            <tr>
+                <th>Nhân viên</th>
+                <th>Từ ngày</th>
+                <th>Đến ngày</th>
+                <th>Lý do</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Admin.FullName</td>
+                    <td>@item.StartDate.ToString("dd/MM/yyyy")</td>
+                    <td>@item.EndDate.ToString("dd/MM/yyyy")</td>
+                    <td>@item.Reason</td>
+                    <td>
+                        <span class="badge @(item.Status == "Đã duyệt" ? "bg-success" : (item.Status == "Từ chối" ? "bg-danger" : "bg-warning"))">
+                            @item.Status
+                        </span>
+                    </td>
+                    <td>
+                        @if (item.Status == "Chờ duyệt")
+                        {
+                            <form asp-action="ApproveLeave" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@item.RequestId" />
+                                <button name="status" value="Đã duyệt" class="btn btn-sm btn-outline-success">Duyệt</button>
+                                <button name="status" value="Từ chối" class="btn btn-sm btn-outline-danger">Từ chối</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

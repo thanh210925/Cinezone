@@ -1,0 +1,52 @@
+﻿@{
+    ViewData["Title"] = "Đăng ký nghỉ phép";
+    Layout = "_AdminLayout";
+
+}
+
+<form asp-action="LeaveRequest" method="post" class="mb-4">
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label>Loại nghỉ phép:</label>
+            <select name="LeaveTypeId" class="form-control" asp-items="ViewBag.LeaveTypes" required></select>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label>Từ ngày:</label>
+            <input type="date" name="StartDate" class="form-control" required />
+        </div>
+        <div class="col-md-4 mb-3">
+            <label>Đến ngày:</label>
+            <input type="date" name="EndDate" class="form-control" required />
+        </div>
+    </div>
+    <div class="form-group mb-3">
+        <label>Lý do:</label>
+        <textarea name="Reason" class="form-control" rows="2"></textarea>
+    </div>
+
+    <div class="form-group mb-3">
+        <label>Loại nghỉ phép:</label>
+        <select name="LeaveTypeId" class="form-control" asp-items="ViewBag.LeaveTypes" required>
+            <option value="">-- Chọn loại nghỉ --</option>
+        </select>
+    </div>
+    <button type="submit" class="btn btn-success">Gửi yêu cầu</button>
+</form>
+
+<table class="table table-bordered">
+    <thead>
+        <tr><th>Loại</th><th>Từ</th><th>Đến</th><th>Lý do</th><th>Trạng thái</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.LeaveType?.TypeName</td>
+                <td>@item.StartDate.ToString("dd/MM/yyyy")</td>
+                <td>@item.EndDate.ToString("dd/MM/yyyy")</td>
+                <td>@item.Reason</td>
+                <td>@item.Status</td>
+            </tr>
+        }
+    </tbody>
+</table>

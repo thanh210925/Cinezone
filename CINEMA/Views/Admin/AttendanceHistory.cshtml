@@ -1,0 +1,42 @@
+﻿@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Bảng chấm công ngày";
+}
+
+<div class="container-fluid mt-4">
+    <h3>Bảng chấm công ngày @ViewBag.SelectedDate</h3>
+    <table class="table table-striped table-hover shadow-sm bg-white">
+        <thead class="table-primary">
+            <tr>
+                <th>Nhân viên</th>
+                <th>Giờ vào</th>
+                <th>Ảnh vào</th>
+                <th>Giờ ra</th>
+                <th>Ảnh ra</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Admin?.FullName</td>
+                    <td>@item.CheckInTime?.ToString("HH:mm:ss")</td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(item.CheckInPhoto))
+                        {
+                            <img src="@item.CheckInPhoto" width="60" class="img-thumbnail" />
+                        }
+                    </td>
+                    <td>@item.CheckOutTime?.ToString("HH:mm:ss")</td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(item.CheckOutPhoto))
+                        {
+                            <img src="@item.CheckOutPhoto" width="60" class="img-thumbnail" />
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <a href="/Admin/CheckInOut" class="btn btn-secondary">Quay lại chấm công</a>
+</div>

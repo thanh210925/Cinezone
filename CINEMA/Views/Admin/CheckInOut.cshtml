@@ -1,0 +1,176 @@
+﻿@using CINEMA.Models
+@using CINEMA.ViewModels
+@model Tuple<IEnumerable<Attendance>, IEnumerable<PayrollViewModel>>
+@{
+    ViewData["Title"] = "Chấm công";
+    Layout = "_AdminLayout";
+    bool isSuperAdmin = Context.Session.GetString("Role") == "SuperAdmin";
+    DateTime selectedDate = ViewBag.SelectedDate ?? DateTime.Now.Date;
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-camera"></i> Chấm công nhân viên</h5>
+        </div>
+        <div class="card-body text-center">
+            <video id="video" width="400" height="300" autoplay class="border rounded shadow-sm bg-dark"></video>
+            <canvas id="canvas" width="400" height="300" style="display:none;"></canvas>
+            <div class="mt-3">
+                <button class="btn btn-success btn-lg" onclick="takeSnapshot('in')"><i class="bi bi-box-arrow-in-right"></i> Check-in</button>
+                <button class="btn btn-danger btn-lg" onclick="takeSnapshot('out')"><i class="bi bi-box-arrow-right"></i> Check-out</button>
+            </div>
+            <div id="status" class="mt-3 font-weight-bold"></div>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Ngày: <strong>@selectedDate.ToString("dd/MM/yyyy")</strong></span>
+            <div class="d-flex">
+                <input type="date" id="datePicker" class="form-control me-2" value="@selectedDate.ToString("yyyy-MM-dd")" onchange="changeDate()">
+                @if (isSuperAdmin)
+                {
+                    <button class="btn btn-warning" onclick="approveAll()">Duyệt tất cả</button>
+                }
+            </div>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nhân viên</th>
+                        <th>Giờ vào</th>
+                        <th>Ảnh vào</th>
+                        <th>Giờ ra</th>
+                        <th>Ảnh ra</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Item1)
+                    {
+                        <tr>
+                            <td>@item.Admin?.FullName</td>
+                            <td>@item.CheckInTime?.ToString("HH:mm:ss")</td>
+                            <td>@if(!string.IsNullOrEmpty(item.CheckInPhoto)){
+                            <img src="@item.CheckInPhoto" width="50" class="img-thumbnail" />
+                        }
+</td>
+                        <td>@item.CheckOutTime?.ToString("HH:mm:ss")</td>
+                        <td>@if(!string.IsNullOrEmpty(item.CheckOutPhoto)){
+                        <img src="@item.CheckOutPhoto" width="50" class="img-thumbnail" />
+                                                }
+</td>
+                        <td>
+                            @if (item.IsApproved)
+                            {
+                                <span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Đã duyệt</span>
+                            }
+                            else
+                            {
+                                @if (isSuperAdmin)
+                                {
+                                    <button onclick="approveAttendance(@item.AttendanceId)" class="btn btn-sm btn-outline-primary">Duyệt</button>
+                                }
+                                else
+                                {
+                                    <span class="text-warning"><i class="bi bi-clock"></i> Chờ duyệt</span>
+                                }
+                            }
+                        </td>
+                    </tr>
+                                        }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h5><i class="bi bi-file-earmark-text"></i> Bảng tổng hợp công tháng @selectedDate.Month / @selectedDate.Year</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-striped">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã NV</th>
+                        <th>Tên nhân viên</th>
+                        <th>Số ngày công (Đã duyệt)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Item2)
+                    {
+                        <tr>
+                            <td>@item.EmployeeCode</td>
+                            <td>@item.FullName</td>
+                            <td><span class="badge bg-info text-dark">@item.TotalDays ngày</span></td>
+                        </tr>
+                    }
+                </tbody>
+                <tbody>
+    @foreach (var item in Model.Item2) {
+        <tr>
+            <td>@item.EmployeeCode</td>
+            <td>@item.FullName</td>
+            <td>
+                @if (item.TotalDays > 0) {
+                    <span class="badge bg-info text-dark">@item.TotalDays ngày</span>
+                } else {
+                    <span class="text-muted">Chưa đủ công</span>
+                }
+            </td>
+        </tr>
+    }
+</tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const video = document.getElementById('video');
+        const status = document.getElementById('status');
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => { video.srcObject = stream; })
+            .catch(err => { status.innerText = "Lỗi Camera!"; status.style.color = "red"; });
+
+        function takeSnapshot(type) {
+            status.innerText = "Đang xử lý...";
+            let canvas = document.getElementById('canvas');
+            canvas.getContext('2d').drawImage(video, 0, 0, 400, 300);
+            let imageData = canvas.toDataURL('image/png');
+
+            fetch('/Admin/ProcessCheck', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: type, imageBase64: imageData })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) location.reload();
+                else alert(data.message);
+            });
+        }
+
+        function changeDate() {
+            window.location.href = '/Admin/CheckInOut?date=' + document.getElementById('datePicker').value;
+        }
+
+        function approveAttendance(id) {
+            fetch('/Admin/ApproveAttendance/' + id, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => { if(data.success) location.reload(); else alert(data.message); });
+        }
+
+        function approveAll() {
+            let date = document.getElementById('datePicker').value;
+            fetch('/Admin/ApproveAll?date=' + date, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => { if(data.success) location.reload(); else alert("Lỗi!"); });
+        }
+    </script>
+}

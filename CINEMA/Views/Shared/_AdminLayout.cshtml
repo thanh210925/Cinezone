@@ -86,12 +86,41 @@
                             <span>Quản lý lịch làm việc</span>
                         </a>
                     </li>
+
+
     <li>
         <a asp-controller="Log" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Log" ? "active" : "")">
             <i class="bi bi-building"></i><span>Quản lý Nhật ký</span>
         </a>
     </li>
 }
+                <li class="nav-item-divider">
+                    <hr class="sidebar-divider">
+                    <div class="sidebar-heading">
+                        Quản trị Nhân sự
+                    </div>
+                </li>
+
+                <li>
+                    <a asp-controller="Admin" asp-action="CheckInOut" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "CheckInOut" ? "active" : "")">
+                        <i class="bi bi-camera-reels"></i><span>Chấm công</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a asp-controller="Admin" asp-action="LeaveRequest" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "LeaveRequest" ? "active" : "")">
+                        <i class="bi bi-calendar-check"></i><span>Gửi đơn nghỉ phép</span>
+                    </a>
+                </li>
+
+                @if (HttpContextAccessor.HttpContext.Session.GetString("Role") == "SuperAdmin")
+                {
+                    <li>
+                        <a asp-controller="Admin" asp-action="ManageLeave" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "ManageLeave" ? "active" : "")">
+                            <i class="bi bi-shield-check"></i><span>Duyệt nghỉ phép</span>
+                        </a>
+                    </li>
+                }
                 <li>
                     <a asp-controller="Theater" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Theater" ? "active" : "")">
                         <i class="bi bi-building"></i><span>Quản lý Rạp</span>
