@@ -477,7 +477,7 @@ namespace CINEMA.Controllers
         private int? GetCurrentCustomerId()
         {
             var idStr = HttpContext.Session.GetString("CustomerId");
-            return int.TryParse(idStr, out var id) ? id : (int?)null;
+            return HttpContext.Session.GetInt32("CustomerId");
         }
 
         private void LogActivity(string activityType, int? movieId = null, int? genreId = null, string? metadata = null)
@@ -530,41 +530,38 @@ namespace CINEMA.Controllers
         [HttpGet]
         public IActionResult Recommend()
         {
-            var customerId = GetCurrentCustomerId();
-            if (customerId == null)
-                return Json(new List<object>());
+            var customerId = HttpContext.Session.GetInt32("CustomerId");
+            if (customerId == null) return Json(new List<object>());
 
-            var genreScores = _context.Genres
-                .Select(g => new
-                {
-                    g.GenreId,
-                    g.Name,
-                    Score =
-                        _context.Tickets.Count(t =>
-                            t.Showtime.Movie.Genres.Any(mg => mg.GenreId == g.GenreId) &&
-                            t.Order!.CustomerId == customerId) * 3
-                        +
-                        (_context.UserMovieViews
-                            .Where(v => v.CustomerId == customerId &&
-                                        v.Movie.Genres.Any(mg => mg.GenreId == g.GenreId))
-                            .Sum(v => (int?)v.ViewCount) ?? 0)
+            // 1. Thống kê điểm số thể loại (Genre Score)
+            // BOOK_TICKET = 3đ, VIEW_MOVIE = 1đ
+            var genreScores = _context.UserActivityLogs
+                .Where(l => l.CustomerId == customerId)
+                .Include(l => l.Movie)
+                    .ThenInclude(m => m.Genres)
+                .AsEnumerable()
+                .GroupBy(l => l.GenreId ?? 0) // Giả sử log có lưu GenreId trực tiếp hoặc qua Movie
+                .Select(g => new {
+                    GenreId = g.Key,
+                    Score = g.Sum(l => l.ActivityType == "BOOK_TICKET" ? 3 : 1)
                 })
                 .OrderByDescending(x => x.Score)
                 .Take(3)
-                .Select(x => x.GenreId)
                 .ToList();
 
+            var topGenreIds = genreScores.Select(x => x.GenreId).ToList();
+
+            // 2. Tìm phim cùng thể loại mà khách CHƯA XEM
             var recommended = _context.Movies
-                .Where(m => m.IsActive == true &&
-                            m.Genres.Any(g => genreScores.Contains(g.GenreId)) &&
-                            !_context.Tickets.Any(t =>
-                                t.Showtime.MovieId == m.MovieId &&
-                                t.Order!.CustomerId == customerId))
+                .Where(m => m.IsActive == true
+                         && m.Genres.Any(g => topGenreIds.Contains(g.GenreId))
+                         && !_context.UserMovieViews.Any(v => v.CustomerId == customerId && v.MovieId == m.MovieId))
                 .OrderByDescending(m => m.ReleaseDate)
                 .Take(10)
+                .Select(m => new { m.MovieId, m.Title, m.PosterUrl })
                 .ToList();
 
-            return Json(recommended.Select(m => new { m.MovieId, m.Title, m.PosterUrl }));
+            return Json(recommended);
         }
     }
 }

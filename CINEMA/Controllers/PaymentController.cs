@@ -326,7 +326,6 @@ namespace CINEMA.Controllers
                     pay.AddRequestData("vnp_OrderType", "billpayment");
                     pay.AddRequestData("vnp_ReturnUrl", returnUrl);
                     pay.AddRequestData("vnp_TxnRef", order.OrderId.ToString());
-                    //string paymentUrl = _vnpayService.CreatePaymentUrl(order, HttpContext);
                     string paymentUrl = pay.CreateRequestUrl(baseUrl, hashSecret);
                     return Redirect(paymentUrl);
                 }
