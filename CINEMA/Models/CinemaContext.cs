@@ -524,6 +524,41 @@ public partial class CinemaContext : DbContext
       .HasForeignKey(e => e.AdminId)
       .OnDelete(DeleteBehavior.Restrict);
         });
+
+
+        // Cấu hình bảng Chấm công
+        modelBuilder.Entity<Attendance>(entity =>
+        {
+            entity.HasKey(e => e.AttendanceId);
+            entity.Property(e => e.Date).HasColumnType("date");
+            entity.Property(e => e.CheckInTime).HasColumnType("datetime");
+            entity.Property(e => e.CheckOutTime).HasColumnType("datetime");
+            entity.Property(e => e.CheckInPhoto).HasMaxLength(500);
+            entity.Property(e => e.CheckOutPhoto).HasMaxLength(500);
+
+            entity.HasOne(d => d.Admin)
+                  .WithMany() // Nếu Admin không có danh sách Attendance
+                  .HasForeignKey(d => d.AdminId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Cấu hình bảng Nghỉ phép
+        modelBuilder.Entity<LeaveRequest>(entity =>
+        {
+            entity.HasKey(e => e.RequestId);
+            entity.Property(e => e.Status).HasMaxLength(50).HasDefaultValue("Chờ duyệt");
+            entity.Property(e => e.Reason).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasDefaultValueSql("GETDATE()");
+
+            entity.HasOne(d => d.Admin)
+                  .WithMany() // Nếu Admin không có danh sách LeaveRequest
+                  .HasForeignKey(d => d.AdminId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserActivityLog>()
+    .HasKey(x => x.LogId);
+
     }
 
 
@@ -537,4 +572,11 @@ public partial class CinemaContext : DbContext
 
     public DbSet<Shift> Shifts { get; set; }
     public DbSet<WorkSchedule> WorkSchedules { get; set; }
+
+
+    public virtual DbSet<Attendance> Attendance { get; set; }
+    public virtual DbSet<LeaveRequest> LeaveRequests { get; set; }
+    public virtual DbSet<LeaveType> LeaveTypes { get; set; }
 }
+
+

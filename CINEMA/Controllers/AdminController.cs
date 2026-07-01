@@ -470,5 +470,363 @@ namespace CINEMA.Controllers
 
             return View(data);
         }
+
+
+        // --- MODULE CHẤM CÔNG ---
+        // 1. Hàm hiển thị (Có chọn ngày)
+        [HttpGet]
+        public IActionResult CheckInOut(DateTime? date)
+        {
+            DateTime targetDate = date ?? DateTime.Now.Date;
+            ViewBag.SelectedDate = targetDate;
+
+            // 1. Dữ liệu chấm công hàng ngày
+            var attendanceList = _context.Attendance
+                .Include(a => a.Admin)
+                .Where(a => a.Date.Date == targetDate.Date)
+                .ToList();
+
+            // 2. Dữ liệu tổng hợp công tháng (Payroll)
+            var payrollList = _context.Attendance
+                .Include(a => a.Admin)
+                .Where(a => a.Date.Month == targetDate.Month && a.Date.Year == targetDate.Year && a.IsApproved == true)
+                .GroupBy(a => a.AdminId)
+                .Select(g => new PayrollViewModel
+                {
+                    FullName = g.FirstOrDefault().Admin.FullName,
+                    EmployeeCode = g.FirstOrDefault().Admin.EmployeeCode,
+                    TotalDays = g.Count()
+                }).ToList();
+
+            // Dùng Tuple hoặc ViewModel bao gồm cả 2 list để truyền vào View
+            var model = new Tuple<IEnumerable<Attendance>, IEnumerable<PayrollViewModel>>(attendanceList, payrollList);
+            return View(model);
+        }
+
+        // 2. Hàm duyệt tất cả trong ngày
+        [HttpPost]
+        public async Task<IActionResult> ApproveAll(DateTime date)
+        {
+            if (HttpContext.Session.GetString("Role") != "SuperAdmin") return Unauthorized();
+
+            var records = await _context.Attendance
+                .Where(a => a.Date.Date == date.Date && !a.IsApproved)
+                .ToListAsync();
+
+            foreach (var item in records) item.IsApproved = true;
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true });
+        }
+        public IActionResult PayrollReport(int? month, int? year)
+        {
+            int m = month ?? DateTime.Now.Month;
+            int y = year ?? DateTime.Now.Year;
+
+            var report = _context.Attendance
+                .Include(a => a.Admin)
+                .Where(a => a.Date.Month == m && a.Date.Year == y && a.IsApproved == true) // Chỉ lấy công đã duyệt
+                .GroupBy(a => a.AdminId)
+                .Select(g => new PayrollViewModel
+                {
+                    FullName = g.FirstOrDefault().Admin.FullName,
+                    EmployeeCode = g.FirstOrDefault().Admin.EmployeeCode,
+                    TotalDays = g.Count()
+                })
+                .ToList();
+
+            ViewBag.Month = m;
+            ViewBag.Year = y;
+            return View(report);
+        }
+
+        // --- MODULE NGHỈ PHÉP CẬP NHẬT ---
+
+        [HttpGet]
+        public IActionResult LeaveRequest()
+        {
+            // Nạp danh sách loại nghỉ phép vào ViewBag
+
+            ViewBag.LeaveTypes = new SelectList(_context.LeaveTypes.ToList(), "LeaveTypeId", "TypeName");
+
+            var adminId = int.Parse(HttpContext.Session.GetString("AdminId"));
+            var myRequests = _context.LeaveRequests
+                .Include(l => l.LeaveType) // Bao gồm loại nghỉ để hiển thị tên
+                .Where(l => l.AdminId == adminId)
+                .OrderByDescending(l => l.CreatedAt)
+                .ToList();
+
+            return View(myRequests);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> LeaveRequest(LeaveRequest model)
+        {
+            model.AdminId = int.Parse(HttpContext.Session.GetString("AdminId"));
+            model.Status = "Chờ duyệt";
+            model.CreatedAt = DateTime.Now;
+
+            _context.LeaveRequests.Add(model);
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Đã gửi đơn nghỉ phép!";
+            return RedirectToAction("LeaveRequest"); // Quay lại trang đăng ký để xem danh sách
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteLeaveType(int id)
+        {
+            var type = await _context.LeaveTypes.FindAsync(id);
+            if (type != null)
+            {
+                _context.LeaveTypes.Remove(type);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("ManageLeaveSettings"); // Điều hướng về trang quản lý loại nghỉ
+        }
+        // Admin xem và duyệt đơn
+        public IActionResult ManageLeave()
+        {
+            if (!IsSuperAdmin()) return RedirectToAction("Dashboard");
+
+            // Thêm Include để lấy tên loại nghỉ
+            var requests = _context.LeaveRequests
+                .Include(l => l.Admin)
+                .Include(l => l.LeaveType)
+                .ToList();
+
+            return View(requests);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ApproveLeave(int id, string status)
+        {
+            var request = _context.LeaveRequests.Find(id);
+            if (request != null)
+            {
+                request.Status = status; // "Đã duyệt" hoặc "Từ chối"
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("ManageLeave");
+        }
+        public class AttendanceDto
+        {
+            public string type { get; set; }
+            public string imageBase64 { get; set; }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ProcessCheck([FromBody] AttendanceDto model)
+        {
+            var adminIdString = HttpContext.Session.GetString("AdminId");
+            if (string.IsNullOrEmpty(adminIdString)) return Unauthorized();
+
+            var adminId = int.Parse(adminIdString);
+
+            // Lưu ảnh vào wwwroot/uploads/attendance
+            string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/attendance");
+            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
+            string fileName = $"{adminId}_{DateTime.Now:yyyyMMddHHmmss}.png";
+            string path = Path.Combine(folder, fileName);
+
+            // Giải mã Base64 và lưu file
+            byte[] bytes = Convert.FromBase64String(model.imageBase64.Split(',')[1]);
+            System.IO.File.WriteAllBytes(path, bytes);
+
+            var record = new Attendance
+            {
+                AdminId = adminId,
+                Date = DateTime.Now.Date,
+                CheckInTime = model.type == "in" ? DateTime.Now : null,
+                CheckOutTime = model.type == "out" ? DateTime.Now : null,
+                CheckInPhoto = model.type == "in" ? "/uploads/attendance/" + fileName : null,
+                CheckOutPhoto = model.type == "out" ? "/uploads/attendance/" + fileName : null
+            };
+
+            _context.Attendance.Add(record);
+            await _context.SaveChangesAsync();
+            return Json(new { success = true });
+        }
+        [HttpGet]
+        public IActionResult AttendanceHistory(DateTime? date)
+        {
+            // Lấy ngày truyền vào, nếu không có thì mặc định là hôm nay
+            DateTime targetDate = date ?? DateTime.Now.Date;
+
+            var logs = _context.Attendance
+                .Include(a => a.Admin) // Cần Include để lấy tên Admin
+                .Where(a => a.Date.Date == targetDate.Date)
+                .OrderByDescending(a => a.CheckInTime)
+                .ToList();
+
+            ViewBag.SelectedDate = targetDate.ToString("yyyy-MM-dd");
+            return View(logs);
+        }
+
+      
+        [HttpPost]
+        public async Task<IActionResult> ApproveAttendance(int id)
+        {
+            // Kiểm tra quyền: Chỉ SuperAdmin mới được duyệt
+            if (HttpContext.Session.GetString("Role") != "SuperAdmin")
+            {
+                return Json(new { success = false, message = "Bạn không có quyền này!" });
+            }
+
+            var record = await _context.Attendance.FindAsync(id);
+            if (record == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy dữ liệu chấm công!" });
+            }
+
+            record.IsApproved = true;
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
+
+
+        // =====================================================
+        // ============ TRACKING NGƯỜI DÙNG (KHÁCH HÀNG) =========
+        // =====================================================
+
+        public async Task<IActionResult> CustomerActivityLogs(string activityType, int page = 1)
+        {
+            if (!IsLoggedIn()) return RedirectToAction("Login");
+
+            int pageSize = 50;
+
+            var query = _context.UserActivityLogs
+                .AsNoTracking()
+                .Include(x => x.Customer)
+                .Include(x => x.Movie)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(activityType))
+                query = query.Where(x => x.ActivityType == activityType);
+
+            var total = await query.CountAsync();
+
+            var data = await query
+                .OrderByDescending(x => x.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewBag.Page = page;
+            ViewBag.TotalPages = (int)Math.Ceiling(total / (double)pageSize);
+            ViewBag.ActivityType = activityType;
+            ViewBag.ActivityTypes = await _context.UserActivityLogs
+                .Select(x => x.ActivityType)
+                .Distinct()
+                .ToListAsync();
+
+            return View(data);
+        }
+
+        public async Task<IActionResult> MovieViewStats()
+        {
+            if (!IsLoggedIn()) return RedirectToAction("Login");
+
+            var data = await _context.UserMovieViews
+                .Include(v => v.Movie)
+                .GroupBy(v => new { v.MovieId, v.Movie.Title, v.Movie.PosterUrl })
+                .Select(g => new
+                {
+                    g.Key.MovieId,
+                    g.Key.Title,
+                    g.Key.PosterUrl,
+                    TotalViews = g.Sum(x => x.ViewCount),
+                    UniqueViewers = g.Count()
+                })
+                .OrderByDescending(x => x.TotalViews)
+                .Take(30)
+                .ToListAsync();
+
+            return View(data);
+        }
+
+        public async Task<IActionResult> CustomerSearchLogs(int page = 1)
+        {
+            if (!IsLoggedIn()) return RedirectToAction("Login");
+
+            int pageSize = 50;
+
+            var query = _context.UserSearchLogs
+                .AsNoTracking()
+                .Include(x => x.Customer)
+                .OrderByDescending(x => x.CreatedAt);
+
+            var total = await query.CountAsync();
+
+            var data = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewBag.Page = page;
+            ViewBag.TotalPages = (int)Math.Ceiling(total / (double)pageSize);
+
+            return View(data);
+        }
+
+        public async Task<IActionResult> TopSearchKeywords()
+        {
+            if (!IsLoggedIn()) return RedirectToAction("Login");
+
+            var data = await _context.UserSearchLogs
+                .GroupBy(s => s.Keyword.ToLower())
+                .Select(g => new
+                {
+                    Keyword = g.Key,
+                    SearchCount = g.Count(),
+                    AvgResultCount = g.Average(x => x.ResultCount ?? 0)
+                })
+                .OrderByDescending(x => x.SearchCount)
+                .Take(30)
+                .ToListAsync();
+
+            return View(data);
+        }
+
+        // Xem khách hàng nào đang được gợi ý phim gì (test nhanh không cần login vào tài khoản khách)
+        public async Task<IActionResult> CustomerRecommendPreview(int customerId)
+        {
+            if (!IsLoggedIn()) return RedirectToAction("Login");
+
+            var genreScores = await _context.Genres
+                .Select(g => new
+                {
+                    g.GenreId,
+                    g.Name,
+                    Score =
+                        _context.Tickets.Count(t =>
+                            t.Showtime.Movie.Genres.Any(mg => mg.GenreId == g.GenreId) &&
+                            t.Order!.CustomerId == customerId) * 3
+                        +
+                        (_context.UserMovieViews
+                            .Where(v => v.CustomerId == customerId &&
+                                        v.Movie.Genres.Any(mg => mg.GenreId == g.GenreId))
+                            .Sum(v => (int?)v.ViewCount) ?? 0)
+                })
+                .OrderByDescending(x => x.Score)
+                .ToListAsync();
+
+            var topGenreIds = genreScores.Take(3).Select(x => x.GenreId).ToList();
+
+            var recommended = await _context.Movies
+                .Where(m => m.IsActive == true &&
+                            m.Genres.Any(g => topGenreIds.Contains(g.GenreId)))
+                .OrderByDescending(m => m.ReleaseDate)
+                .Take(10)
+                .ToListAsync();
+
+            ViewBag.CustomerId = customerId;
+            ViewBag.GenreScores = genreScores;
+            ViewBag.Customer = await _context.Customers.FindAsync(customerId);
+
+            return View(recommended);
+        }
+
     }
 }
