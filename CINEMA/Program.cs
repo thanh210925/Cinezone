@@ -52,10 +52,11 @@ namespace CINEMA
 
             app.UseRouting();
 
-            app.UseAuthentication();   // 🔥 BẮT BUỘC
+            app.UseAuthentication();
+            app.UseSession();// 🔥 BẮT BUỘC
             app.UseAuthorization();
 
-            app.UseSession();
+      
 
             app.MapControllerRoute(
                 name: "default",

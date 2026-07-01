@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using CINEMA.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -207,13 +207,15 @@ namespace CINEMA.Controllers
                 .ThenBy(s => s.SeatNumber)
                 .ToList();
 
+            var now = DateTime.Now;
             var bookedSeats = _context.Tickets
                 .Include(t => t.Seat)
                 .Include(t => t.Order)
                 .Where(t => t.ShowtimeId == showtime.ShowtimeId
                     && t.Order != null
-                    && t.Order.Status == "Đã thanh toán")
-                // ✅ CHỈ GHẾ ĐÃ THANH TOÁN
+                    && (t.Order.Status == "Đã thanh toán" 
+                        || ((t.Order.Status == "Chờ thanh toán" || t.Order.Status == "Đang chờ thanh toán") 
+                            && t.Order.ExpiredAt > now)))
                 .Select(t => t.Seat.RowLabel + t.Seat.SeatNumber)
                 .ToList();
 
@@ -477,7 +479,7 @@ namespace CINEMA.Controllers
         private int? GetCurrentCustomerId()
         {
             var idStr = HttpContext.Session.GetString("CustomerId");
-            return int.TryParse(idStr, out var id) ? id : (int?)null;
+            return HttpContext.Session.GetInt32("CustomerId");
         }
 
         private void LogActivity(string activityType, int? movieId = null, int? genreId = null, string? metadata = null)
@@ -530,41 +532,96 @@ namespace CINEMA.Controllers
         [HttpGet]
         public IActionResult Recommend()
         {
-            var customerId = GetCurrentCustomerId();
-            if (customerId == null)
-                return Json(new List<object>());
+            var customerId = HttpContext.Session.GetInt32("CustomerId");
 
-            var genreScores = _context.Genres
-                .Select(g => new
-                {
-                    g.GenreId,
-                    g.Name,
-                    Score =
-                        _context.Tickets.Count(t =>
-                            t.Showtime.Movie.Genres.Any(mg => mg.GenreId == g.GenreId) &&
-                            t.Order!.CustomerId == customerId) * 3
-                        +
-                        (_context.UserMovieViews
-                            .Where(v => v.CustomerId == customerId &&
-                                        v.Movie.Genres.Any(mg => mg.GenreId == g.GenreId))
-                            .Sum(v => (int?)v.ViewCount) ?? 0)
+            if (customerId == null)
+            {
+                // Khách chưa đăng nhập -> gợi ý các phim mới nhất đang chiếu
+                var guestRecommended = _context.Movies
+                    .Where(m => m.IsActive == true)
+                    .OrderByDescending(m => m.ReleaseDate)
+                    .Take(8)
+                    .Select(m => new { m.MovieId, m.Title, m.PosterUrl })
+                    .ToList();
+                return Json(guestRecommended);
+            }
+
+            // 1. Thống kê điểm số thể loại (Genre Score) từ lịch sử hoạt động
+            // BOOK_TICKET = 3đ, VIEW_MOVIE = 1đ
+            var logs = _context.UserActivityLogs
+                .Where(l => l.CustomerId == customerId)
+                .Include(l => l.Movie)
+                    .ThenInclude(m => m.Genres)
+                .AsEnumerable()
+                .ToList();
+
+            var genreScores = logs
+                .SelectMany(l => {
+                    var genresList = new List<int>();
+                    if (l.GenreId.HasValue)
+                    {
+                        genresList.Add(l.GenreId.Value);
+                    }
+                    if (l.Movie != null && l.Movie.Genres != null)
+                    {
+                        genresList.AddRange(l.Movie.Genres.Select(g => g.GenreId));
+                    }
+                    int points = l.ActivityType == "BOOK_TICKET" ? 3 : 1;
+                    return genresList.Distinct().Select(gid => new { GenreId = gid, Points = points });
+                })
+                .GroupBy(x => x.GenreId)
+                .Select(g => new {
+                    GenreId = g.Key,
+                    Score = g.Sum(x => x.Points)
                 })
                 .OrderByDescending(x => x.Score)
                 .Take(3)
-                .Select(x => x.GenreId)
                 .ToList();
 
-            var recommended = _context.Movies
-                .Where(m => m.IsActive == true &&
-                            m.Genres.Any(g => genreScores.Contains(g.GenreId)) &&
-                            !_context.Tickets.Any(t =>
-                                t.Showtime.MovieId == m.MovieId &&
-                                t.Order!.CustomerId == customerId))
-                .OrderByDescending(m => m.ReleaseDate)
-                .Take(10)
+            var topGenreIds = genreScores.Select(x => x.GenreId).ToList();
+
+            // 2. Lấy danh sách phim Khách hàng đã xem để loại trừ
+            var viewedMovieIds = _context.UserMovieViews
+                .Where(v => v.CustomerId == customerId)
+                .Select(v => v.MovieId)
                 .ToList();
 
-            return Json(recommended.Select(m => new { m.MovieId, m.Title, m.PosterUrl }));
+            // 3. Tìm phim cùng thể loại ưa thích mà khách CHƯA XEM
+            List<Movie> recommendedMovies = new List<Movie>();
+
+            if (topGenreIds.Any())
+            {
+                recommendedMovies = _context.Movies
+                    .Include(m => m.Genres)
+                    .Where(m => m.IsActive == true
+                             && m.Genres.Any(g => topGenreIds.Contains(g.GenreId))
+                             && !viewedMovieIds.Contains(m.MovieId))
+                    .OrderByDescending(m => m.ReleaseDate)
+                    .Take(8)
+                    .ToList();
+            }
+
+            // 4. Dự phòng (Fallback): Nếu không có thể loại ưa thích hoặc danh sách gợi ý < 4 phim,
+            // bổ sung thêm các phim mới nhất đang chiếu mà khách chưa xem
+            if (recommendedMovies.Count < 4)
+            {
+                var currentRecommendedIds = recommendedMovies.Select(r => r.MovieId).ToList();
+                var fallbackMovies = _context.Movies
+                    .Where(m => m.IsActive == true
+                             && !viewedMovieIds.Contains(m.MovieId)
+                             && !currentRecommendedIds.Contains(m.MovieId))
+                    .OrderByDescending(m => m.ReleaseDate)
+                    .Take(8 - recommendedMovies.Count)
+                    .ToList();
+
+                recommendedMovies.AddRange(fallbackMovies);
+            }
+
+            var result = recommendedMovies
+                .Select(m => new { m.MovieId, m.Title, m.PosterUrl })
+                .ToList();
+
+            return Json(result);
         }
     }
 }

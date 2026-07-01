@@ -80,7 +80,7 @@
     <h2 class="text-center mb-2  fw-bold">
         CINEZONE - ĐIỂM HẸN ĐIỆN ẢNH CỦA BẠN
     </h2> *@
-    <!-- 🔍 TÌM KIẾM PHIM -->
+    @* <!-- 🔍 TÌM KIẾM PHIM --> *@
 <div class="container mt-1 d-flex justify-content-center">
     <div class="search-box shadow-lg">
 
@@ -155,7 +155,7 @@
 
 
 
-<!-- QUICK BOOKING SECTION -->
+@* <!-- QUICK BOOKING SECTION --> *@
 <section class="booking-section mt-5">
     <div class="container">
         <div class="booking-card">
@@ -230,10 +230,9 @@
     </div>
 </section>
 
-<!-- NOW SHOWING MOVIES -->
+@* <!-- NOW SHOWING MOVIES --> *@
 <section class="movies-section mt-5">
     <div class="container">
-
         <div class="section-header mb-5">
             <h2 class="section-title text-center fw-bold">
                 <i class="bi bi-film"></i> PHIM ĐANG CHIẾU
@@ -241,61 +240,37 @@
             <div class="title-underline"></div>
         </div>
 
-        <div class="row g-4">
-
-            @foreach (var movie in Model.Where(m =>
-                    m.ReleaseDate.HasValue &&
+        <div class="row flex-nowrap overflow-auto pb-3"> 
+            @foreach (var movie in Model.Where(m => 
+                    m.ReleaseDate.HasValue && 
                     m.ReleaseDate.Value.ToDateTime(TimeOnly.MinValue) <= DateTime.Today))
             {
-
-                <div class="col-lg-3 col-md-4 col-sm-6">
-
+                <div class="col-lg-3 col-md-4 col-sm-6" style="min-width: 250px;">
                     <div class="movie-card h-100 shadow-sm rounded-3 overflow-hidden">
-
                         <div class="movie-poster-container position-relative">
-
-                            <img src="@movie.PosterUrl"
-                                 class="movie-poster w-100"
-                                 alt="@movie.Title">
-
+                            <img src="@movie.PosterUrl" class="movie-poster w-100" alt="@movie.Title">
                             <div class="movie-overlay d-flex align-items-center justify-content-center">
-
-                                <a asp-controller="Home"
-                                   asp-action="BookTicket"
-                                   asp-route-id="@movie.MovieId"
+                                <a asp-controller="Home" asp-action="BookTicket" asp-route-id="@movie.MovieId"
                                    class="btn btn-light btn-lg fw-bold rounded-pill px-4 shadow hover-lift movie-btn">
                                     Đặt vé
                                 </a>
-
                             </div>
-
                         </div>
-
                         <div class="movie-info p-3">
-
-                            <h5 class="fw-bold mb-2 movie-title">
-                                @movie.Title
-                            </h5>
-
+                            <h5 class="fw-bold mb-2 movie-title">@movie.Title</h5>
                             <div class="movie-meta text-muted small">
                                 <span class="badge bg-secondary me-2">@movie.AgeRating</span>
                                 <span>@movie.Duration phút</span>
                             </div>
-
                         </div>
-
                     </div>
-
                 </div>
-
             }
-
         </div>
-
     </div>
 </section>
 
-<!-- COMING SOON MOVIES -->
+@* <!-- COMING SOON MOVIES --> *@
 <section class="movies-section mt-5">
     <div class="container">
 
@@ -354,8 +329,19 @@
 
     </div>
 </section>
-
-<!-- THEATER LOCATIONS -->
+<section class="movies-section mt-5" id="recommendSection" style="display:none;">
+    <div class="container">
+        <div class="section-header mb-5">
+            <h2 class="section-title text-center fw-bold text-danger">
+                <i class="bi bi-fire"></i> PHIM DÀNH RIÊNG CHO BẠN
+            </h2>
+            <div class="title-underline"></div>
+        </div>
+        <div class="row flex-nowrap overflow-auto pb-3" id="recommendList">
+            </div>
+    </div>
+</section>
+@* <!-- THEATER LOCATIONS --> *@
 <section class="theater-section mt-5 mb-5">
     <div class="container">
 
@@ -426,11 +412,11 @@
     </div>
 </section>
 
-<!-- SCRIPTS -->
+@* <!-- SCRIPTS --> *@
 @section Scripts {
-
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            // 1. Khởi tạo UI (Popup, Rạp mặc định)
             const firstCard = document.querySelector(".theater-card");
             if (firstCard) firstCard.classList.add("active");
 
@@ -442,8 +428,39 @@
                     sessionStorage.setItem("popupShown", "true");
                 }
             }
-        });
 
+          // ... trong script ...
+fetch('/Home/Recommend')
+    .then(res => res.json())
+    .then(data => {
+        console.log("Dữ liệu gợi ý nhận được:", data); // Kiểm tra ở F12 -> Console
+        if (data && data.length > 0) {
+            document.getElementById("recommendSection").style.display = "block";
+            const list = document.getElementById("recommendList");
+            list.innerHTML = ""; // Xóa dữ liệu cũ
+
+            data.forEach(m => {
+                const card = `
+                    <div class="col-lg-3 col-md-4 col-sm-6" style="min-width: 250px;">
+                        <div class="movie-card h-100 shadow-sm rounded-3 overflow-hidden">
+                            <div class="movie-poster-container position-relative">
+                                <img src="${m.posterUrl}" class="movie-poster w-100" alt="${m.title}">
+                                <div class="movie-overlay d-flex align-items-center justify-content-center">
+                                    <a href="/Home/BookTicket/${m.movieId}" class="btn btn-light btn-lg fw-bold rounded-pill px-4 shadow hover-lift movie-btn">Đặt vé</a>
+                                </div>
+                            </div>
+                            <div class="movie-info p-3">
+                                <h5 class="fw-bold mb-2 movie-title">${m.title}</h5>
+                            </div>
+                        </div>
+                    </div>`;
+                list.insertAdjacentHTML('beforeend', card);
+            });
+        }
+    })
+    .catch(err => console.error("Lỗi khi load gợi ý:", err));
+
+        // 3. CÁC HÀM XỬ LÝ SỰ KIỆN (Quick Booking)
         const theaterSelect = document.getElementById("theaterSelect");
         const movieSelect = document.getElementById("movieSelect");
         const dateSelect = document.getElementById("dateSelect");
@@ -498,6 +515,7 @@
                 });
         });
 
+        // 4. HÀM XỬ LÝ BẢN ĐỒ
         window.changeMap = function (address, element) {
             document.querySelectorAll('.theater-card')
                 .forEach(x => x.classList.remove('active'));
@@ -505,28 +523,17 @@
             const mapUrl = "https://maps.google.com/maps?q=" + encodeURIComponent(address) + "&output=embed";
             document.getElementById("theaterMap").src = mapUrl;
         }
+
         function scrollToMapAndChange(address) {
-            // 1. Cuộn tới phần bản đồ
             const mapSection = document.querySelector('.map-container');
-            if (mapSection) {
-                mapSection.scrollIntoView({ behavior: 'smooth' });
-            }
+            if (mapSection) mapSection.scrollIntoView({ behavior: 'smooth' });
 
-            // 2. Tìm tất cả các card rạp
             const allCards = document.querySelectorAll('.theater-card');
-
             allCards.forEach(card => {
-                // Lấy địa chỉ từ thẻ p bên trong card đó (đảm bảo class khớp với HTML của bạn)
                 const cardAddress = card.querySelector('.theater-info p').innerText.trim();
-
-                // Xóa highlight cũ
                 card.classList.remove('active-card');
-
-                // Nếu địa chỉ trùng thì thêm class active-card vào
                 if (cardAddress === address) {
                     card.classList.add('active-card');
-
-                    // Gọi hàm changeMap để đổi bản đồ
                     changeMap(address, card);
                 }
             });
