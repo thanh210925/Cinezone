@@ -57,12 +57,12 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label fw-semibold text-dark">Lương cơ bản mỗi ngày công (VND)</label>
+                            <label class="form-label fw-semibold text-dark">Lương cơ bản mỗi giờ công (VND)</label>
                             <div class="input-group input-group-lg">
                                 <span class="input-group-text bg-light text-muted border-end-0">đ</span>
-                                <input type="number" name="baseSalaryPerDay" class="form-control border-start-0" placeholder="Ví dụ: 200000" value="200000" step="1000" min="1000" required />
+                                <input type="number" name="baseSalaryPerHour" class="form-control border-start-0" placeholder="Ví dụ: 25000" value="25000" step="500" min="1000" required />
                             </div>
-                            <div class="form-text text-muted">Mức lương này sẽ được dùng làm mức lương cơ sở cho 1 ngày công thực tế, sau đó nhân với Hệ số chức vụ của mỗi nhân viên.</div>
+                            <div class="form-text text-muted">Mức lương này sẽ được dùng làm mức lương cơ sở cho 1 giờ làm việc thực tế, sau đó nhân với Hệ số chức vụ của mỗi nhân viên.</div>
                         </div>
 
                         <!-- Info Card -->
@@ -70,10 +70,10 @@
                             <div class="card-body p-4">
                                 <h6 class="fw-bold text-primary mb-3"><i class="bi bi-info-circle-fill me-2"></i>Thông tin cách tính toán lương:</h6>
                                 <ul class="mb-0 small text-secondary ps-3 d-flex flex-column gap-2">
-                                    <li><strong>Ngày công đi làm:</strong> Hệ thống tự động đếm số ngày mà nhân viên có chấm công (check-in) và đã được duyệt (`IsApproved = true`).</li>
-                                    <li><strong>Nghỉ phép có lương:</strong> Các đơn xin nghỉ phép có trạng thái "Đã duyệt" và thuộc loại "Nghỉ phép năm".</li>
+                                    <li><strong>Giờ công đi làm:</strong> Hệ thống tự động tính tổng thời gian thực tế (đến từng giờ, phút, giây) từ Check-in đến Check-out của nhân viên đã được duyệt (`IsApproved = true`).</li>
+                                    <li><strong>Nghỉ phép có lương (quy đổi):</strong> Các đơn xin nghỉ phép có trạng thái "Đã duyệt" và thuộc loại "Nghỉ phép năm". Mỗi ngày nghỉ được tính bằng 8 giờ công.</li>
                                     <li><strong>Hệ số lương:</strong> Hệ số được thiết lập tại bảng Chức vụ của nhân viên đó (Ví dụ: Nhân viên bán vé = 1.0, Quản lý = 2.0).</li>
-                                    <li><strong>Công thức:</strong> <code>Lương thực nhận = (Ngày đi làm + Nghỉ phép có lương) * Lương/ngày * Hệ số lương + Thưởng - Phạt</code>.</li>
+                                    <li><strong>Công thức:</strong> <code>Lương thực nhận = (Giờ đi làm + Giờ nghỉ phép có lương) * Lương/giờ * Hệ số lương + Thưởng - Phạt</code>.</li>
                                     <li><span class="text-warning fw-bold">Lưu ý:</span> Nếu tháng/năm được chọn đã có bảng lương, các bản ghi chưa thanh toán sẽ được tính toán lại và ghi đè. Các bản ghi đã thanh toán (Paid) sẽ được giữ nguyên.</li>
                                 </ul>
                             </div>
