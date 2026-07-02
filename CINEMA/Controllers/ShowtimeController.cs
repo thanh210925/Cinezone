@@ -37,7 +37,13 @@ namespace CINEMA.Controllers
         // ========================
         public IActionResult Create()
         {
-            ViewBag.Movies = _context.Movies.Where(m => m.IsActive == true).ToList();
+            var today = DateOnly.FromDateTime(DateTime.Today);
+
+            ViewBag.Movies = _context.Movies
+                .Where(m => m.IsActive == true
+                         && m.ReleaseDate <= today)
+                .OrderBy(m => m.Title)
+                .ToList();
             ViewBag.Auditoriums = _context.Auditoriums.ToList();
             return View();
         }
@@ -71,7 +77,10 @@ namespace CINEMA.Controllers
             var showtime = _context.Showtimes.Find(id);
             if (showtime == null) return NotFound();
 
-            ViewBag.Movies = _context.Movies.ToList();
+            ViewBag.Movies = _context.Movies
+      .Where(m => m.IsActive == true)
+      .OrderBy(m => m.Title)
+      .ToList();
             ViewBag.Auditoriums = _context.Auditoriums.ToList();
 
             return View(showtime);

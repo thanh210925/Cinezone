@@ -217,7 +217,22 @@ body {
     margin: 1rem auto;
     border-radius: 2px;
 }
+.popularSwiper {
+    padding: 50px 0;
+    width: 100%;
+}
 
+.swiper-slide {
+    transition: transform 0.5s ease;
+    transform: scale(0.85); /* Card 2 bên nhỏ hơn */
+    opacity: 0.6;
+    width: 300px; /* Độ rộng cố định cho mỗi card */
+}
+
+.swiper-slide-active {
+    transform: scale(1.15) !important; /* Card giữa to hơn */
+    opacity: 1;
+}
 /* MOVIE CARD */
 .movie-card {
     background: white;
@@ -233,72 +248,53 @@ body {
 .movie-poster-container {
     position: relative;
     overflow: hidden;
-    height: 300px;
 }
 
-.movie-poster {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.movie-card:hover .movie-poster {
-    transform: scale(1.05);
-}
+    .movie-poster-container img {
+        transition: .4s;
+    }
 
 .movie-overlay {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    display: flex;
+    justify-content: center;
+    align-items: center;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    visibility: hidden;
+    transition: .35s;
 }
 
-.movie-card:hover .movie-overlay {
-    opacity: 1;
-}
-
-.movie-info {
-    background: white;
-}
-
-.movie-title {
-    color: var(--secondary-color);
-    line-height: 1.4;
-    font-size: 1.05rem;
+.overlay-content {
+    text-align: center;
+    transform: translateY(20px);
+    transition: .35s;
 }
 
 .movie-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
 }
 
-.movie-btn,
-.coming-soon-badge {
-    position: relative;
-    z-index: 10;
-}
-
-.movie-card.coming-soon {
-    position: relative;
-}
-
-    .movie-card.coming-soon::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.2);
-        z-index: 5;
+    .movie-meta .badge {
+        font-size: 14px;
+        padding: 7px 12px;
     }
 
+.movie-card:hover .movie-overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+.movie-card:hover .overlay-content {
+    transform: translateY(0);
+}
+
+.movie-card:hover img {
+    transform: scale(1.08);
+}
 /* THEATER SECTION */
 .theater-section {
     background: white;
@@ -345,7 +341,10 @@ body {
 .theater-info i {
     color: var(--primary-color);
 }
-
+.swiper-slide {
+    display: flex;
+    justify-content: center;
+}
 /* MAP CONTAINER */
 .map-container {
     background: white;
@@ -375,4 +374,89 @@ body {
     .popup-btn:hover {
         background: #c62828;
     }
+.genre-section {
+    padding: 20px 0;
+}
 
+.genre-hot-card {
+    position: relative;
+    background: linear-gradient(135deg,#ffffff,#fff5f5);
+    border-radius: 22px;
+    padding: 35px 25px;
+    text-align: center;
+    overflow: hidden;
+    transition: .35s;
+    border: 1px solid #eee;
+    height: 100%;
+    box-shadow: 0 10px 30px rgba(0,0,0,.08);
+}
+
+    .genre-hot-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 45px rgba(220,53,69,.25);
+        background: linear-gradient(135deg,#dc3545,#ff6b6b);
+    }
+
+        .genre-hot-card:hover * {
+            color: white !important;
+        }
+
+.genre-rank-circle {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: #dc3545;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.genre-icon {
+    font-size: 55px;
+    margin-bottom: 15px;
+}
+
+.genre-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 15px;
+}
+
+.genre-desc {
+    color: #777;
+    min-height: 60px;
+    line-height: 1.6;
+}
+
+.genre-btn {
+    margin-top: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 25px;
+    border-radius: 50px;
+    background: #dc3545;
+    color: white;
+    font-weight: 600;
+    transition: .3s;
+}
+
+.genre-hot-card:hover .genre-btn {
+    background: white;
+    color: #dc3545 !important;
+}
+
+.genre-btn i {
+    transition: .3s;
+}
+
+.genre-hot-card:hover .genre-btn i {
+    transform: translateX(5px);
+}

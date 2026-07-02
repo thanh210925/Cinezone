@@ -117,13 +117,13 @@ namespace CINEMA.Controllers
                     Count = group.Count()
                 })
                 .OrderByDescending(x => x.Count)
-                .Take(5)
+                .Take(3)
                 .Select(x => x.Genre)
                 .ToList();
 
             if (!popularGenres.Any())
             {
-                popularGenres = _context.Genres.Take(5).ToList();
+                popularGenres = _context.Genres.Take(3).ToList();
             }
 
             // 📌 THỐNG KÊ COMBO PHỔ BIẾN (Dựa trên số lượng bán được từ các đơn hàng thành công)
@@ -745,17 +745,75 @@ namespace CINEMA.Controllers
                 recommendedMovies.AddRange(fallbackMovies);
             }
 
-            var result = recommendedMovies
-                .Select(m => new { 
-                    m.MovieId, 
-                    m.Title, 
-                    m.PosterUrl, 
-                    m.AgeRating, 
-                    m.Duration 
+            // =====================
+            // Phim được xem nhiều
+            // =====================
+
+            var topMovieIds = _context.UserMovieViews
+                .Where(v => v.Movie.IsActive == true)
+                .GroupBy(v => v.MovieId)
+                .Select(g => new
+                {
+                    MovieId = g.Key,
+                    TotalViews = g.Sum(v => v.ViewCount)
+                })
+                .OrderByDescending(x => x.TotalViews)
+                .Take(4)
+                .ToList();
+
+            var popularMovieIds = topMovieIds
+                .Select(x => x.MovieId)
+                .ToList();
+
+            var popularMovies = _context.Movies
+                .Where(m => m.IsActive == true && popularMovieIds.Contains(m.MovieId))
+                .ToList()
+                .OrderBy(m => popularMovieIds.IndexOf(m.MovieId))
+                .ToList();
+
+            // =====================
+            // Gộp Popular + Recommend
+            // =====================
+
+            var finalMovies = popularMovies
+                .Concat(recommendedMovies)
+                .GroupBy(m => m.MovieId)
+                .Select(g => g.First())
+                .Take(12)
+                .Select(m => new
+                {
+                    movieId = m.MovieId,
+                    title = m.Title,
+                    posterUrl = m.PosterUrl,
+                    ageRating = m.AgeRating,
+                    duration = m.Duration
                 })
                 .ToList();
 
-            return Json(result);
+            return Json(finalMovies);
+        }
+        [HttpGet]
+        public IActionResult MoviesByGenre(int genreId)
+        {
+            LogActivity("VIEW_GENRE", genreId: genreId);
+
+            var genre = _context.Genres
+                .FirstOrDefault(g => g.GenreId == genreId);
+
+            if (genre == null)
+                return NotFound("Thể loại không tồn tại.");
+
+            var movies = _context.Movies
+                .Include(m => m.Genres)
+                .Where(m =>
+                    m.IsActive == true &&
+                    m.Genres.Any(g => g.GenreId == genreId))
+                .OrderByDescending(m => m.ReleaseDate)
+                .ToList();
+
+            ViewBag.GenreName = genre.Name;
+
+            return View(movies);
         }
     }
 }

@@ -234,44 +234,92 @@
 
 @* <!-- NOW SHOWING MOVIES --> *@
 <section class="movies-section mt-5">
-    <div class="container">
-        <div class="section-header mb-5">
-            <h2 class="section-title text-center fw-bold">
-                <i class="bi bi-film"></i> PHIM ĐANG CHIẾU
-            </h2>
-            <div class="title-underline"></div>
-        </div>
+    <div class="container text-center mb-5">
+        <h2 class="fw-bold text-danger"><i class="bi bi-fire"></i> PHIM HOT & GỢI Ý</h2>
+        <div class="title-underline mx-auto"></div>
+    </div>
 
-        <div class="row flex-nowrap overflow-auto pb-3"> 
-            @foreach (var movie in Model.Where(m => 
-                    m.ReleaseDate.HasValue && 
-                    m.ReleaseDate.Value.ToDateTime(TimeOnly.MinValue) <= DateTime.Today))
-            {
-                <div class="col-lg-3 col-md-4 col-sm-6" style="min-width: 250px;">
-                    <div class="movie-card h-100 shadow-sm rounded-3 overflow-hidden">
-                        <div class="movie-poster-container position-relative">
-                            <img src="@movie.PosterUrl" class="movie-poster w-100" alt="@movie.Title">
-                            <div class="movie-overlay d-flex align-items-center justify-content-center">
-                                <a asp-controller="Home" asp-action="BookTicket" asp-route-id="@movie.MovieId"
-                                   class="btn btn-light btn-lg fw-bold rounded-pill px-4 shadow hover-lift movie-btn">
-                                    Đặt vé
-                                </a>
-                            </div>
-                        </div>
-                        <div class="movie-info p-3">
-                            <h5 class="fw-bold mb-2 movie-title">@movie.Title</h5>
-                            <div class="movie-meta text-muted small">
-                                <span class="badge bg-secondary me-2">@movie.AgeRating</span>
-                                <span>@movie.Duration phút</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
+    <div class="swiper popularSwiper">
+        <div class="swiper-wrapper" id="recommendList">
         </div>
     </div>
 </section>
+<style>
+    .popularSwiper {
+        padding: 50px 0;
+        width: 100%;
+    }
 
+    .swiper-slide {
+        transition: transform 0.5s ease;
+        transform: scale(0.85); /* Card 2 bên nhỏ hơn */
+        opacity: 0.6;
+        width: 300px; /* Độ rộng cố định cho mỗi card */
+    }
+
+    .swiper-slide-active {
+        transform: scale(1.15) !important; /* Card giữa to hơn */
+        opacity: 1;
+    }
+
+    .movie-card {
+        border-radius: 24px;
+        overflow: hidden;
+        background: #fff;
+        transition: all .35s ease;
+    }
+    .movie-poster-container {
+        position: relative;
+        overflow: hidden;
+    
+    }
+
+        .movie-poster-container img {
+            transition: .4s;
+        }
+
+    .movie-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,.55);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: .35s;
+    }
+
+    .overlay-content {
+        text-align: center;
+        transform: translateY(20px);
+        transition: .35s;
+    }
+
+    .movie-meta {
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+        .movie-meta .badge {
+            font-size: 14px;
+            padding: 7px 12px;
+        }
+
+    .movie-card:hover .movie-overlay {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .movie-card:hover .overlay-content {
+        transform: translateY(0);
+    }
+
+    .movie-card:hover img {
+        transform: scale(1.08);
+    }
+</style>
 @* <!-- COMING SOON MOVIES --> *@
 <section class="movies-section mt-5">
     <div class="container">
@@ -331,7 +379,7 @@
 
     </div>
 </section>
-@* <!-- PHIM ĐƯỢC XEM NHIỀU --> *@
+@* <!-- PHIM ĐƯỢC XEM NHIỀU -->
 <section class="movies-section mt-5">
     <div class="container">
         <div class="section-header mb-5">
@@ -367,54 +415,83 @@
             }
         </div>
     </div>
-</section>
+</section> *@
 
-<section class="movies-section mt-5" id="recommendSection" style="display:none;">
-    <div class="container">
-        <div class="section-header mb-5">
-            <h2 class="section-title text-center fw-bold text-danger">
-                <i class="bi bi-fire"></i> PHIM DÀNH RIÊNG CHO BẠN
-            </h2>
-            <div class="title-underline"></div>
-        </div>
-        <div class="row flex-nowrap overflow-auto pb-3" id="recommendList">
-            </div>
-    </div>
-</section>
+
 
 <!-- 📊 POPULAR TRENDS SECTION -->
 <section class="trends-section mt-5 py-5 bg-white border-top border-bottom">
     <div class="container">
         <div class="row g-4">
             <!-- Thể loại phổ biến -->
-            <div class="col-lg-6 col-md-6">
-                <div class="p-4 rounded-4 shadow-sm border h-100" style="background-color: #fcfdff;">
-                    <h3 class="fw-bold mb-4 text-dark fs-5">
-                        <i class="bi bi-tags-fill text-danger me-2"></i> Thể Loại Hot Nhất
-                    </h3>
-                    <p class="text-muted small mb-4">Các thể loại phim được quan tâm nhiều nhất từ người xem.</p>
-                    
-                    @{
-                        var popularGenres = ViewBag.PopularGenres as List<CINEMA.Models.Genre> ?? new List<CINEMA.Models.Genre>();
-                        int rank = 1;
-                    }
-                    <div class="d-flex flex-column gap-2">
-                        @foreach (var genre in popularGenres)
-                        {
-                            <div class="d-flex align-items-center justify-content-between p-2 bg-white rounded-3 border">
-                                <div class="d-flex align-items-center">
-                                    <span class="badge bg-secondary me-2" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">#@rank</span>
-                                    <span class="fw-bold text-dark small">@genre.Name</span>
-                                </div>
-                                <span class="badge bg-danger-subtle text-danger rounded-pill fw-bold" style="font-size:0.7rem;">Hot 🔥</span>
-                            </div>
-                            rank++;
-                        }
+            <div class="col-12">
+                <div class="genre-section">
+
+                    <div class="text-center mb-5">
+                        <h2 class="fw-bold">
+                            <i class="bi bi-fire text-danger"></i>
+                            THỂ LOẠI HOT NHẤT
+                        </h2>
+                        <p class="text-muted">
+                            Những thể loại được khách hàng quan tâm nhiều nhất
+                        </p>
                     </div>
+
+                    @{
+                        var popularGenres = ViewBag.PopularGenres as List<CINEMA.Models.Genre>
+                                            ?? new List<CINEMA.Models.Genre>();
+                    }
+
+                    <div class="row g-4">
+
+                        @for (int i = 0; i < popularGenres.Count; i++)
+                        {
+                            var genre = popularGenres[i];
+
+                            <div class="col-lg-4 col-md-6">
+
+                                <a asp-controller="Home"
+                                   asp-action="MoviesByGenre"
+                                   asp-route-genreId="@genre.GenreId"
+                                   class="text-decoration-none">
+
+                                    <div class="genre-hot-card">
+
+                                        <div class="genre-rank-circle">
+                                            #@(i + 1)
+                                        </div>
+
+                                        <div class="genre-icon">
+                                            🔥
+                                        </div>
+
+                                        <h4 class="genre-title">
+                                            @genre.Name
+                                        </h4>
+
+                                        <p class="genre-desc">
+                                            Khám phá những bộ phim thuộc thể loại
+                                            <strong>@genre.Name</strong>
+                                            đang được yêu thích.
+                                        </p>
+
+                                        <div class="genre-btn">
+                                            Khám phá
+                                            <i class="bi bi-arrow-right"></i>
+                                        </div>
+
+                                    </div>
+
+                                </a>
+
+                            </div>
+                        }
+
+                    </div>
+
                 </div>
             </div>
-
-            <!-- Combo bắp nước phổ biến -->
+            @* <!-- Combo bắp nước phổ biến -->
             <div class="col-lg-6 col-md-12">
                 <div class="p-4 rounded-4 shadow-sm border h-100" style="background-color: #fffdf5;">
                     <h3 class="fw-bold mb-4 text-dark fs-5">
@@ -441,7 +518,7 @@
                         }
                     </div>
                 </div>
-            </div>
+            </div> *@
         </div>
     </div>
 </section>
@@ -518,135 +595,275 @@
 </section>
 
 @* <!-- SCRIPTS --> *@
-@section Scripts {
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            // 1. Khởi tạo UI (Popup, Rạp mặc định)
-            const firstCard = document.querySelector(".theater-card");
-            if (firstCard) firstCard.classList.add("active");
+@section Scripts{
+<script>
+document.addEventListener("DOMContentLoaded", function () {
 
-            const popupElement = document.getElementById("promoPopup");
-            if (popupElement) {
-                const popup = new bootstrap.Modal(popupElement);
-                if (!sessionStorage.getItem("popupShown")) {
-                    setTimeout(() => popup.show(), 1000);
-                    sessionStorage.setItem("popupShown", "true");
-                }
-            }
+    // =========================
+    // Popup
+    // =========================
+    const firstCard = document.querySelector(".theater-card");
+    if (firstCard)
+        firstCard.classList.add("active");
 
-          // ... trong script ...
-fetch('/Home/Recommend')
-    .then(res => res.json())
-    .then(data => {
-        console.log("Dữ liệu gợi ý nhận được:", data); // Kiểm tra ở F12 -> Console
-        if (data && data.length > 0) {
-            document.getElementById("recommendSection").style.display = "block";
-            const list = document.getElementById("recommendList");
-            list.innerHTML = ""; // Xóa dữ liệu cũ
+    const popupElement = document.getElementById("promoPopup");
 
-            data.forEach(m => {
-                const card = `
-                    <div class="col-lg-3 col-md-4 col-sm-6" style="min-width: 250px;">
-                        <div class="movie-card h-100 shadow-sm rounded-3 overflow-hidden">
-                            <div class="movie-poster-container position-relative">
-                                <img src="${m.posterUrl}" class="movie-poster w-100" alt="${m.title}">
-                                <div class="movie-overlay d-flex align-items-center justify-content-center">
-                                    <a href="/Home/BookTicket/${m.movieId}" class="btn btn-light btn-lg fw-bold rounded-pill px-4 shadow hover-lift movie-btn">Đặt vé</a>
-                                </div>
-                            </div>
-                            <div class="movie-info p-3">
-                                <h5 class="fw-bold mb-2 movie-title">${m.title}</h5>
-                                <div class="movie-meta text-muted small">
-                                    <span class="badge bg-secondary me-2">${m.ageRating || ''}</span>
-                                    <span>${m.duration || 0} phút</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
-                list.insertAdjacentHTML('beforeend', card);
-            });
+    if (popupElement) {
+
+        const popup = new bootstrap.Modal(popupElement);
+
+        if (!sessionStorage.getItem("popupShown")) {
+
+            setTimeout(() => popup.show(), 1000);
+
+            sessionStorage.setItem("popupShown", "true");
         }
-    })
-    .catch(err => console.error("Lỗi khi load gợi ý:", err));
+    }
 
-        // 3. CÁC HÀM XỬ LÝ SỰ KIỆN (Quick Booking)
-        const theaterSelect = document.getElementById("theaterSelect");
-        const movieSelect = document.getElementById("movieSelect");
-        const dateSelect = document.getElementById("dateSelect");
-        const showtimeSelect = document.getElementById("showtimeSelect");
+    // =========================
+    // Gợi ý phim
+    // =========================
 
-        theaterSelect.addEventListener("change", function () {
-            const theaterId = this.value;
-            movieSelect.innerHTML = '<option selected disabled>-- Chọn phim --</option>';
-            dateSelect.innerHTML = '<option selected disabled>-- Chọn ngày --</option>';
-            showtimeSelect.innerHTML = '<option selected disabled>-- Chọn suất chiếu --</option>';
+    const list = document.getElementById("recommendList");
 
-            fetch(`/Home/GetMoviesByTheater?theaterId=${theaterId}`)
-                .then(res => res.json())
-                .then(data => {
-                    data.forEach(m => {
-                        const opt = document.createElement("option");
-                        opt.value = m.movieId;
-                        opt.textContent = m.title;
-                        movieSelect.appendChild(opt);
-                    });
-                });
+    if (list) {
+
+        list.innerHTML = "";
+
+        const movieIds = new Set();
+
+        const popularMovies = @Html.Raw(
+            System.Text.Json.JsonSerializer.Serialize(
+                popularMovies.Select(x => new
+                {
+                    movieId = x.MovieId,
+                    title = x.Title,
+                    posterUrl = x.PosterUrl,
+                    ageRating = x.AgeRating,
+                    duration = x.Duration
+                })
+            )
+        );
+
+               // Khởi tạo Swiper (Đặt ngay trên cùng của thẻ script)
+               var swiper = new Swiper(".popularSwiper", {
+            slidesPerView: "auto",
+            centeredSlides: true,
+            loop: true,
+            spaceBetween: 30
         });
 
-        movieSelect.addEventListener("change", function () {
-            const theaterId = theaterSelect.value;
-            const movieId = this.value;
-            dateSelect.innerHTML = '<option selected disabled>-- Chọn ngày --</option>';
+            function renderMovie(movie) {
+            const slide = document.createElement("div");
+            slide.className = "swiper-slide";
 
-            fetch(`/Home/GetShowtimes?theaterId=${theaterId}&movieId=${movieId}`)
-                .then(res => res.json())
-                .then(data => {
-                    const dates = [...new Set(data.map(s => s.date))];
-                    dates.forEach(d => {
-                        const opt = document.createElement("option");
-                        opt.value = d;
-                        const [y, m, day] = d.split("-");
-                        opt.textContent = `${day}/${m}/${y}`;
-                        dateSelect.appendChild(opt);
-                    });
+            // Đảm bảo dữ liệu không bị undefined
+            const ageRating = movie.ageRating || "P";
+            const duration = movie.duration || 0;
 
-                    dateSelect.onchange = function () {
-                        const selectedDate = this.value;
-                        showtimeSelect.innerHTML = '<option selected disabled>-- Chọn suất chiếu --</option>';
-                        data.filter(s => s.date === selectedDate)
-                            .forEach(s => {
-                                const opt = document.createElement("option");
-                                opt.value = s.showtimeId;
-                                opt.textContent = `${s.time} - ${Number(s.price).toLocaleString("vi-VN")}đ`;
-                                showtimeSelect.appendChild(opt);
-                            });
-                    };
-                });
+                    slide.innerHTML = `
+        <div class="movie-card shadow-lg border rounded-4 overflow-hidden">
+
+            <div class="movie-poster-container">
+
+                <img src="${movie.posterUrl}"
+                     class="w-100"
+                     style="height:400px; object-fit:cover;">
+
+                <div class="movie-overlay">
+
+                    <div class="overlay-content text-center">
+
+                        <div class="movie-meta mb-3">
+                            <span class="badge bg-secondary me-2">${ageRating}</span>
+                            <span class="text-white">${duration} phút</span>
+                        </div>
+
+                        <a href="/Home/BookTicket/${movie.movieId}"
+                           class="btn btn-danger rounded-pill px-4">
+                            Đặt vé
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="p-3 bg-white text-center">
+                <h5 class="fw-bold text-truncate mb-0">${movie.title}</h5>
+            </div>
+
+        </div>`;
+            swiper.appendSlide(slide);
+        }
+        // Hiển thị phim được xem nhiều trước
+        popularMovies.forEach(movie => {
+
+            movieIds.add(movie.movieId);
+
+            renderMovie(movie);
+
         });
+
+        // Sau đó thêm phim gợi ý
+        fetch("/Home/Recommend")
+            .then(res => res.json())
+            .then(data => {
+
+                if (!data)
+                    return;
+
+                data.forEach(movie => {
+
+                    if (movieIds.has(movie.movieId))
+                        return;
+
+                    movieIds.add(movie.movieId);
+
+                    renderMovie(movie);
+
+                });
+
+            })
+            .catch(err => console.log(err));
+
+    }
+
+    // =========================
+    // Đặt vé nhanh
+    // =========================
+
+    const theaterSelect = document.getElementById("theaterSelect");
+    const movieSelect = document.getElementById("movieSelect");
+    const dateSelect = document.getElementById("dateSelect");
+    const showtimeSelect = document.getElementById("showtimeSelect");
+
+    theaterSelect.addEventListener("change", function () {
+
+        const theaterId = this.value;
+
+        movieSelect.innerHTML = '<option selected disabled>-- Chọn phim --</option>';
+        dateSelect.innerHTML = '<option selected disabled>-- Chọn ngày --</option>';
+        showtimeSelect.innerHTML = '<option selected disabled>-- Chọn suất chiếu --</option>';
+
+        fetch(`/Home/GetMoviesByTheater?theaterId=${theaterId}`)
+            .then(res => res.json())
+            .then(data => {
+
+                data.forEach(m => {
+
+                    const opt = document.createElement("option");
+
+                    opt.value = m.movieId;
+                    opt.textContent = m.title;
+
+                    movieSelect.appendChild(opt);
+
+                });
+
+            });
+
     });
 
-    // 4. HÀM XỬ LÝ BẢN ĐỒ
-    window.changeMap = function (address, element) {
-            document.querySelectorAll('.theater-card')
-                .forEach(x => x.classList.remove('active'));
-            if (element) element.classList.add('active');
-            const mapUrl = "https://maps.google.com/maps?q=" + encodeURIComponent(address) + "&output=embed";
-            document.getElementById("theaterMap").src = mapUrl;
-        }
+    movieSelect.addEventListener("change", function () {
 
-        function scrollToMapAndChange(address) {
-            const mapSection = document.querySelector('.map-container');
-            if (mapSection) mapSection.scrollIntoView({ behavior: 'smooth' });
+        const theaterId = theaterSelect.value;
+        const movieId = this.value;
 
-            const allCards = document.querySelectorAll('.theater-card');
-            allCards.forEach(card => {
-                const cardAddress = card.querySelector('.theater-info p').innerText.trim();
-                card.classList.remove('active-card');
-                if (cardAddress === address) {
-                    card.classList.add('active-card');
-                    changeMap(address, card);
-                }
+        dateSelect.innerHTML = '<option selected disabled>-- Chọn ngày --</option>';
+
+        fetch(`/Home/GetShowtimes?theaterId=${theaterId}&movieId=${movieId}`)
+            .then(res => res.json())
+            .then(data => {
+
+                const dates = [...new Set(data.map(s => s.date))];
+
+                dates.forEach(d => {
+
+                    const opt = document.createElement("option");
+
+                    opt.value = d;
+
+                    const [y, m, day] = d.split("-");
+
+                    opt.textContent = `${day}/${m}/${y}`;
+
+                    dateSelect.appendChild(opt);
+
+                });
+
+                dateSelect.onchange = function () {
+
+                    const selectedDate = this.value;
+
+                    showtimeSelect.innerHTML = '<option selected disabled>-- Chọn suất chiếu --</option>';
+
+                    data.filter(s => s.date === selectedDate)
+                        .forEach(s => {
+
+                            const opt = document.createElement("option");
+
+                            opt.value = s.showtimeId;
+
+                            opt.textContent =
+                                `${s.time} - ${Number(s.price).toLocaleString("vi-VN")}đ`;
+
+                            showtimeSelect.appendChild(opt);
+
+                        });
+
+                };
+
             });
-        }
-    </script>
+
+    });
+
+});
+
+// =========================
+// Google Map
+// =========================
+
+window.changeMap = function (address, element) {
+
+    document.querySelectorAll(".theater-card")
+        .forEach(x => x.classList.remove("active"));
+
+    if (element)
+        element.classList.add("active");
+
+    document.getElementById("theaterMap").src =
+        "https://maps.google.com/maps?q=" +
+        encodeURIComponent(address) +
+        "&output=embed";
+};
+
+function scrollToMapAndChange(address) {
+
+    const mapSection = document.querySelector(".map-container");
+
+    if (mapSection)
+        mapSection.scrollIntoView({ behavior: "smooth" });
+
+    document.querySelectorAll(".theater-card")
+        .forEach(card => {
+
+            const cardAddress =
+                card.querySelector(".theater-info p").innerText.trim();
+
+            card.classList.remove("active");
+
+            if (cardAddress === address) {
+
+                card.classList.add("active");
+
+                changeMap(address, card);
+
+            }
+
+        });
+
+}
+</script>
 }
