@@ -687,35 +687,56 @@ namespace CINEMA.Controllers
             if (string.IsNullOrEmpty(adminIdString)) return Unauthorized();
 
             var adminId = int.Parse(adminIdString);
+            DateTime today = DateTime.Now.Date;
+            DateTime currentTime = DateTime.Now;
 
-            // 1. Lưu file ảnh
+            // --- BƯỚC 1: KIỂM TRA ĐIỀU KIỆN PHÂN CA (CHỈ ÁP DỤNG CHO CHECK-IN) ---
+            if (model.type == "in")
+            {
+                // Kiểm tra xem nhân viên có ca làm việc trong ngày hôm nay không
+                bool hasScheduleToday = await _context.WorkSchedules
+                    .AnyAsync(ws => ws.AdminId == adminId && ws.WorkDate.Date == today);
+
+                if (!hasScheduleToday)
+                {
+                    // Trả về JSON báo lỗi để Frontend hiển thị thông báo
+                    return Json(new { success = false, message = "Bạn chưa được phân ca làm việc trong ngày hôm nay nên không thể chấm công!" });
+                }
+            }
+
+            // --- BƯỚC 2: LƯU FILE ẢNH (Chỉ thực hiện khi đã qua được bước kiểm tra) ---
             string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/attendance");
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
-            string fileName = $"{adminId}_{DateTime.Now:yyyyMMddHHmmss}.png";
+            string fileName = $"{adminId}_{currentTime:yyyyMMddHHmmss}.png";
             string path = Path.Combine(folder, fileName);
 
-            byte[] bytes = Convert.FromBase64String(model.imageBase64.Split(',')[1]);
-            System.IO.File.WriteAllBytes(path, bytes);
+            try
+            {
+                byte[] bytes = Convert.FromBase64String(model.imageBase64.Split(',')[1]);
+                System.IO.File.WriteAllBytes(path, bytes);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi lưu ảnh chấm công: " + ex.Message });
+            }
 
-            DateTime today = DateTime.Now.Date;
-
-            // 2. Xử lý Logic Check-in / Check-out
+            // --- BƯỚC 3: XỬ LÝ LOGIC CHECK-IN / CHECK-OUT ---
             if (model.type == "in")
             {
-                // Nếu là Check-in -> Luôn tạo dòng mới
+                // Check-in -> Luôn tạo dòng mới
                 var record = new Attendance
                 {
                     AdminId = adminId,
                     Date = today,
-                    CheckInTime = DateTime.Now,
+                    CheckInTime = currentTime,
                     CheckInPhoto = "/uploads/attendance/" + fileName
                 };
                 _context.Attendance.Add(record);
             }
             else if (model.type == "out")
             {
-                // Nếu là Check-out -> TÌM DÒNG CHECK-IN GẦN NHẤT CHƯA CÓ GIỜ RA để cập nhật
+                // Check-out -> TÌM DÒNG CHECK-IN GẦN NHẤT CHƯA CÓ GIỜ RA để cập nhật
                 var existingRecord = await _context.Attendance
                     .Where(a => a.AdminId == adminId && a.Date.Date == today && a.CheckOutTime == null)
                     .OrderByDescending(a => a.CheckInTime)
@@ -723,19 +744,19 @@ namespace CINEMA.Controllers
 
                 if (existingRecord != null)
                 {
-                    // Update giờ ra và ảnh ra vào dòng cũ
-                    existingRecord.CheckOutTime = DateTime.Now;
+                    // Cập nhật giờ ra
+                    existingRecord.CheckOutTime = currentTime;
                     existingRecord.CheckOutPhoto = "/uploads/attendance/" + fileName;
                     _context.Attendance.Update(existingRecord);
                 }
                 else
                 {
-                    // (Trường hợp hiếm) NV quên check-in mà bấm luôn check-out -> Buộc tạo dòng mới
+                    // Trường hợp nhân viên quên check-in mà bấm check-out luôn
                     var newRecord = new Attendance
                     {
                         AdminId = adminId,
                         Date = today,
-                        CheckOutTime = DateTime.Now,
+                        CheckOutTime = currentTime,
                         CheckOutPhoto = "/uploads/attendance/" + fileName
                     };
                     _context.Attendance.Add(newRecord);
@@ -743,7 +764,7 @@ namespace CINEMA.Controllers
             }
 
             await _context.SaveChangesAsync();
-            return Json(new { success = true });
+            return Json(new { success = true, message = "Chấm công thành công!" });
         }
         [HttpGet]
         public IActionResult AttendanceHistory(DateTime? date)
