@@ -1,6 +1,15 @@
 @using Microsoft.AspNetCore.Http
 @using Microsoft.AspNetCore.Http
 @inject IHttpContextAccessor HttpContextAccessor
+@inject CinemaContext _context
+@{
+    // Truy vấn đếm số lượng đơn xin nghỉ phép đang "Chờ duyệt" (Chỉ đếm khi là SuperAdmin)
+    int pendingLeaveCount = 0;
+    if (HttpContextAccessor.HttpContext.Session.GetString("Role") == "SuperAdmin")
+    {
+        pendingLeaveCount = _context.LeaveRequests.Count(l => l.Status == "Chờ duyệt");
+    }
+}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -83,13 +92,21 @@
                     <li>
                         <a asp-controller="DutySchedule" asp-action="Index">
                             <i class="bi bi-person-badge"></i>
-                            <span>Quản lý lịch làm việc</span>
+                            <span>Quản lý lịch làm việc
+                            </span>
                         </a>
                     </li>
                     <li>
                         <a asp-controller="Admin" asp-action="ManageLeave" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "ManageLeave" ? "active" : "")">
-                            <i class="bi bi-calendar-x"></i><span>Quản lý nghỉ phép</span>
+                            <i class="bi bi-calendar-x"></i><span>Quản lý nghỉ phép
+                                @if (pendingLeaveCount > 0)
+                                {
+                                    <span class="badge bg-danger rounded-pill ms-2">@pendingLeaveCount</span>
+                                }
+                            </span>
+
                         </a>
+
                     </li>
                     <li>
                         <a asp-controller="Payroll" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Payroll" ? "active" : "")">
