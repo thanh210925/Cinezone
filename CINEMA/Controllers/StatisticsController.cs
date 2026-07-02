@@ -1,4 +1,4 @@
-﻿using CINEMA.Models;
+using CINEMA.Models;
 using CINEMA.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -6,16 +6,19 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using static CINEMA.ViewModels.RevenueDashboardViewModel;
+using CINEMA.Services;
 
 namespace CINEMA.Controllers
 {
     public class StatisticsController : AdminBaseController
     {
         private readonly CinemaContext _context;
+        private readonly RecommendationEngine _recommendationEngine;
 
-        public StatisticsController(CinemaContext context)
+        public StatisticsController(CinemaContext context, RecommendationEngine recommendationEngine)
         {
             _context = context;
+            _recommendationEngine = recommendationEngine;
         }
 
         // ============================
@@ -577,6 +580,22 @@ namespace CINEMA.Controllers
                 labels = data.Select(x => $"{x.Title} ({x.Time})").ToList(),
                 values = data.Select(x => x.Count).ToList()
             });
+        }
+
+        [HttpGet]
+        public IActionResult RecommendationRules()
+        {
+            var rules = _recommendationEngine.GetRules(forceRefresh: true);
+
+            var genres = _context.Genres.ToDictionary(g => $"Genre_{g.GenreId}", g => g.Name);
+            var movies = _context.Movies.ToDictionary(m => $"Movie_{m.MovieId}", m => m.Title);
+            var combos = _context.Combos.ToDictionary(c => $"Combo_{c.ComboId}", c => c.Name);
+
+            ViewBag.Genres = genres;
+            ViewBag.Movies = movies;
+            ViewBag.Combos = combos;
+
+            return View(rules);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CINEMA.Models.Movie>
+@model IEnumerable<CINEMA.Models.Movie>
 
 @{
     ViewData["Title"] = "Trang chủ";
@@ -7,6 +7,8 @@
                      ?? Enumerable.Empty<CINEMA.Models.Movie>();
 
     var popup = ViewBag.Popup as CINEMA.Models.Popup;
+
+    var popularMovies = ViewBag.PopularMovies as List<CINEMA.Models.Movie> ?? new List<CINEMA.Models.Movie>();
 }
 <link rel="stylesheet" href="~/css/style-home.css" />
 <!-- 🎬 POPUP QUẢNG CÁO -->
@@ -329,6 +331,44 @@
 
     </div>
 </section>
+@* <!-- PHIM ĐƯỢC XEM NHIỀU --> *@
+<section class="movies-section mt-5">
+    <div class="container">
+        <div class="section-header mb-5">
+            <h2 class="section-title text-center fw-bold">
+                <i class="bi bi-eye"></i> PHIM ĐƯỢC XEM NHIỀU
+            </h2>
+            <div class="title-underline"></div>
+        </div>
+
+        <div class="row flex-nowrap overflow-auto pb-3"> 
+            @foreach (var movie in popularMovies)
+            {
+                <div class="col-lg-3 col-md-4 col-sm-6" style="min-width: 250px;">
+                    <div class="movie-card h-100 shadow-sm rounded-3 overflow-hidden">
+                        <div class="movie-poster-container position-relative">
+                            <img src="@movie.PosterUrl" class="movie-poster w-100" alt="@movie.Title">
+                            <div class="movie-overlay d-flex align-items-center justify-content-center">
+                                <a asp-controller="Home" asp-action="BookTicket" asp-route-id="@movie.MovieId"
+                                   class="btn btn-light btn-lg fw-bold rounded-pill px-4 shadow hover-lift movie-btn">
+                                    Đặt vé
+                                </a>
+                            </div>
+                        </div>
+                        <div class="movie-info p-3">
+                            <h5 class="fw-bold mb-2 movie-title">@movie.Title</h5>
+                            <div class="movie-meta text-muted small">
+                                <span class="badge bg-secondary me-2">@movie.AgeRating</span>
+                                <span>@movie.Duration phút</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
 <section class="movies-section mt-5" id="recommendSection" style="display:none;">
     <div class="container">
         <div class="section-header mb-5">
@@ -341,6 +381,71 @@
             </div>
     </div>
 </section>
+
+<!-- 📊 POPULAR TRENDS SECTION -->
+<section class="trends-section mt-5 py-5 bg-white border-top border-bottom">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Thể loại phổ biến -->
+            <div class="col-lg-6 col-md-6">
+                <div class="p-4 rounded-4 shadow-sm border h-100" style="background-color: #fcfdff;">
+                    <h3 class="fw-bold mb-4 text-dark fs-5">
+                        <i class="bi bi-tags-fill text-danger me-2"></i> Thể Loại Hot Nhất
+                    </h3>
+                    <p class="text-muted small mb-4">Các thể loại phim được quan tâm nhiều nhất từ người xem.</p>
+                    
+                    @{
+                        var popularGenres = ViewBag.PopularGenres as List<CINEMA.Models.Genre> ?? new List<CINEMA.Models.Genre>();
+                        int rank = 1;
+                    }
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var genre in popularGenres)
+                        {
+                            <div class="d-flex align-items-center justify-content-between p-2 bg-white rounded-3 border">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-secondary me-2" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">#@rank</span>
+                                    <span class="fw-bold text-dark small">@genre.Name</span>
+                                </div>
+                                <span class="badge bg-danger-subtle text-danger rounded-pill fw-bold" style="font-size:0.7rem;">Hot 🔥</span>
+                            </div>
+                            rank++;
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Combo bắp nước phổ biến -->
+            <div class="col-lg-6 col-md-12">
+                <div class="p-4 rounded-4 shadow-sm border h-100" style="background-color: #fffdf5;">
+                    <h3 class="fw-bold mb-4 text-dark fs-5">
+                        <i class="bi-star-fill text-warning me-2"></i> Combo Bắp Nước Bán Chạy
+                    </h3>
+                    <p class="text-muted small mb-4">Sự lựa chọn bắp nước được thực khách ưa chuộng nhất.</p>
+                    
+                    @{
+                        var popularCombos = ViewBag.PopularCombos as List<CINEMA.Models.Combo> ?? new List<CINEMA.Models.Combo>();
+                    }
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var combo in popularCombos)
+                        {
+                            <div class="d-flex align-items-center p-2 bg-white rounded-3 border h-100" style="min-height: 60px;">
+                                @if (!string.IsNullOrEmpty(combo.ImageUrl))
+                                {
+                                    <img src="@combo.ImageUrl" class="rounded me-2 shadow-sm" style="width: 40px; height: 40px; object-fit: cover;" />
+                                }
+                                <div class="flex-grow-1 min-w-0">
+                                    <h6 class="fw-bold text-dark mb-1 small text-truncate" title="@combo.Name">@combo.Name</h6>
+                                    <span class="text-danger fw-bold small">@combo.Price?.ToString("N0") đ</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 @* <!-- THEATER LOCATIONS --> *@
 <section class="theater-section mt-5 mb-5">
     <div class="container">
@@ -451,6 +556,10 @@ fetch('/Home/Recommend')
                             </div>
                             <div class="movie-info p-3">
                                 <h5 class="fw-bold mb-2 movie-title">${m.title}</h5>
+                                <div class="movie-meta text-muted small">
+                                    <span class="badge bg-secondary me-2">${m.ageRating || ''}</span>
+                                    <span>${m.duration || 0} phút</span>
+                                </div>
                             </div>
                         </div>
                     </div>`;
@@ -514,9 +623,10 @@ fetch('/Home/Recommend')
                     };
                 });
         });
+    });
 
-        // 4. HÀM XỬ LÝ BẢN ĐỒ
-        window.changeMap = function (address, element) {
+    // 4. HÀM XỬ LÝ BẢN ĐỒ
+    window.changeMap = function (address, element) {
             document.querySelectorAll('.theater-card')
                 .forEach(x => x.classList.remove('active'));
             if (element) element.classList.add('active');

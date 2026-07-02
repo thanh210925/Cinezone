@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text;
+using CINEMA.Services;
 
 namespace CINEMA.Controllers
 {
@@ -11,11 +12,13 @@ namespace CINEMA.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly CinemaContext _context;
+        private readonly RecommendationEngine _recommendationEngine;
 
-        public HomeController(ILogger<HomeController> logger, CinemaContext context)
+        public HomeController(ILogger<HomeController> logger, CinemaContext context, RecommendationEngine recommendationEngine)
         {
             _logger = logger;
             _context = context;
+            _recommendationEngine = recommendationEngine;
         }
 
         // =====================================================
@@ -49,6 +52,10 @@ namespace CINEMA.Controllers
                 CreatedAt = DateTime.Now
             });
             _context.SaveChanges();
+
+            // 📌 LƯU TƯƠNG TÁC TÌM KIẾM VÀO SESSION ĐỂ GỢI Ý PHIM CÙNG THỂ LOẠI
+            HttpContext.Session.SetString("LatestInteraction", "Search");
+            HttpContext.Session.SetString("LatestSearchKeyword", keyword);
 
             if (!movies.Any())
             {
@@ -92,9 +99,93 @@ namespace CINEMA.Controllers
             var popup = _context.Popups
                 .FirstOrDefault(p => p.IsActive == true);
 
+            // 📌 THỐNG KÊ THỂ LOẠI PHỔ BIẾN (Dựa trên lượng click và xem của toàn bộ khách hàng)
+            var popularGenres = _context.UserActivityLogs
+                .Include(l => l.Movie)
+                    .ThenInclude(m => m.Genres)
+                .Include(l => l.Genre)
+                .AsEnumerable()
+                .SelectMany(l => {
+                    var list = new List<Genre>();
+                    if (l.Genre != null) list.Add(l.Genre);
+                    if (l.Movie?.Genres != null) list.AddRange(l.Movie.Genres);
+                    return list.GroupBy(g => g.GenreId).Select(g => g.First());
+                })
+                .GroupBy(g => g.GenreId)
+                .Select(group => new {
+                    Genre = group.First(),
+                    Count = group.Count()
+                })
+                .OrderByDescending(x => x.Count)
+                .Take(5)
+                .Select(x => x.Genre)
+                .ToList();
+
+            if (!popularGenres.Any())
+            {
+                popularGenres = _context.Genres.Take(5).ToList();
+            }
+
+            // 📌 THỐNG KÊ COMBO PHỔ BIẾN (Dựa trên số lượng bán được từ các đơn hàng thành công)
+            var topComboIds = _context.OrderCombos
+                .Where(oc => oc.ComboId.HasValue && 
+                             (oc.Order.Status == "Paid" || oc.Order.Status == "Completed" || oc.Order.PaidAt != null))
+                .GroupBy(oc => oc.ComboId)
+                .Select(g => new {
+                    ComboId = g.Key,
+                    TotalQty = g.Sum(oc => oc.Quantity ?? 0)
+                })
+                .OrderByDescending(x => x.TotalQty)
+                .Take(4)
+                .ToList();
+
+            var comboIds = topComboIds
+                .Where(x => x.ComboId.HasValue)
+                .Select(x => x.ComboId.Value)
+                .ToList();
+
+            var popularCombos = _context.Combos
+                .Where(c => c.IsActive == true && comboIds.Contains(c.ComboId))
+                .ToList()
+                .OrderBy(c => comboIds.IndexOf(c.ComboId))
+                .ToList();
+
+            if (!popularCombos.Any())
+            {
+                popularCombos = _context.Combos.Where(c => c.IsActive == true).Take(4).ToList();
+            }
+
+            // 📌 THỐNG KÊ PHIM PHỔ BIẾN (Dựa trên tổng lượt click xem của tất cả khách hàng)
+            var topMovieIds = _context.UserMovieViews
+                .Where(v => v.Movie.IsActive == true)
+                .GroupBy(v => v.MovieId)
+                .Select(g => new {
+                    MovieId = g.Key,
+                    TotalViews = g.Sum(v => v.ViewCount)
+                })
+                .OrderByDescending(x => x.TotalViews)
+                .Take(4)
+                .ToList();
+
+            var movieIds = topMovieIds.Select(x => x.MovieId).ToList();
+
+            var popularMovies = _context.Movies
+                .Where(m => m.IsActive == true && movieIds.Contains(m.MovieId))
+                .ToList()
+                .OrderBy(m => movieIds.IndexOf(m.MovieId))
+                .ToList();
+
+            if (!popularMovies.Any())
+            {
+                popularMovies = _context.Movies.Where(m => m.IsActive == true).Take(4).ToList();
+            }
+
             ViewBag.ComingSoon = comingSoon;
             ViewBag.Theaters = theaters;
             ViewBag.Popup = popup;
+            ViewBag.PopularGenres = popularGenres;
+            ViewBag.PopularMovies = popularMovies;
+            ViewBag.PopularCombos = popularCombos;
 
             return View(movies);
         }
@@ -170,6 +261,10 @@ namespace CINEMA.Controllers
             LogActivity("VIEW_MOVIE", movieId: id);
             TrackMovieView(id);
 
+            // 📌 LƯU TƯƠNG TÁC CLICK PHIM VÀO SESSION ĐỂ GỢI Ý PHIM CÙNG THỂ LOẠI
+            HttpContext.Session.SetString("LatestInteraction", "Click");
+            HttpContext.Session.SetInt32("LatestClickedMovieId", id);
+
             // Lấy tất cả suất chiếu trước
             var showtimes = _context.Showtimes
                 .Include(s => s.Auditorium)
@@ -220,15 +315,15 @@ namespace CINEMA.Controllers
                 .ToList();
 
 
-            var combos = _context.Combos
-                .Where(c => c.IsActive == true)
-                .ToList();
+            var customerId = GetCurrentCustomerId();
+            var genreIds = movie.Genres?.Select(g => g.GenreId).ToList() ?? new List<int>();
+            var recommendedCombos = _recommendationEngine.GetRecommendedCombos(id, genreIds, customerId);
 
             ViewBag.Showtime = showtime;
             ViewBag.Showtimes = showtimes;
             ViewBag.Seats = seats;
             ViewBag.BookedSeats = bookedSeats;
-            ViewBag.Combos = combos;
+            ViewBag.Combos = recommendedCombos;
 
             return View(movie);
         }
@@ -534,80 +629,113 @@ namespace CINEMA.Controllers
         {
             var customerId = HttpContext.Session.GetInt32("CustomerId");
 
-            if (customerId == null)
+            string? interactionType = HttpContext.Session.GetString("LatestInteraction");
+            string? searchKeyword = HttpContext.Session.GetString("LatestSearchKeyword");
+            int? clickedMovieId = HttpContext.Session.GetInt32("LatestClickedMovieId");
+
+            // Fallback to database logs if Session doesn't have them
+            if (string.IsNullOrEmpty(interactionType))
             {
-                // Khách chưa đăng nhập -> gợi ý các phim mới nhất đang chiếu
-                var guestRecommended = _context.Movies
-                    .Where(m => m.IsActive == true)
-                    .OrderByDescending(m => m.ReleaseDate)
-                    .Take(8)
-                    .Select(m => new { m.MovieId, m.Title, m.PosterUrl })
-                    .ToList();
-                return Json(guestRecommended);
+                var latestClick = _context.UserActivityLogs
+                    .Where(l => (customerId != null && l.CustomerId == customerId) || l.SessionId == HttpContext.Session.Id)
+                    .Where(l => l.MovieId != null && (l.ActivityType == "VIEW_MOVIE" || l.ActivityType == "BOOK_TICKET"))
+                    .OrderByDescending(l => l.CreatedAt)
+                    .FirstOrDefault();
+
+                var latestSearch = customerId != null ? _context.UserSearchLogs
+                    .Where(s => s.CustomerId == customerId)
+                    .OrderByDescending(s => s.CreatedAt)
+                    .FirstOrDefault() : null;
+
+                if (latestClick != null && latestSearch != null)
+                {
+                    if (latestSearch.CreatedAt > latestClick.CreatedAt)
+                    {
+                        interactionType = "Search";
+                        searchKeyword = latestSearch.Keyword;
+                    }
+                    else
+                    {
+                        interactionType = "Click";
+                        clickedMovieId = latestClick.MovieId;
+                    }
+                }
+                else if (latestClick != null)
+                {
+                    interactionType = "Click";
+                    clickedMovieId = latestClick.MovieId;
+                }
+                else if (latestSearch != null)
+                {
+                    interactionType = "Search";
+                    searchKeyword = latestSearch.Keyword;
+                }
             }
 
-            // 1. Thống kê điểm số thể loại (Genre Score) từ lịch sử hoạt động
-            // BOOK_TICKET = 3đ, VIEW_MOVIE = 1đ
-            var logs = _context.UserActivityLogs
-                .Where(l => l.CustomerId == customerId)
-                .Include(l => l.Movie)
-                    .ThenInclude(m => m.Genres)
-                .AsEnumerable()
-                .ToList();
-
-            var genreScores = logs
-                .SelectMany(l => {
-                    var genresList = new List<int>();
-                    if (l.GenreId.HasValue)
-                    {
-                        genresList.Add(l.GenreId.Value);
-                    }
-                    if (l.Movie != null && l.Movie.Genres != null)
-                    {
-                        genresList.AddRange(l.Movie.Genres.Select(g => g.GenreId));
-                    }
-                    int points = l.ActivityType == "BOOK_TICKET" ? 3 : 1;
-                    return genresList.Distinct().Select(gid => new { GenreId = gid, Points = points });
-                })
-                .GroupBy(x => x.GenreId)
-                .Select(g => new {
-                    GenreId = g.Key,
-                    Score = g.Sum(x => x.Points)
-                })
-                .OrderByDescending(x => x.Score)
-                .Take(3)
-                .ToList();
-
-            var topGenreIds = genreScores.Select(x => x.GenreId).ToList();
-
-            // 2. Lấy danh sách phim Khách hàng đã xem để loại trừ
-            var viewedMovieIds = _context.UserMovieViews
-                .Where(v => v.CustomerId == customerId)
-                .Select(v => v.MovieId)
-                .ToList();
-
-            // 3. Tìm phim cùng thể loại ưa thích mà khách CHƯA XEM
             List<Movie> recommendedMovies = new List<Movie>();
+            List<int> targetGenreIds = new List<int>();
+            int? excludeMovieId = null;
 
-            if (topGenreIds.Any())
+            if (interactionType == "Click" && clickedMovieId.HasValue)
+            {
+                excludeMovieId = clickedMovieId.Value;
+                var clickedMovie = _context.Movies
+                    .Include(m => m.Genres)
+                    .FirstOrDefault(m => m.MovieId == excludeMovieId && m.IsActive == true);
+
+                if (clickedMovie != null && clickedMovie.Genres != null)
+                {
+                    targetGenreIds = clickedMovie.Genres.Select(g => g.GenreId).ToList();
+                }
+            }
+            else if (interactionType == "Search" && !string.IsNullOrEmpty(searchKeyword))
+            {
+                var keywordNoSign = RemoveDiacritics(searchKeyword);
+                var matchedMovies = _context.Movies
+                    .Include(m => m.Genres)
+                    .Where(m => m.IsActive == true)
+                    .AsEnumerable()
+                    .Where(m => RemoveDiacritics(m.Title ?? "").Contains(keywordNoSign))
+                    .ToList();
+
+                if (matchedMovies.Any())
+                {
+                    targetGenreIds = matchedMovies
+                        .SelectMany(m => m.Genres)
+                        .Select(g => g.GenreId)
+                        .Distinct()
+                        .ToList();
+                }
+            }
+
+            // Lấy danh sách phim Khách hàng đã xem để loại trừ (chỉ áp dụng nếu đã đăng nhập)
+            var viewedMovieIds = customerId.HasValue 
+                ? _context.UserMovieViews
+                    .Where(v => v.CustomerId == customerId.Value)
+                    .Select(v => v.MovieId)
+                    .ToList()
+                : new List<int>();
+
+            if (targetGenreIds.Any())
             {
                 recommendedMovies = _context.Movies
                     .Include(m => m.Genres)
-                    .Where(m => m.IsActive == true
-                             && m.Genres.Any(g => topGenreIds.Contains(g.GenreId))
+                    .Where(m => m.IsActive == true 
+                             && m.MovieId != excludeMovieId
+                             && m.Genres.Any(g => targetGenreIds.Contains(g.GenreId))
                              && !viewedMovieIds.Contains(m.MovieId))
                     .OrderByDescending(m => m.ReleaseDate)
                     .Take(8)
                     .ToList();
             }
 
-            // 4. Dự phòng (Fallback): Nếu không có thể loại ưa thích hoặc danh sách gợi ý < 4 phim,
-            // bổ sung thêm các phim mới nhất đang chiếu mà khách chưa xem
+            // Fallback: nếu danh sách gợi ý < 4 phim, bổ sung thêm các phim mới nhất đang chiếu
             if (recommendedMovies.Count < 4)
             {
                 var currentRecommendedIds = recommendedMovies.Select(r => r.MovieId).ToList();
                 var fallbackMovies = _context.Movies
                     .Where(m => m.IsActive == true
+                             && m.MovieId != excludeMovieId
                              && !viewedMovieIds.Contains(m.MovieId)
                              && !currentRecommendedIds.Contains(m.MovieId))
                     .OrderByDescending(m => m.ReleaseDate)
@@ -618,7 +746,13 @@ namespace CINEMA.Controllers
             }
 
             var result = recommendedMovies
-                .Select(m => new { m.MovieId, m.Title, m.PosterUrl })
+                .Select(m => new { 
+                    m.MovieId, 
+                    m.Title, 
+                    m.PosterUrl, 
+                    m.AgeRating, 
+                    m.Duration 
+                })
                 .ToList();
 
             return Json(result);

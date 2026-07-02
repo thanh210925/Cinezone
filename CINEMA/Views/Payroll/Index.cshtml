@@ -139,8 +139,11 @@
                 <a href="@Url.Action("PayrollReport", "Admin", new { month = currentMonth, year = currentYear })" class="btn btn-outline-info btn-sm d-flex align-items-center gap-1">
                     <i class="bi bi-calendar3"></i> Xem bảng công
                 </a>
+                <a href="@Url.Action("ExportToExcel", "Payroll", new { month = currentMonth, year = currentYear, search = ViewBag.SearchQuery })" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1">
+                    <i class="bi bi-file-earmark-excel"></i> Xuất Excel & In
+                </a>
                 <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onclick="window.print()">
-                    <i class="bi bi-printer"></i> In bảng lương
+                    <i class="bi bi-printer"></i> In trực tiếp (Web)
                 </button>
             </div>
         </div>
@@ -211,35 +214,53 @@
                                     }
                                 </td>
                                 <td class="text-center pe-4">
-                                     <div class="d-flex justify-content-center align-items-center gap-2">
-                                         @if (item.Status != "Paid")
-                                         {
-                                             <form asp-action="MarkAsPaid" asp-route-id="@item.PayrollId" method="post" style="display:inline;" onsubmit="return confirm('Xác nhận đã thanh toán lương cho nhân viên @item.Admin?.FullName?\n\nHành động này sẽ khóa bản ghi lương tháng @currentMonth/@currentYear và KHÔNG thể chỉnh sửa hay xóa được nữa.')">
-                                                 <button type="submit" class="btn btn-sm btn-success d-flex align-items-center gap-1" title="Thanh toán lương">
-                                                     <i class="bi bi-cash"></i> Trả lương
-                                                 </button>
-                                             </form>
-                                             <a asp-action="Edit" asp-route-id="@item.PayrollId" class="btn btn-sm btn-outline-warning d-flex align-items-center gap-1" title="Chỉnh sửa">
-                                                 <i class="bi bi-pencil-square"></i> Sửa
-                                             </a>
-                                             <form asp-action="Delete" asp-route-id="@item.PayrollId" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bản ghi lương của nhân viên này không?')" style="display:inline;">
-                                                 <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" title="Xóa">
-                                                     <i class="bi bi-trash"></i> Xóa
-                                                 </button>
-                                             </form>
-                                         }
-                                         else
-                                         {
-                                             <div class="d-flex align-items-center gap-2">
-                                                 <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill small">
-                                                     <i class="bi bi-lock-fill me-1"></i> Đã khóa
-                                                 </span>
-                                                 <button type="button" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" data-id="@item.PayrollId" data-name="@item.Admin?.FullName" data-bs-toggle="modal" data-bs-target="#unlockModal" title="Mở khóa để sửa lại">
-                                                     <i class="bi bi-unlock"></i> Mở khóa
-                                                 </button>
-                                             </div>
-                                         }
-                                     </div>
+                                 <div class="d-flex justify-content-center align-items-center gap-2">
+                                     <button type="button" class="btn btn-sm btn-outline-info d-flex align-items-center gap-1 btn-detail" 
+                                             data-name="@item.Admin?.FullName"
+                                             data-code="@item.Admin?.EmployeeCode"
+                                             data-position="@item.Admin?.Position?.PositionName"
+                                             data-coef="@item.SalaryCoefficient.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                             data-workhours="@item.WorkingHours.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                             data-leavehours="@item.PaidLeaveHours.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                             data-basesalary="@item.BaseSalaryPerHour.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                             data-bonus="@item.Bonus.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                             data-deduct="@item.Deductions.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                             data-totalsalary="@item.TotalSalary.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                             data-notes="@item.Notes"
+                                             data-status="@(item.Status == "Paid" ? "Đã thanh toán" : "Chưa thanh toán")"
+                                             data-month="@currentMonth"
+                                             data-year="@currentYear"
+                                             title="Xem chi tiết cách tính lương">
+                                         <i class="bi text-info bi-info-circle"></i> Chi tiết
+                                     </button>
+                                     @if (item.Status != "Paid")
+                                     {
+                                         <form asp-action="MarkAsPaid" asp-route-id="@item.PayrollId" method="post" style="display:inline;" onsubmit="return confirm('Xác nhận đã thanh toán lương cho nhân viên @item.Admin?.FullName?\n\nHành động này sẽ khóa bản ghi lương tháng @currentMonth/@currentYear và KHÔNG thể chỉnh sửa hay xóa được nữa.')">
+                                             <button type="submit" class="btn btn-sm btn-success d-flex align-items-center gap-1" title="Thanh toán lương">
+                                                 <i class="bi bi-cash"></i> Trả lương
+                                             </button>
+                                         </form>
+                                         <a asp-action="Edit" asp-route-id="@item.PayrollId" class="btn btn-sm btn-outline-warning d-flex align-items-center gap-1" title="Chỉnh sửa">
+                                             <i class="bi bi-pencil-square"></i> Sửa
+                                         </a>
+                                         <form asp-action="Delete" asp-route-id="@item.PayrollId" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bản ghi lương của nhân viên này không?')" style="display:inline;">
+                                             <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" title="Xóa">
+                                                 <i class="bi bi-trash"></i> Xóa
+                                             </button>
+                                         </form>
+                                     }
+                                     else
+                                     {
+                                         <div class="d-flex align-items-center gap-2">
+                                             <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill small">
+                                                 <i class="bi bi-lock-fill me-1"></i> Đã khóa
+                                             </span>
+                                             <button type="button" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" data-id="@item.PayrollId" data-name="@item.Admin?.FullName" data-bs-toggle="modal" data-bs-target="#unlockModal" title="Mở khóa để sửa lại">
+                                                 <i class="bi bi-unlock"></i> Mở khóa
+                                             </button>
+                                         </div>
+                                     }
+                                 </div>
                                  </td>
                             </tr>
                         }
@@ -298,6 +319,109 @@
     </div>
 </div>
 
+<!-- Modal Chi Tiết Bảng Lương -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title fw-bold" id="detailModalLabel">
+                    <i class="bi bi-info-circle-fill me-2"></i> Chi tiết tính lương nhân viên
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Thông tin nhân viên -->
+                <div class="row g-3 mb-4 bg-light p-3 rounded border">
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted small">Nhân viên:</p>
+                        <h5 class="fw-bold text-dark mb-0" id="detailEmpName"></h5>
+                        <small class="text-muted" id="detailEmpCode"></small>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="mb-1 text-muted small">Chức vụ:</p>
+                        <span class="fw-bold" id="detailEmpPosition"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="mb-1 text-muted small">Thời gian:</p>
+                        <span class="fw-bold" id="detailTime"></span>
+                    </div>
+                </div>
+
+                <!-- Bảng diễn giải tính toán -->
+                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-calculator me-1"></i> Diễn giải cách tính lương</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 45%;">Hạng mục tính toán</th>
+                                <th class="text-end" style="width: 25%;">Thông số</th>
+                                <th class="text-end" style="width: 30%;">Thành tiền (đ)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Số giờ làm việc thực tế (A)</td>
+                                <td class="text-end fw-semibold" id="detailWorkingHours"></td>
+                                <td class="text-end text-muted">-</td>
+                            </tr>
+                            <tr>
+                                <td>Số giờ nghỉ phép có lương (B)</td>
+                                <td class="text-end fw-semibold" id="detailLeaveHours"></td>
+                                <td class="text-end text-muted">-</td>
+                            </tr>
+                            <tr>
+                                <td>Lương cơ bản mỗi giờ công (C)</td>
+                                <td class="text-end fw-semibold" id="detailBaseSalary"></td>
+                                <td class="text-end text-muted">-</td>
+                            </tr>
+                            <tr>
+                                <td>Hệ số lương chức vụ (D)</td>
+                                <td class="text-end fw-semibold" id="detailCoef"></td>
+                                <td class="text-end text-muted">-</td>
+                            </tr>
+                            <tr class="table-secondary">
+                                <td class="fw-bold">Lương công việc thực nhận (E = (A + B) * C * D)</td>
+                                <td class="text-end text-muted">-</td>
+                                <td class="text-end fw-bold" id="detailJobSalary"></td>
+                            </tr>
+                            <tr>
+                                <td class="text-success">Cộng: Phụ cấp / Thưởng thêm (F)</td>
+                                <td class="text-end text-muted">-</td>
+                                <td class="text-end text-success fw-bold" id="detailBonus"></td>
+                            </tr>
+                            <tr>
+                                <td class="text-danger">Trừ: Khấu trừ / Phạt (G)</td>
+                                <td class="text-end text-muted">-</td>
+                                <td class="text-end text-danger fw-bold" id="detailDeductions"></td>
+                            </tr>
+                            <tr class="table-info">
+                                <td class="fw-bold text-primary">TỔNG LƯƠNG THỰC NHẬN (E + F - G)</td>
+                                <td class="text-end text-muted">-</td>
+                                <td class="text-end fw-bold text-primary fs-5" id="detailTotalSalary"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Ghi chú -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-dark"><i class="bi bi-chat-left-text me-1"></i> Ghi chú lương:</label>
+                    <div class="p-3 bg-light rounded border" style="min-height: 60px;" id="detailNotes"></div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        Trạng thái: <span class="badge" id="detailStatus"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -326,6 +450,64 @@
                     passwordInput.focus();
                 });
             }
+
+            // SCRIPT CHI TIẾT BẢNG LƯƠNG
+            const btnDetails = document.querySelectorAll('.btn-detail');
+            btnDetails.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const name = this.getAttribute('data-name');
+                    const code = this.getAttribute('data-code');
+                    const position = this.getAttribute('data-position');
+                    const coef = parseFloat(this.getAttribute('data-coef'));
+                    const workhours = parseFloat(this.getAttribute('data-workhours'));
+                    const leavehours = parseFloat(this.getAttribute('data-leavehours'));
+                    const basesalary = parseFloat(this.getAttribute('data-basesalary'));
+                    const bonus = parseFloat(this.getAttribute('data-bonus'));
+                    const deduct = parseFloat(this.getAttribute('data-deduct'));
+                    const totalsalary = parseFloat(this.getAttribute('data-totalsalary'));
+                    const notes = this.getAttribute('data-notes') || 'Không có ghi chú';
+                    const status = this.getAttribute('data-status');
+                    const month = this.getAttribute('data-month');
+                    const year = this.getAttribute('data-year');
+
+                    // Điền thông tin cơ bản
+                    document.getElementById('detailEmpName').textContent = name;
+                    document.getElementById('detailEmpCode').textContent = 'MSNV: ' + code;
+                    document.getElementById('detailEmpPosition').textContent = position;
+                    document.getElementById('detailTime').textContent = 'Tháng ' + month + '/' + year;
+
+                    // Điền thông số
+                    document.getElementById('detailWorkingHours').textContent = workhours.toFixed(2) + ' giờ';
+                    document.getElementById('detailLeaveHours').textContent = leavehours.toFixed(2) + ' giờ';
+                    document.getElementById('detailBaseSalary').textContent = basesalary.toLocaleString('vi-VN') + ' đ';
+                    document.getElementById('detailCoef').textContent = coef.toFixed(2);
+
+                    // Tính lương công việc
+                    const jobSalary = (workhours + leavehours) * basesalary * coef;
+                    document.getElementById('detailJobSalary').textContent = jobSalary.toLocaleString('vi-VN') + ' đ';
+
+                    document.getElementById('detailBonus').textContent = '+' + bonus.toLocaleString('vi-VN') + ' đ';
+                    document.getElementById('detailDeductions').textContent = '-' + deduct.toLocaleString('vi-VN') + ' đ';
+                    document.getElementById('detailTotalSalary').textContent = totalsalary.toLocaleString('vi-VN') + ' đ';
+
+                    // Ghi chú
+                    document.getElementById('detailNotes').textContent = notes;
+
+                    // Trạng thái
+                    const statusEl = document.getElementById('detailStatus');
+                    statusEl.textContent = status;
+                    if (status === 'Đã thanh toán') {
+                        statusEl.className = 'badge bg-success';
+                    } else {
+                        statusEl.className = 'badge bg-warning text-dark';
+                    }
+
+                    // Hiển thị modal
+                    const modalEl = document.getElementById('detailModal');
+                    const bsModal = new bootstrap.Modal(modalEl);
+                    bsModal.show();
+                });
+            });
         });
     </script>
 }

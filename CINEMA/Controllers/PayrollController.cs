@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using CINEMA.Models;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
+using System.IO;
+using System.Drawing;
 
 namespace CINEMA.Controllers
 {
@@ -344,6 +348,172 @@ namespace CINEMA.Controllers
 
             TempData["Success"] = $"Đã mở khóa bảng lương của nhân viên {employee?.FullName} thành công!";
             return RedirectToAction(nameof(Index), new { month = payroll.Month, year = payroll.Year });
+        }
+
+        // GET: Payroll/ExportToExcel
+        [HttpGet]
+        public async Task<IActionResult> ExportToExcel(int month, int year, string? search)
+        {
+            var query = _context.Payrolls
+                .Include(p => p.Admin)
+                .ThenInclude(a => a.Position)
+                .Where(p => p.Month == month && p.Year == year);
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(p => p.Admin.FullName.Contains(search) || p.Admin.EmployeeCode.Contains(search));
+            }
+
+            var payrolls = await query.ToListAsync();
+
+            ExcelPackage.License.SetNonCommercialPersonal("CineZone");
+            using (var package = new ExcelPackage())
+            {
+                var worksheet = package.Workbook.Worksheets.Add($"Luong_{month}_{year}");
+
+                // Title
+                worksheet.Cells["A1:O1"].Merge = true;
+                worksheet.Cells["A1"].Value = $"BẢNG THANH TOÁN LƯƠNG NHÂN VIÊN THÁNG {month}/{year}";
+                worksheet.Cells["A1"].Style.Font.Size = 16;
+                worksheet.Cells["A1"].Style.Font.Bold = true;
+                worksheet.Cells["A1"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                worksheet.Cells["A1"].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                
+                // Subtitle
+                worksheet.Cells["A2:O2"].Merge = true;
+                worksheet.Cells["A2"].Value = $"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+                worksheet.Cells["A2"].Style.Font.Italic = true;
+                worksheet.Cells["A2"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                // Headers
+                string[] headers = {
+                    "STT", "Mã nhân viên", "Họ và tên", "Chức vụ", "Hệ số", 
+                    "Giờ làm thực tế", "Giờ nghỉ phép", "Tổng giờ công", "Lương/giờ", 
+                    "Lương công việc", "Thưởng", "Khấu trừ", "Thực nhận", "Trạng thái", "Ghi chú"
+                };
+
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    var cell = worksheet.Cells[4, i + 1];
+                    cell.Value = headers[i];
+                    cell.Style.Font.Bold = true;
+                    cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+                    cell.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                    cell.Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                }
+
+                // Data
+                int row = 5;
+                int stt = 1;
+                foreach (var p in payrolls)
+                {
+                    worksheet.Cells[row, 1].Value = stt++;
+                    worksheet.Cells[row, 2].Value = p.Admin?.EmployeeCode;
+                    worksheet.Cells[row, 3].Value = p.Admin?.FullName;
+                    worksheet.Cells[row, 4].Value = p.Admin?.Position?.PositionName;
+                    worksheet.Cells[row, 5].Value = p.SalaryCoefficient;
+                    worksheet.Cells[row, 6].Value = p.WorkingHours;
+                    worksheet.Cells[row, 7].Value = p.PaidLeaveHours;
+                    worksheet.Cells[row, 8].Value = p.WorkingHours + p.PaidLeaveHours;
+                    worksheet.Cells[row, 9].Value = p.BaseSalaryPerHour;
+                    
+                    decimal workSalary = (p.WorkingHours + p.PaidLeaveHours) * p.BaseSalaryPerHour * p.SalaryCoefficient;
+                    worksheet.Cells[row, 10].Value = workSalary;
+                    worksheet.Cells[row, 11].Value = p.Bonus;
+                    worksheet.Cells[row, 12].Value = p.Deductions;
+                    worksheet.Cells[row, 13].Value = p.TotalSalary;
+                    worksheet.Cells[row, 14].Value = p.Status == "Paid" ? "Đã thanh toán" : "Chưa thanh toán";
+                    worksheet.Cells[row, 15].Value = p.Notes;
+
+                    // Border
+                    for (int col = 1; col <= 15; col++)
+                    {
+                        worksheet.Cells[row, col].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                    }
+
+                    // Alignments
+                    worksheet.Cells[row, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                    worksheet.Cells[row, 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                    worksheet.Cells[row, 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                    worksheet.Cells[row, 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                    worksheet.Cells[row, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                    worksheet.Cells[row, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                    worksheet.Cells[row, 9].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                    worksheet.Cells[row, 10].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                    worksheet.Cells[row, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                    worksheet.Cells[row, 12].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                    worksheet.Cells[row, 13].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                    worksheet.Cells[row, 14].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                    // Number formats
+                    worksheet.Cells[row, 5].Style.Numberformat.Format = "#,##0.00";
+                    worksheet.Cells[row, 6].Style.Numberformat.Format = "#,##0.00";
+                    worksheet.Cells[row, 7].Style.Numberformat.Format = "#,##0.00";
+                    worksheet.Cells[row, 8].Style.Numberformat.Format = "#,##0.00";
+                    worksheet.Cells[row, 9].Style.Numberformat.Format = "#,##0";
+                    worksheet.Cells[row, 10].Style.Numberformat.Format = "#,##0";
+                    worksheet.Cells[row, 11].Style.Numberformat.Format = "#,##0";
+                    worksheet.Cells[row, 12].Style.Numberformat.Format = "#,##0";
+                    worksheet.Cells[row, 13].Style.Numberformat.Format = "#,##0";
+
+                    row++;
+                }
+
+                // Total row
+                worksheet.Cells[row, 1].Value = "Tổng cộng";
+                worksheet.Cells[row, 1, row, 4].Merge = true;
+                worksheet.Cells[row, 1].Style.Font.Bold = true;
+                worksheet.Cells[row, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                // Sum Formulas
+                if (payrolls.Any())
+                {
+                    worksheet.Cells[row, 6].Formula = $"SUM(F5:F{row - 1})";
+                    worksheet.Cells[row, 7].Formula = $"SUM(G5:G{row - 1})";
+                    worksheet.Cells[row, 8].Formula = $"SUM(H5:H{row - 1})";
+                    worksheet.Cells[row, 10].Formula = $"SUM(J5:J{row - 1})";
+                    worksheet.Cells[row, 11].Formula = $"SUM(K5:K{row - 1})";
+                    worksheet.Cells[row, 12].Formula = $"SUM(L5:L{row - 1})";
+                    worksheet.Cells[row, 13].Formula = $"SUM(M5:M{row - 1})";
+                }
+                else
+                {
+                    worksheet.Cells[row, 6].Value = 0;
+                    worksheet.Cells[row, 7].Value = 0;
+                    worksheet.Cells[row, 8].Value = 0;
+                    worksheet.Cells[row, 10].Value = 0;
+                    worksheet.Cells[row, 11].Value = 0;
+                    worksheet.Cells[row, 12].Value = 0;
+                    worksheet.Cells[row, 13].Value = 0;
+                }
+
+                for (int col = 1; col <= 15; col++)
+                {
+                    var cell = worksheet.Cells[row, col];
+                    cell.Style.Font.Bold = true;
+                    cell.Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                    if (col >= 6 && col <= 13 && col != 9)
+                    {
+                        cell.Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                        cell.Style.Numberformat.Format = col >= 9 ? "#,##0" : "#,##0.00";
+                    }
+                }
+
+                // Set heights
+                worksheet.Row(1).Height = 40;
+                worksheet.Row(4).Height = 25;
+
+                // Auto fit
+                worksheet.Cells.AutoFitColumns();
+
+                var stream = new MemoryStream();
+                package.SaveAs(stream);
+                stream.Position = 0;
+
+                string fileName = $"BangLuong_{month}_{year}.xlsx";
+                return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
         }
     }
 }

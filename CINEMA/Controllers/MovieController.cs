@@ -1,4 +1,4 @@
-﻿using CINEMA.Controllers;
+using CINEMA.Controllers;
 using CINEMA.Helpers; // Dòng này là bắt buộc để gọi được LogHelper
 using CINEMA.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -84,7 +84,7 @@ namespace CINEMA.Controllers
             using var stream = new MemoryStream();
             await file.CopyToAsync(stream);
 
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            ExcelPackage.License.SetNonCommercialPersonal("CineZone");
             using var package = new ExcelPackage(stream);
             var sheet = package.Workbook.Worksheets[0];
             int rowCount = sheet.Dimension.Rows;
