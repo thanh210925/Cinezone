@@ -1,176 +1,509 @@
-﻿@model IEnumerable<CINEMA.Models.Order>
+@model IEnumerable<CINEMA.Models.Order>
 @{
     ViewData["Title"] = "🎟️ Vé của tôi";
 }
 
-<div class="container-lg py-5">
-    <h2 class="fw-bold text-center mb-5">🎟️ Vé của tôi</h2>
+<!-- Custom Styles for Premium Ticket Wall -->
+<style>
+    :root {
+        --color-primary: #ffc107;
+        --color-primary-dark: #e0a800;
+        --color-bg-dark: #121216;
+        --color-text-dark: #1e293b;
+        --color-text-muted: #64748b;
+        --color-border: #e2e8f0;
+    }
+
+    body {
+        background-color: #f8fafc;
+    }
+
+    .tickets-header-section {
+        background: linear-gradient(135deg, #1e1e24 0%, #0d0d11 100%);
+        border-radius: 20px;
+        padding: 3rem 2rem;
+        color: #fff;
+        text-align: center;
+        margin-bottom: 3rem;
+        box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .tickets-header-section::after {
+        content: '';
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 193, 7, 0.05);
+        border-radius: 50%;
+        top: -150px;
+        right: -150px;
+    }
+
+    .ticket-list-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    /* Ticket Card Outer Wrapper */
+    .ticket-pass-card {
+        background: #ffffff;
+        border: 1px solid rgba(0, 0, 0, 0.05) !important;
+        border-radius: 20px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        margin-bottom: 2rem;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        display: flex;
+        flex-direction: row;
+        border: none;
+    }
+
+    .ticket-pass-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        border-color: rgba(255, 193, 7, 0.2) !important;
+    }
+
+    /* Poster Section on Left */
+    .ticket-poster-stub {
+        width: 160px;
+        min-width: 160px;
+        position: relative;
+        background: var(--color-bg-dark);
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ticket-poster-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .ticket-pass-card:hover .ticket-poster-image {
+        transform: scale(1.06);
+    }
+
+    .ticket-poster-fallback {
+        background: linear-gradient(135deg, #2a2a35 0%, #1e1e24 100%);
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: bold;
+        text-align: center;
+        padding: 10px;
+    }
+
+    /* Main Info Area */
+    .ticket-pass-content {
+        flex: 1;
+        padding: 1.75rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        border-right: 2px dashed var(--color-border);
+    }
+
+    /* Notches at the separation line */
+    .ticket-pass-content::before,
+    .ticket-pass-content::after {
+        content: '';
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        background: #f8fafc; /* match body bg */
+        border-radius: 50%;
+        right: -12px;
+        z-index: 5;
+        border: 1px solid rgba(0, 0, 0, 0.03);
+    }
+
+    .ticket-pass-content::before {
+        top: -12px;
+        box-shadow: inset 0 -3px 3px rgba(0,0,0,0.01);
+    }
+
+    .ticket-pass-content::after {
+        bottom: -12px;
+        box-shadow: inset 0 3px 3px rgba(0,0,0,0.01);
+    }
+
+    /* Right Side Action Stub */
+    .ticket-qr-stub {
+        width: 230px;
+        min-width: 230px;
+        padding: 1.75rem;
+        background: #fcfdfe;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    /* Badges */
+    .ticket-custom-badge {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 30px;
+        display: inline-block;
+    }
+
+    .badge-paid {
+        background: #e6fcf5;
+        color: #0ca678;
+        border: 1px solid #c3fae8;
+    }
+
+    .badge-pending {
+        background: #fff9db;
+        color: #f59f00;
+        border: 1px solid #fff3bf;
+    }
+
+    .badge-cancelled {
+        background: #f1f3f5;
+        color: #868e96;
+        border: 1px solid #e9ecef;
+    }
+
+    /* Details Grid */
+    .ticket-details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem 1.5rem;
+        margin-top: 1rem;
+    }
+
+    .ticket-detail-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ticket-detail-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        margin-bottom: 2px;
+    }
+
+    .ticket-detail-value {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--color-text-dark);
+    }
+
+    /* Movie Title Styles */
+    .movie-title {
+        font-size: 1.35rem;
+        font-weight: 850;
+        color: #0f172a;
+        margin: 0.25rem 0 0.5rem 0;
+        letter-spacing: -0.5px;
+        line-height: 1.2;
+    }
+
+    /* Combo Item */
+    .combo-badge-summary {
+        background: #fff3bf;
+        color: #d97706;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 0.75rem;
+    }
+
+    /* Action buttons */
+    .btn-action-qr {
+        background: #10b981;
+        color: #fff;
+        border: none;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        padding: 8px 20px;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+        transition: all 0.2s ease;
+    }
+
+    .btn-action-qr:hover {
+        background: #059669;
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-action-detail {
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        padding: 8px 20px;
+    }
+
+    .countdown-box {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #e53e3e;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Pulsing background for wait status */
+    .pulse-amber {
+        animation: pulseAmber 2s infinite;
+    }
+
+ 
+</style>
+
+<div class="container-lg py-5 ticket-list-container">
+    
+    <!-- HEADER ZONE -->
+    <div class="tickets-header-section">
+        <h1 class="fw-bold m-0" style="letter-spacing: -1px;">🎟️ Vé Của Tôi</h1>
+        <p class="text-white-50 mt-2 mb-0">Quản lý lịch sử đặt vé và xuất trình mã QR vào phòng chiếu phim</p>
+    </div>
 
     @if (!Model.Any())
     {
-        <div class="alert alert-info text-center rounded-4 border-0 shadow-sm py-4">
-            <p class="mb-0">Bạn chưa đặt vé nào. <a href="/Home" class="fw-bold text-decoration-none">Đặt vé ngay!</a></p>
+        <div class="alert text-center rounded-4 border-0 shadow-sm py-5 bg-white">
+            <div class="text-muted mb-3"><i class="bi bi-ticket-perforated" style="font-size: 4rem;"></i></div>
+            <h5 class="fw-bold text-dark">Bạn chưa đặt vé nào</h5>
+            <p class="text-muted mb-4">Cùng thưởng thức những siêu phẩm điện ảnh mới nhất ngay hôm nay!</p>
+            <a href="/Home" class="btn btn-warning fw-bold px-4 py-2 rounded-pill shadow-sm">Đặt vé ngay</a>
         </div>
     }
     else
     {
         @foreach (var order in Model)
         {
-            <div class="card border-0 rounded-4 shadow-lg mb-4 overflow-hidden">
-                <!-- Simplified header with better spacing and removed inline gradient -->
-                <div class="card-header bg-primary text-white py-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>Mã đơn:</strong>
-                            <span class="font-monospace text-warning fw-bold">@("CZ" + order.OrderId.ToString("D6"))</span>
-                        </div>
-                        <small>@order.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
-                    </div>
-                </div>
+            var firstGroup = order.Tickets.GroupBy(t => t.ShowtimeId).FirstOrDefault();
+            var firstTicket = firstGroup?.FirstOrDefault();
+            var movieTitle = firstTicket?.Showtime?.Movie?.Title ?? "Không rõ";
+            var posterUrl = firstTicket?.Showtime?.Movie?.PosterUrl;
+            var roomName = firstTicket?.Showtime?.Auditorium?.Name ?? "Không rõ";
+            var showtimeStr = firstTicket?.Showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm") ?? "Không rõ";
+            var seatsStr = string.Join(", ", order.Tickets.Select(t => $"{t.Seat?.RowLabel}{t.Seat?.SeatNumber}"));
+            var quantity = order.Tickets.Count;
 
-                <div class="card-body bg-light p-4">
-                    <!-- Improved status and info layout -->
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <p class="mb-2">
-                                <strong>🎯 Trạng thái:</strong>
-                                <span class="badge @GetStatusBadgeClass(order.Status) px-3 py-2">
-                                    @order.Status
-                                </span>
-                            </p>
-                            <p class="mb-2"><strong>💰 Tổng tiền:</strong> @String.Format("{0:N0} ₫", order.TotalAmount)</p>
-                            <p class="mb-0"><strong>💳 Phương thức:</strong> @order.PaymentMethod</p>
-                        </div>
-                        <div class="col-md-6 text-md-end">
-                            @if (order.Status == "Chờ thanh toán" || order.Status == "Đang chờ thanh toán")
-                            {
-                                <!-- ⏰ COUNTDOWN -->
-                                <p class="mb-2 text-danger fw-bold">
-                                    ⏰ Thời gian còn lại:
-                                    <span class="countdown"
-                                          data-expired="@order.ExpiredAt?.ToString("yyyy-MM-ddTHH:mm:ss")">
-                                        ...
-                                    </span>
-                                </p>
-
-                                <!-- 💳 NÚT THANH TOÁN -->
-                                <a href="@Url.Action("Pay", "Tickets", new { orderId = order.OrderId })"
-                                       class="btn btn-warning btn-sm px-3 me-2 pay-btn">
-                                    💳 Tiếp tục thanh toán
-                                </a>
-
-                                <!-- ❌ HỦY -->
-                                <form asp-controller="Tickets" asp-action="CancelOrder" method="post" class="d-inline">
-                                    <input type="hidden" name="orderId" value="@order.OrderId" />
-                                    <button type="submit" class="btn btn-danger btn-sm px-3"
-                                            onclick="return confirm('Bạn có chắc muốn hủy đơn này không?');">
-                                        <i class="bi bi-x-circle"></i> Hủy vé
-                                    </button>
-                                </form>
-                            }
-                        </div>
-                    </div>
-
-                    <hr class="my-4" />
-
-                    <!-- Tickets table with cleaner styling -->
-                    <h6 class="fw-bold text-secondary mb-3">🎬 Vé xem phim</h6>
-                    <div class="table-responsive">
-                        <table class="table table-hover text-center mb-0">
-                            <thead class="table-primary">
-                                <tr>
-                                    <th>Phim</th>
-                                    <th>Suất chiếu</th>
-                                    <th>Phòng</th>
-                                    <th>Ghế</th>
-                                    <th>Tổng giá vé</th>
-                                    <th>Trạng thái</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @{
-                                    var groupedTickets = order.Tickets
-                                    .GroupBy(t => t.ShowtimeId)
-                                    .ToList();
-                                }
-
-                                @foreach (var group in groupedTickets)
-                                {
-                                    var showtime = group.FirstOrDefault()?.Showtime;
-                                    var movie = showtime?.Movie?.Title ?? "Không rõ";
-                                    var room = showtime?.Auditorium?.Name ?? "Không rõ";
-                                    var time = showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm") ?? "";
-                                    var seats = string.Join(", ", group.Select(g => $"{g.Seat?.RowLabel}{g.Seat?.SeatNumber}"));
-                                    var totalPrice = group.Sum(g => g.Price ?? 0);
-                                    var status = group.FirstOrDefault()?.PaymentStatus ?? "Không rõ";
-
-                                    <tr>
-                                        <td>@movie</td>
-                                        <td>@time</td>
-                                        <td>@room</td>
-                                        <td>@seats</td>
-                                        <td>@String.Format("{0:N0} ₫", totalPrice)</td>
-                                        <td>
-                                            <span class="badge @GetStatusBadgeClass(status) px-3 py-2">
-                                                @status
-                                            </span>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Combos section with consistent styling -->
-                    @if (order.OrderCombos != null && order.OrderCombos.Any())
+            <div class="card ticket-pass-card">
+                <!-- 1. LEFT STUB (POSTER) -->
+                <div class="ticket-poster-stub">
+                    @if (!string.IsNullOrEmpty(posterUrl))
                     {
-                        <h6 class="fw-bold text-secondary mt-5 mb-3">🍿 Combo đã chọn</h6>
-                        <div class="table-responsive">
-                            <table class="table table-hover text-center mb-0">
-                                <thead class="table-warning">
-                                    <tr>
-                                        <th>Tên combo</th>
-                                        <th>Số lượng</th>
-                                        <th>Đơn giá</th>
-                                        <th>Thành tiền</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var oc in order.OrderCombos)
-                                    {
-                                        <tr>
-                                            <td>@oc.Combo?.Name</td>
-                                            <td>@oc.Quantity</td>
-                                            <td>@String.Format("{0:N0} ₫", oc.UnitPrice)</td>
-                                            <td>@String.Format("{0:N0} ₫", (oc.UnitPrice ?? 0) * oc.Quantity)</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+                        <img class="ticket-poster-image" src="@posterUrl" alt="@movieTitle poster" />
+                    }
+                    else
+                    {
+                        <div class="ticket-poster-fallback">
+                            <i class="bi bi-film mb-2" style="font-size: 2rem;"></i>
+                            <span>CINEZONE</span>
                         </div>
                     }
                 </div>
 
-                <!-- Action button moved to footer -->
-                <div class="card-footer bg-white border-top-0 p-3 text-end">
+                <!-- 2. MIDDLE CONTENT (TICKET BODY) -->
+                <div class="ticket-pass-content">
+                    <div>
+                        <!-- Header Line with Badges -->
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <span class="ticket-custom-badge @GetCustomStatusClass(order.Status)">
+                                    @order.Status
+                                </span>
+                            </div>
+                            <small class="text-muted">Đặt lúc: @order.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
+                        </div>
+
+                        <!-- Movie Title -->
+                        <h4 class="movie-title">@movieTitle</h4>
+
+                        <!-- Movie Info Badges -->
+                        <div>
+                            @if (firstTicket?.Showtime?.Movie?.AgeRating != null)
+                            {
+                                <span class="badge bg-dark text-white rounded-pill px-2.5 py-1 text-uppercase fw-bold" style="font-size: 0.7rem;">@firstTicket.Showtime.Movie.AgeRating</span>
+                            }
+                            @if (firstTicket?.Showtime?.Movie?.Duration != null)
+                            {
+                                <span class="text-muted small ms-2"><i class="bi bi-clock"></i> @firstTicket.Showtime.Movie.Duration phút</span>
+                            }
+                        </div>
+
+                        <!-- Information Details Grid -->
+                        <div class="ticket-details-grid">
+                            <div class="ticket-detail-item">
+                                <span class="ticket-detail-label">Mã đơn vé</span>
+                                <span class="ticket-detail-value font-monospace text-primary">@("CZ" + order.OrderId.ToString("D6"))</span>
+                            </div>
+                            <div class="ticket-detail-item">
+                                <span class="ticket-detail-label">Suất chiếu</span>
+                                <span class="ticket-detail-value text-danger">@showtimeStr</span>
+                            </div>
+                            <div class="ticket-detail-item">
+                                <span class="ticket-detail-label">Phòng chiếu</span>
+                                <span class="ticket-detail-value">@roomName</span>
+                            </div>
+                            <div class="ticket-detail-item">
+                                <span class="ticket-detail-label">Vị trí ghế (@quantity vé)</span>
+                                <span class="ticket-detail-value text-success">@seatsStr</span>
+                            </div>
+                        </div>
+
+                        <!-- Combo Indicator if any -->
+                        @if (order.OrderCombos != null && order.OrderCombos.Any())
+                        {
+                            var comboCount = order.OrderCombos.Sum(oc => oc.Quantity ?? 0);
+                            <div class="combo-badge-summary">
+                                <i class="bi bi-egg-fried"></i> Kèm @comboCount phần bắp nước
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Payment summary footer inside body -->
+                    <div class="border-top mt-3 pt-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small d-block">Tổng tiền:</span>
+                            <span class="fw-bold text-danger fs-5">@String.Format("{0:N0} ₫", order.TotalAmount)</span>
+                        </div>
+                        <small class="text-muted font-monospace">@order.PaymentMethod</small>
+                    </div>
+                </div>
+
+                <!-- 3. RIGHT STUB (ACTIONS / DYNAMIC QR ZONE) -->
+                <div class="ticket-qr-stub">
+                    @if (order.Status == "Đã thanh toán" || order.Status == "Completed" || order.Status == "Paid")
+                    {
+                        <!-- Active QR Button -->
+                        <button type="button" class="btn btn-action-qr w-100 mb-2 py-2" data-bs-toggle="modal" data-bs-target="#qrModal-@order.OrderId">
+                            <i class="bi bi-qr-code"></i> Xem mã QR
+                        </button>
+                        <small class="text-muted d-block mb-3">Dùng soát vé vào rạp</small>
+                    }
+                    else if (order.Status == "Chờ thanh toán" || order.Status == "Đang chờ thanh toán")
+                    {
+                        <!-- Expired countdown -->
+                        <div class="countdown-box mb-2">
+                            <i class="bi bi-hourglass-split"></i> Còn lại: 
+                            <span class="countdown text-danger fw-bold" data-expired="@order.ExpiredAt?.ToString("yyyy-MM-ddTHH:mm:ss")">
+                                ...
+                            </span>
+                        </div>
+
+                        <!-- Payment button -->
+                        <a href="@Url.Action("Pay", "Tickets", new { orderId = order.OrderId })"
+                           class="btn btn-warning w-100 mb-2 py-2 rounded-pill fw-bold pay-btn pulse-amber text-dark">
+                            💳 Tiếp tục thanh toán
+                        </a>
+
+                        <!-- Cancel order -->
+                        <form asp-controller="Tickets" asp-action="CancelOrder" method="post" class="w-100">
+                            <input type="hidden" name="orderId" value="@order.OrderId" />
+                            <button type="submit" class="btn btn-link text-danger text-decoration-none small py-1 w-100"
+                                    onclick="return confirm('Bạn có chắc muốn hủy đơn vé này không?');">
+                                <i class="bi bi-x-circle"></i> Hủy đơn vé
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <!-- Cancelled state -->
+                        <div class="text-muted mb-2">
+                            <i class="bi bi-x-circle-fill" style="font-size: 2rem;"></i>
+                        </div>
+                        <span class="fw-bold text-muted d-block mb-2">VÉ ĐÃ HỦY</span>
+                    }
+
                     <a asp-controller="Tickets" asp-action="Details" asp-route-id="@order.OrderId"
-                       class="btn btn-outline-primary btn-sm px-3">
+                       class="btn btn-outline-secondary btn-action-detail w-100 mt-2 py-1.5">
                         <i class="bi bi-eye"></i> Xem chi tiết
                     </a>
                 </div>
             </div>
+
+            <!-- QR Modal for Order @order.OrderId -->
+            @if (order.Status == "Đã thanh toán" || order.Status == "Completed" || order.Status == "Paid")
+            {
+                <div class="modal fade" id="qrModal-@order.OrderId" tabindex="-1" aria-labelledby="qrModalLabel-@order.OrderId" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content rounded-4 border-0 shadow-lg" style="background-color: #1e1e24; color: #ffffff;">
+                            <div class="modal-header rounded-top-4 border-0 pb-0">
+                                <h5 class="modal-title fw-bold text-warning" id="qrModalLabel-@order.OrderId">🎟️ Vé Điện Tử</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body text-center p-4">
+                                @{
+                                    var mTicket = order.Tickets.FirstOrDefault();
+                                    var mMovieTitle = mTicket?.Showtime?.Movie?.Title ?? "Không rõ";
+                                    var mRoomName = mTicket?.Showtime?.Auditorium?.Name ?? "Không rõ";
+                                    var mShowtime = mTicket?.Showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm") ?? "";
+                                    var mSeats = string.Join(", ", order.Tickets.Select(t => $"{t.Seat?.RowLabel}{t.Seat?.SeatNumber}"));
+                                    var mCustomerName = order.Customer?.FullName ?? "";
+                                    
+                                    var mQrContent = $"Mã đơn: CZ{order.OrderId.ToString("D6")}\n" +
+                                                     $"Phim: {mMovieTitle}\n" +
+                                                     $"Suất chiếu: {mShowtime}\n" +
+                                                     $"Phòng: {mRoomName}\n" +
+                                                     $"Ghế: {mSeats}\n" +
+                                                     $"Khách hàng: {mCustomerName}\n" +
+                                                     $"Tổng tiền: {String.Format("{0:N0}", order.TotalAmount)} ₫\n" +
+                                                     $"Trạng thái: {order.Status}";
+                                                     
+                                    var mQrUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={Uri.EscapeDataString(mQrContent)}";
+                                }
+                                <h4 class="fw-bold mb-1 text-white">@mMovieTitle</h4>
+                                <p class="text-white-50 small mb-3">Phòng: @mRoomName | Ghế: <span class="text-warning fw-bold">@mSeats</span></p>
+                                
+                                <div class="d-inline-block p-3 rounded-4 bg-white shadow-sm mb-3">
+                                    <img src="@mQrUrl" alt="Mã QR vé" class="img-fluid" style="width: 190px; height: 190px;" />
+                                </div>
+                                
+                                <p class="fw-bold text-warning font-monospace mb-1 fs-5">CZ-@order.OrderId.ToString("D6")</p>
+                                <span class="badge bg-success px-3 py-2 rounded-pill small">ĐÃ THANH TOÁN</span>
+                                <p class="text-white-50 small mt-3 mb-0">Đưa mã QR này cho nhân viên để soát vé vào rạp</p>
+                            </div>
+                            <div class="modal-footer border-top-0 d-flex justify-content-between p-3" style="background-color: #15151b; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+                                <button type="button" class="btn btn-outline-light btn-sm px-3 rounded-pill" data-bs-dismiss="modal">Đóng</button>
+                                <a asp-controller="Tickets" asp-action="Details" asp-route-id="@order.OrderId" class="btn btn-warning btn-sm px-4 rounded-pill fw-bold text-dark">
+                                    <i class="bi bi-eye"></i> Xem chi tiết
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
         }
     }
 </div>
 
 @functions {
-    private string GetStatusBadgeClass(string status)
+    private string GetCustomStatusClass(string status)
     {
-        return status == "Đã thanh toán" ? "bg-success"
-            : status.Contains("chờ") ? "bg-warning text-dark"
-            : "bg-danger";
+        if (status == "Đã thanh toán" || status == "Completed" || status == "Paid")
+            return "badge-paid";
+        if (status.Contains("chờ") || status.Contains("Chờ"))
+            return "badge-pending";
+        return "badge-cancelled";
     }
 }
+
 <script>
     function startCountdown() {
         const countdowns = document.querySelectorAll(".countdown");

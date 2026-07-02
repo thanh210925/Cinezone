@@ -1,64 +1,376 @@
-﻿@model CINEMA.Models.Order
+@model CINEMA.Models.Order
 @{
     ViewData["Title"] = "Chi tiết vé";
+    
+    var ticket = Model.Tickets.FirstOrDefault();
+    var movieTitle = ticket?.Showtime?.Movie?.Title ?? "Không rõ";
+    var roomName = ticket?.Showtime?.Auditorium?.Name ?? "Không rõ";
+    var showtime = ticket?.Showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm") ?? "Không rõ";
+    var seats = string.Join(", ", Model.Tickets.Select(t => $"{t.Seat?.RowLabel}{t.Seat?.SeatNumber}"));
+    var customerName = Model.Customer?.FullName ?? "Không rõ";
+    
+    var qrContent = $"Mã đơn: CZ{Model.OrderId.ToString("D6")}\n" +
+                    $"Phim: {movieTitle}\n" +
+                    $"Suất chiếu: {showtime}\n" +
+                    $"Phòng: {roomName}\n" +
+                    $"Ghế: {seats}\n" +
+                    $"Khách hàng: {customerName}\n" +
+                    $"Tổng tiền: {String.Format("{0:N0}", Model.TotalAmount)} ₫\n" +
+                    $"Trạng thái: {Model.Status}";
+                    
+    var qrUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={Uri.EscapeDataString(qrContent)}";
 }
 
-<div class="container mt-4">
-    <h3 class="fw-bold text-center mb-4">🎟️ Chi tiết vé của bạn</h3>
+<!-- Custom Styles for Cinema Ticket Stub -->
+<style>
+    :root {
+        --primary-gold: #ffc107;
+        --dark-slate: #1e1e24;
+        --border-color: #e2e8f0;
+    }
 
-    <div class="card shadow-sm p-4 mb-4">
-        <h5 class="text-primary mb-3">👤 Thông tin người mua</h5>
-        <p><strong>Họ tên:</strong> @Model.Customer.FullName</p>
-        <p><strong>Email:</strong> @Model.Customer.Email</p>
-        <p><strong>Số điện thoại:</strong> @Model.Customer.Phone</p>
+    body {
+        background-color: #f7fafc;
+    }
+
+    .ticket-container {
+        max-width: 900px;
+        margin: 3rem auto;
+    }
+
+    .cinema-ticket {
+        background: #ffffff;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
+        display: flex;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+    }
+
+    .cinema-ticket:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Left Side: Ticket Body */
+    .ticket-body {
+        padding: 2.5rem;
+        flex: 2.5;
+        border-right: 2px dashed var(--border-color);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    /* Right Side: Ticket Stub */
+    .ticket-stub {
+        padding: 2.5rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #fcfcfd;
+        position: relative;
+        min-width: 260px;
+        text-align: center;
+    }
+
+    /* Notches at the dashed divider line */
+    .ticket-body::before,
+    .ticket-body::after {
+        content: '';
+        position: absolute;
+        width: 32px;
+        height: 32px;
+        background: #f7fafc; /* matches background-color of body */
+        border-radius: 50%;
+        right: -16px;
+        z-index: 10;
+        border: 1px solid rgba(0, 0, 0, 0.03);
+    }
+
+    .ticket-body::before {
+        top: -16px;
+        box-shadow: inset 0 -3px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    .ticket-body::after {
+        bottom: -16px;
+        box-shadow: inset 0 3px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    /* Banner design for Movie */
+    .movie-ticket-header {
+        background: linear-gradient(135deg, #1e1e24 0%, #0d0d11 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        color: #fff;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .movie-title-large {
+        font-size: 1.75rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.5px;
+        background: linear-gradient(45deg, #ffc107, #ffe082);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .movie-badge-info {
+        font-size: 0.8rem;
+        background: rgba(255, 255, 255, 0.15);
+        padding: 3px 10px;
+        border-radius: 20px;
+        margin-right: 8px;
+    }
+
+    /* Details Grid */
+    .ticket-info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+        margin-top: 1rem;
+    }
+
+    .ticket-info-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ticket-info-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: #718096;
+        font-weight: 700;
+        letter-spacing: 0.75px;
+        margin-bottom: 0.25rem;
+    }
+
+    .ticket-info-val {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #2d3748;
+    }
+
+    /* QR Code elements */
+    .qr-container {
+        border: 2px solid var(--primary-gold);
+        border-radius: 16px;
+        padding: 10px;
+        background: #ffffff;
+        box-shadow: 0 10px 25px rgba(255, 193, 7, 0.12);
+        margin-bottom: 0.75rem;
+        transition: transform 0.3s ease;
+    }
+
+    .qr-container:hover {
+        transform: scale(1.04);
+    }
+
+    .qr-image {
+        width: 150px;
+        height: 150px;
+        display: block;
+    }
+
+    .scan-instructions {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #4a5568;
+        letter-spacing: 0.5px;
+        margin-top: 0.5rem;
+    }
+
+    .barcode-stub {
+        font-family: 'Courier New', Courier, monospace;
+        letter-spacing: 2px;
+        color: #a0aec0;
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+        font-weight: bold;
+    }
+
+    /* Statuses */
+    .ticket-status-stamp {
+        border: 3px double #38a169;
+        color: #38a169;
+        font-weight: 900;
+        font-size: 1.2rem;
+        padding: 5px 15px;
+        border-radius: 8px;
+        transform: rotate(-10deg);
+        text-transform: uppercase;
+        display: inline-block;
+        margin-top: 1rem;
+    }
+
+    .ticket-status-pending {
+        border: 3px double #dd6b20;
+        color: #dd6b20;
+        font-weight: 900;
+        font-size: 1.2rem;
+        padding: 5px 15px;
+        border-radius: 8px;
+        transform: rotate(-10deg);
+        text-transform: uppercase;
+        display: inline-block;
+        margin-top: 1rem;
+    }
+
+    /* Button formatting */
+    .btn-action-container {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 1.5rem;
+    }
+</style>
+
+<div class="container ticket-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a href="@Url.Action("MyTickets", "Tickets")" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left"></i> Quay lại danh sách
+        </a>
+        <h3 class="fw-bold m-0 text-dark">🎟️ Vé Điện Tử</h3>
+        <div></div>
     </div>
 
-    <div class="card shadow-sm p-4 mb-4">
-        <h5 class="text-danger mb-3">🎬 Thông tin phim</h5>
-        @if (Model.Tickets.Any())
-        {
-            var ticket = Model.Tickets.First();
-            <p><strong>Phim:</strong> @ticket.Showtime.Movie.Title</p>
-            <p><strong>Phòng chiếu:</strong> @ticket.Showtime.Auditorium.Name</p>
-            <p><strong>Suất chiếu:</strong> @ticket.Showtime.StartTime?.ToString("dd/MM/yyyy HH:mm")</p>
-            <p><strong>Ghế:</strong> @string.Join(", ", Model.Tickets.Select(t => t.Seat.RowLabel + t.Seat.SeatNumber))</p>
-            <p><strong>Giá vé mỗi ghế:</strong> @String.Format("{0:N0} ₫", ticket.Price)</p>
-        }
+    <!-- MAIN TICKET -->
+    <div class="cinema-ticket">
+        <!-- TICKET BODY (LEFT) -->
+        <div class="ticket-body">
+            <div>
+                <!-- Movie Header -->
+                <div class="movie-ticket-header">
+                    <h4 class="movie-title-large">@movieTitle</h4>
+                    <div>
+                        @if (ticket?.Showtime?.Movie?.AgeRating != null)
+                        {
+                            <span class="movie-badge-info bg-warning text-dark fw-bold">@ticket.Showtime.Movie.AgeRating</span>
+                        }
+                        @if (ticket?.Showtime?.Movie?.Duration != null)
+                        {
+                            <span class="movie-badge-info">⏱️ @ticket.Showtime.Movie.Duration phút</span>
+                        }
+                    </div>
+                </div>
+
+                <!-- Info Grid -->
+                <div class="ticket-info-grid">
+                    <div class="ticket-info-item">
+                        <span class="ticket-info-label">Khách hàng</span>
+                        <span class="ticket-info-val">@customerName</span>
+                    </div>
+                    <div class="ticket-info-item">
+                        <span class="ticket-info-label">Mã vé</span>
+                        <span class="ticket-info-val font-monospace text-primary">@("CZ" + Model.OrderId.ToString("D6"))</span>
+                    </div>
+                    <div class="ticket-info-item">
+                        <span class="ticket-info-label">Suất chiếu</span>
+                        <span class="ticket-info-val text-danger">@showtime</span>
+                    </div>
+                    <div class="ticket-info-item">
+                        <span class="ticket-info-label">Phòng chiếu</span>
+                        <span class="ticket-info-val">@roomName</span>
+                    </div>
+                    <div class="ticket-info-item">
+                        <span class="ticket-info-label">Ghế đã chọn</span>
+                        <span class="ticket-info-val text-success">@seats</span>
+                    </div>
+                    <div class="ticket-info-item">
+                        <span class="ticket-info-label">Tổng tiền</span>
+                        <span class="ticket-info-val text-danger">@String.Format("{0:N0} ₫", Model.TotalAmount)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Details Info Section (Subtle) -->
+            <div class="mt-4 pt-3 border-top">
+                <small class="text-muted d-block"><strong>Email:</strong> @(Model.Customer?.Email ?? "") | <strong>SĐT:</strong> @(Model.Customer?.Phone ?? "")</small>
+                <small class="text-muted d-block"><strong>Phương thức thanh toán:</strong> @Model.PaymentMethod | <strong>Ngày đặt:</strong> @Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
+            </div>
+        </div>
+
+        <!-- TICKET STUB (RIGHT) -->
+        <div class="ticket-stub">
+            @if (Model.Status == "Đã thanh toán" || Model.Status == "Completed" || Model.Status == "Paid")
+            {
+                <div class="qr-container">
+                    <img class="qr-image" src="@qrUrl" alt="Mã QR vé" />
+                </div>
+                <div class="scan-instructions">VÀO PHÒNG CHIẾU</div>
+                <small class="text-muted">Đưa mã này cho nhân viên soát vé</small>
+                <div class="barcode-stub">#CZ-@Model.OrderId.ToString("D6")</div>
+                <span class="ticket-status-stamp">ĐÃ THANH TOÁN</span>
+            }
+            else if (Model.Status == "Chờ thanh toán" || Model.Status == "Đang chờ thanh toán")
+            {
+                <div class="text-warning mb-3">
+                    <i class="bi bi-clock-history" style="font-size: 3.5rem;"></i>
+                </div>
+                <div class="fw-bold text-warning">CHỜ THANH TOÁN</div>
+                <small class="text-muted d-block px-3">Vui lòng thanh toán đơn vé để nhận mã QR vào phòng chiếu.</small>
+                
+                <div class="mt-3">
+                    <a href="@Url.Action("Pay", "Tickets", new { orderId = Model.OrderId })" class="btn btn-warning btn-sm fw-bold px-4 rounded-pill">
+                        💳 Thanh toán ngay
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="text-danger mb-3">
+                    <i class="bi bi-x-circle" style="font-size: 3.5rem;"></i>
+                </div>
+                <span class="ticket-status-pending text-danger border-danger">ĐÃ HỦY</span>
+                <small class="text-muted d-block mt-2">Đơn vé này đã bị hủy.</small>
+            }
+        </div>
     </div>
 
+    <!-- COMBO DETAIL IF ANY -->
     @if (Model.OrderCombos.Any())
     {
-        <div class="card shadow-sm p-4 mb-4">
-            <h5 class="text-warning mb-3">🍿 Combo đã chọn</h5>
-            <table class="table table-bordered text-center">
-                <thead class="table-warning">
-                    <tr>
-                        <th>Tên combo</th>
-                        <th>Số lượng</th>
-                        <th>Đơn giá</th>
-                        <th>Thành tiền</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var c in Model.OrderCombos)
-                    {
+        <div class="card border-0 rounded-4 shadow-sm p-4 mb-4">
+            <h5 class="fw-bold text-secondary mb-3"><i class="bi bi-egg-fried"></i> Combo bắp nước đã đặt</h5>
+            <div class="table-responsive">
+                <table class="table table-hover text-center align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <td>@c.Combo.Name</td>
-                            <td>@c.Quantity</td>
-                            <td>@String.Format("{0:N0} ₫", c.UnitPrice)</td>
-                            <td>@String.Format("{0:N0} ₫", c.Quantity * c.UnitPrice)</td>
+                            <th class="text-start">Tên combo</th>
+                            <th>Số lượng</th>
+                            <th>Đơn giá</th>
+                            <th class="text-end">Thành tiền</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Model.OrderCombos)
+                        {
+                            <tr>
+                                <td class="text-start fw-bold">@c.Combo.Name</td>
+                                <td>@c.Quantity</td>
+                                <td>@String.Format("{0:N0} ₫", c.UnitPrice)</td>
+                                <td class="text-end fw-bold text-danger">@String.Format("{0:N0} ₫", c.Quantity * c.UnitPrice)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     }
 
-    <div class="card shadow-sm p-4">
-        <h5 class="text-success mb-3">💳 Thông tin thanh toán</h5>
-        <p><strong>Trạng thái:</strong> <span class="badge bg-success">@Model.Status</span></p>
-        <p><strong>Phương thức:</strong> @Model.PaymentMethod</p>
-        <p><strong>Tổng tiền:</strong> <span class="fw-bold text-danger">@String.Format("{0:N0} ₫", Model.TotalAmount)</span></p>
-        <p><strong>Ngày đặt:</strong> @Model.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</p>
+    <!-- ACTIONS -->
+    <div class="btn-action-container">
+        <button onclick="window.print()" class="btn btn-dark px-4 rounded-pill">
+            <i class="bi bi-printer"></i> In vé
+        </button>
     </div>
 </div>
