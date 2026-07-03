@@ -1,38 +1,48 @@
-﻿@model IEnumerable<CINEMA.ViewModels.PayrollViewModel>
+﻿@model IEnumerable<CINEMA.Models.Attendance>
 @{
-    ViewData["Title"] = "Bảng công tháng";
+    ViewData["Title"] = "Bảng công chi tiết ngày";
     Layout = "_AdminLayout";
+    DateTime selectedDate = ViewBag.SelectedDate;
 }
+
 <div class="container mt-4">
     <div class="card shadow">
-        <div class="card-header bg-success text-white">
-            <h4 class="mb-0">Bảng tổng hợp công tháng @ViewBag.Month / @ViewBag.Year</h4>
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Chi tiết chấm công ngày: @selectedDate.ToString("dd/MM/yyyy")</h4>
+
+            <form method="get" action="/Admin/PayrollReport" class="d-flex">
+                <input type="date" name="date" class="form-control"
+                       value="@selectedDate.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
+            </form>
         </div>
+
         <div class="card-body">
             <table class="table table-hover table-bordered">
                 <thead class="table-light">
                     <tr>
                         <th>Mã NV</th>
                         <th>Tên nhân viên</th>
-                        <th>Số ngày làm</th>
-                        <th>Tổng thời gian làm việc</th>
+                        <th>Giờ vào</th>
+                        <th>Giờ ra</th>
+                        <th>Trạng thái</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var item in Model)
                     {
                         <tr>
-                            <td class="align-middle">@item.EmployeeCode</td>
-                            <td class="align-middle fw-bold">@item.FullName</td>
-                            <td class="align-middle">@item.TotalDays ngày</td>
+                            <td class="align-middle">@item.Admin?.EmployeeCode</td>
+                            <td class="align-middle fw-bold">@item.Admin?.FullName</td>
+                            <td class="align-middle">@item.CheckInTime?.ToString("HH:mm:ss")</td>
+                            <td class="align-middle">@item.CheckOutTime?.ToString("HH:mm:ss")</td>
                             <td class="align-middle">
-                                <span class="badge bg-info text-dark fs-6 py-2">@item.TotalTimeFormatted</span>
+                                @(item.IsApproved? Html.Raw("<span class='text-success fw-bold'>Đã duyệt</span>") : Html.Raw("<span class='text-warning fw-bold'>Chờ duyệt</span>"))
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
-            <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> In báo cáo</button>
+            <button class="btn btn-secondary" onclick="window.print()"><i class="bi bi-printer"></i> In báo cáo</button>
         </div>
     </div>
 </div>

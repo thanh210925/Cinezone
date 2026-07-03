@@ -53,34 +53,38 @@
                         <tr>
                             <td>@item.Admin?.FullName</td>
                             <td>@item.CheckInTime?.ToString("HH:mm:ss")</td>
-                            <td>@if(!string.IsNullOrEmpty(item.CheckInPhoto)){
-                            <img src="@item.CheckInPhoto" width="50" class="img-thumbnail" />
-                        }
-</td>
-                        <td>@item.CheckOutTime?.ToString("HH:mm:ss")</td>
-                        <td>@if(!string.IsNullOrEmpty(item.CheckOutPhoto)){
-                        <img src="@item.CheckOutPhoto" width="50" class="img-thumbnail" />
-                                                }
-</td>
-                        <td>
-                            @if (item.IsApproved)
-                            {
-                                <span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Đã duyệt</span>
-                            }
-                            else
-                            {
-                                @if (isSuperAdmin)
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.CheckInPhoto))
                                 {
-                                    <button onclick="approveAttendance(@item.AttendanceId)" class="btn btn-sm btn-outline-primary">Duyệt</button>
+                                    <img src="@item.CheckInPhoto" width="50" class="img-thumbnail" />
+                                }
+                            </td>
+                            <td>@item.CheckOutTime?.ToString("HH:mm:ss")</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.CheckOutPhoto))
+                                {
+                                    <img src="@item.CheckOutPhoto" width="50" class="img-thumbnail" />
+                                }
+                            </td>
+                            <td>
+                                @if (item.IsApproved)
+                                {
+                                    <span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Đã duyệt</span>
                                 }
                                 else
                                 {
-                                    <span class="text-warning"><i class="bi bi-clock"></i> Chờ duyệt</span>
+                                    @if (isSuperAdmin)
+                                    {
+                                        <button onclick="approveAttendance(@item.AttendanceId)" class="btn btn-sm btn-outline-primary">Duyệt</button>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-warning"><i class="bi bi-clock"></i> Chờ duyệt</span>
+                                    }
                                 }
-                            }
-                        </td>
-                    </tr>
-                                        }
+                            </td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>

@@ -1,0 +1,42 @@
+﻿@model IEnumerable<CINEMA.Models.Attendance>
+@{
+    ViewData["Title"] = "Bảng chấm công ngày";
+    Layout = "_AdminLayout";
+    DateTime selectedDate = ViewBag.SelectedDate;
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4>Chấm công ngày: @selectedDate.ToString("dd/MM/yyyy")</h4>
+        </div>
+        <div class="card-body">
+            <form method="get" action="/Admin/DailyAttendanceReport" class="mb-3">
+                <input type="date" name="date" value="@selectedDate.ToString("yyyy-MM-dd")"
+                       class="form-control" onchange="this.form.submit()" />
+            </form>
+
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Nhân viên</th>
+                        <th>Giờ vào</th>
+                        <th>Giờ ra</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.Admin?.FullName</td>
+                            <td>@item.CheckInTime?.ToString("HH:mm:ss")</td>
+                            <td>@item.CheckOutTime?.ToString("HH:mm:ss")</td>
+                            <td>@(item.IsApproved ? "Đã duyệt" : "Chờ duyệt")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

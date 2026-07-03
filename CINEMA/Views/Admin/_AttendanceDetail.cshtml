@@ -1,0 +1,25 @@
+﻿@model IEnumerable<CINEMA.Models.Attendance>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Ngày</th>
+            <th>Giờ vào</th>
+            <th>Giờ ra</th>
+            <th>Trạng thái</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Date.ToString("dd/MM/yyyy")</td>
+                <td>@item.CheckInTime?.ToString("HH:mm:ss")</td>
+                <td>@item.CheckOutTime?.ToString("HH:mm:ss")</td>
+                <td>
+                    @(item.IsApproved? Html.Raw("<span class='text-success'>Đã duyệt</span>") : Html.Raw("<span class='text-warning'>Chờ duyệt</span>"))
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
