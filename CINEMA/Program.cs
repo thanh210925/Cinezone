@@ -25,6 +25,10 @@ namespace CINEMA
             builder.Services.AddScoped<StatisticsController>();
             builder.Services.AddScoped<RecommendationEngine>();
             builder.Services.AddHttpClient<CINEMA.Services.GeminiService>();
+
+            // Email Notifications Configuration
+            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+            builder.Services.AddScoped<IEmailService, EmailService>();
             // Trong file Program.cs
             builder.Services.AddHttpContextAccessor(); // Thêm dòng này để lấy Session
             // 🟢 AUTH (PHẢI đặt trước Build)

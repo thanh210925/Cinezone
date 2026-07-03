@@ -9,11 +9,13 @@ namespace CINEMA.Controllers
     public class MovieController : AdminBaseController
     {
         private readonly CinemaContext _context;
-        private readonly IHttpContextAccessor _httpContextAccessor; // Thêm biến này
-        public MovieController(CinemaContext context, IHttpContextAccessor httpContextAccessor)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly Services.IEmailService _emailService;
+        public MovieController(CinemaContext context, IHttpContextAccessor httpContextAccessor, Services.IEmailService emailService)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
+            _emailService = emailService;
         }
 
         // ==================== DANH SÁCH PHIM ====================
@@ -66,6 +68,44 @@ namespace CINEMA.Controllers
 
             _context.SaveChanges();
 
+            // Gửi email thông báo bất đồng bộ chạy ngầm cho tất cả khách hàng
+            try
+            {
+                var customers = _context.Customers.Where(c => !string.IsNullOrEmpty(c.Email)).ToList();
+                if (customers.Any())
+                {
+                    var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                    // Nhân bản list phim để tránh EF DbContext reference issues trong đa luồng
+                    var moviesToNotify = validMovies.Select(m => new Movie
+                    {
+                        Title = m.Title,
+                        Description = m.Description,
+                        Duration = m.Duration,
+                        ReleaseDate = m.ReleaseDate,
+                        Language = m.Language,
+                        Country = m.Country,
+                        AgeRating = m.AgeRating,
+                        PosterUrl = m.PosterUrl
+                    }).ToList();
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _emailService.SendNewMovieNotificationAsync(moviesToNotify, customers, baseUrl);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[Notification Task Error]: {ex.Message}");
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Email Notification Setup Error]: {ex.Message}");
+            }
+
             // Ghi log chung
             LogHelper.Write(_context, _httpContextAccessor, "ADDED_MULTIPLE", "Movie", validMovies.Count);
 
@@ -90,6 +130,7 @@ namespace CINEMA.Controllers
             int rowCount = sheet.Dimension.Rows;
             int importedCount = 0; // Đếm số phim thực tế đã thêm
 
+            var importedMovies = new List<Movie>();
             for (int row = 2; row <= rowCount; row++)
             {
                 var movie = new Movie
@@ -108,10 +149,49 @@ namespace CINEMA.Controllers
                 };
 
                 _context.Movies.Add(movie);
+                importedMovies.Add(movie);
                 importedCount++;
             }
 
             await _context.SaveChangesAsync();
+
+            // Gửi email thông báo bất đồng bộ chạy ngầm cho tất cả khách hàng
+            try
+            {
+                var customers = await _context.Customers.Where(c => !string.IsNullOrEmpty(c.Email)).ToListAsync();
+                if (customers.Any() && importedMovies.Any())
+                {
+                    var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                    // Nhân bản list phim để tránh EF DbContext reference issues trong đa luồng
+                    var moviesToNotify = importedMovies.Select(m => new Movie
+                    {
+                        Title = m.Title,
+                        Description = m.Description,
+                        Duration = m.Duration,
+                        ReleaseDate = m.ReleaseDate,
+                        Language = m.Language,
+                        Country = m.Country,
+                        AgeRating = m.AgeRating,
+                        PosterUrl = m.PosterUrl
+                    }).ToList();
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _emailService.SendNewMovieNotificationAsync(moviesToNotify, customers, baseUrl);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[Notification Task Error]: {ex.Message}");
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Email Notification Setup Error]: {ex.Message}");
+            }
 
             // Đã sửa lỗi: dùng importedCount thay cho validMovies (vốn không tồn tại ở hàm này)
             LogHelper.Write(_context, _httpContextAccessor, "ADDED_MULTIPLE", "Movie", importedCount);
@@ -210,6 +290,30 @@ namespace CINEMA.Controllers
             LogHelper.Write(_context, _httpContextAccessor, "DELETED", "Movie", id);
             TempData["SuccessMessage"] = $"🗑️ Đã xóa phim \"{movie.Title}\" cùng toàn bộ suất chiếu!";
             return RedirectToAction(nameof(Index));
+        }
+
+        // ==================== TEST GỬI EMAIL ====================
+        [HttpGet]
+        public async Task<IActionResult> TestSendEmail(string email)
+        {
+            if (string.IsNullOrEmpty(email))
+            {
+                return Content("Vui lòng truyền ?email=... trên URL. Ví dụ: /Movie/TestSendEmail?email=test@gmail.com");
+            }
+
+            try
+            {
+                await _emailService.SendEmailAsync(
+                    email, 
+                    "🎬 CineZone - Test Email Connection", 
+                    "<h1>Kết nối SMTP thành công!</h1><p>Tính năng gửi email thông báo của CineZone hoạt động tốt.</p>"
+                );
+                return Content($"✅ Gửi email test đến {email} thành công! Hãy kiểm tra hộp thư của bạn.");
+            }
+            catch (Exception ex)
+            {
+                return Content($"❌ Gửi email thất bại. Lỗi chi tiết: {ex.Message}");
+            }
         }
     }
 }
