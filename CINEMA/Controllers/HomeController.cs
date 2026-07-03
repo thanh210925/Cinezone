@@ -77,7 +77,9 @@ namespace CINEMA.Controllers
 
             // Phim đang chiếu
             var movies = _context.Movies
-                .Where(m => m.IsActive == true)
+                .Where(m => m.IsActive == true &&
+                            m.ReleaseDate.HasValue &&
+                            m.ReleaseDate <= today)
                 .OrderByDescending(m => m.ReleaseDate)
                 .ToList();
 
@@ -157,7 +159,9 @@ namespace CINEMA.Controllers
 
             // 📌 THỐNG KÊ PHIM PHỔ BIẾN (Dựa trên tổng lượt click xem của tất cả khách hàng)
             var topMovieIds = _context.UserMovieViews
-                .Where(v => v.Movie.IsActive == true)
+                .Where(v => v.Movie.IsActive == true 
+                         && v.Movie.ReleaseDate.HasValue 
+                         && v.Movie.ReleaseDate <= today)
                 .GroupBy(v => v.MovieId)
                 .Select(g => new {
                     MovieId = g.Key,
@@ -177,7 +181,12 @@ namespace CINEMA.Controllers
 
             if (!popularMovies.Any())
             {
-                popularMovies = _context.Movies.Where(m => m.IsActive == true).Take(4).ToList();
+                popularMovies = _context.Movies
+                    .Where(m => m.IsActive == true 
+                             && m.ReleaseDate.HasValue 
+                             && m.ReleaseDate <= today)
+                    .Take(4)
+                    .ToList();
             }
 
             ViewBag.ComingSoon = comingSoon;
@@ -629,6 +638,7 @@ namespace CINEMA.Controllers
         [HttpGet]
         public IActionResult Recommend()
         {
+            var today = DateOnly.FromDateTime(DateTime.Today);
             var customerId = HttpContext.Session.GetInt32("CustomerId");
 
             string? interactionType = HttpContext.Session.GetString("LatestInteraction");
@@ -725,7 +735,9 @@ namespace CINEMA.Controllers
                     .Where(m => m.IsActive == true 
                              && m.MovieId != excludeMovieId
                              && m.Genres.Any(g => targetGenreIds.Contains(g.GenreId))
-                             && !viewedMovieIds.Contains(m.MovieId))
+                             && !viewedMovieIds.Contains(m.MovieId)
+                             && m.ReleaseDate.HasValue
+                             && m.ReleaseDate <= today)
                     .OrderByDescending(m => m.ReleaseDate)
                     .Take(8)
                     .ToList();
@@ -739,7 +751,9 @@ namespace CINEMA.Controllers
                     .Where(m => m.IsActive == true
                              && m.MovieId != excludeMovieId
                              && !viewedMovieIds.Contains(m.MovieId)
-                             && !currentRecommendedIds.Contains(m.MovieId))
+                             && !currentRecommendedIds.Contains(m.MovieId)
+                             && m.ReleaseDate.HasValue
+                             && m.ReleaseDate <= today)
                     .OrderByDescending(m => m.ReleaseDate)
                     .Take(8 - recommendedMovies.Count)
                     .ToList();
@@ -752,7 +766,9 @@ namespace CINEMA.Controllers
             // =====================
 
             var topMovieIds = _context.UserMovieViews
-                .Where(v => v.Movie.IsActive == true)
+                .Where(v => v.Movie.IsActive == true 
+                         && v.Movie.ReleaseDate.HasValue 
+                         && v.Movie.ReleaseDate <= today)
                 .GroupBy(v => v.MovieId)
                 .Select(g => new
                 {

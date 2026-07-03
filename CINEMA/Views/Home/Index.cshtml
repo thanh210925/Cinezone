@@ -652,18 +652,23 @@ document.addEventListener("DOMContentLoaded", function () {
             loop: true,
             spaceBetween: 30
         });
-
+        let movieRank = 0;
             function renderMovie(movie) {
+                movieRank++;
             const slide = document.createElement("div");
             slide.className = "swiper-slide";
 
             // Đảm bảo dữ liệu không bị undefined
             const ageRating = movie.ageRating || "P";
             const duration = movie.duration || 0;
-
+            let rankBadge = "";
+    if (movieRank <= 3) {
+        let icon = movieRank === 1 ? '<i class="bi bi-crown-fill me-1"></i>' : (movieRank === 2 ? '<i class="bi bi-trophy-fill me-1"></i>' : '<i class="bi bi-award-fill me-1"></i>');
+        rankBadge = `<div class="rank-badge rank-${movieRank}">${icon}Top ${movieRank}</div>`;
+    }
                     slide.innerHTML = `
-        <div class="movie-card shadow-lg border rounded-4 overflow-hidden">
-
+        <div class="movie-card shadow-lg border rounded-4 overflow-hidden position-relative">
+            ${rankBadge}
             <div class="movie-poster-container">
 
                 <img src="${movie.posterUrl}"
@@ -706,6 +711,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         });
 
+        // Cập nhật lại Swiper và hiển thị Top 1 ở giữa đầu tiên
+        swiper.update();
+        if (swiper.params.loop) {
+            swiper.loopDestroy();
+            swiper.loopCreate();
+        }
+        swiper.slideToLoop(0, 0);
+
         // Sau đó thêm phim gợi ý
         fetch("/Home/Recommend")
             .then(res => res.json())
@@ -724,6 +737,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     renderMovie(movie);
 
                 });
+
+                // Cập nhật lại Swiper sau khi thêm các phim gợi ý
+                swiper.update();
+                if (swiper.params.loop) {
+                    swiper.loopDestroy();
+                    swiper.loopCreate();
+                }
+                swiper.slideToLoop(0, 0);
 
             })
             .catch(err => console.log(err));

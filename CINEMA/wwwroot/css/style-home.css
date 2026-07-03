@@ -1,4 +1,4 @@
-﻿* {
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -460,3 +460,39 @@ body {
 .genre-hot-card:hover .genre-btn i {
     transform: translateX(5px);
 }
+.rank-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 20; /* Phải cao hơn z-index của overlay */
+    padding: 6px 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    border-radius: 8px;
+    font-size: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+    pointer-events: none; /* Giúp không bị cản trở click */
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.rank-1 {
+    background: linear-gradient(135deg, #FFE066 0%, #F5A623 50%, #D4AF37 100%);
+    color: #000;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+}
+/* Vàng cho Top 1 */
+.rank-2 {
+    background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 50%, #94A3B8 100%);
+    color: #000;
+    box-shadow: 0 4px 15px rgba(148, 163, 184, 0.4);
+}
+/* Bạc cho Top 2 */
+.rank-3 {
+    background: linear-gradient(135deg, #FFD8A8 0%, #E67E22 50%, #B85C00 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(184, 92, 0, 0.4);
+}
+/* Đồng cho Top 3 */
