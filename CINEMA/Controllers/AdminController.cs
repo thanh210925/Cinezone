@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
 using System.Drawing; // Nếu cần xử lý ảnh
-
+using CINEMA.Models; // Đảm bảo đã có dòng này ở đầu file Controller
 namespace CINEMA.Controllers
 {
     public class AdminController : Controller
@@ -569,40 +569,57 @@ namespace CINEMA.Controllers
             await _context.SaveChangesAsync();
             return Json(new { success = true });
         }
-        public IActionResult PayrollReport(int? month, int? year)
+
+        [HttpGet]
+        public IActionResult DailyAttendanceReport(DateTime? date)
         {
-            int m = month ?? DateTime.Now.Month;
-            int y = year ?? DateTime.Now.Year;
+            DateTime targetDate = date ?? DateTime.Now.Date;
 
-            // Lấy dữ liệu thô lên trước
-            var rawData = _context.Attendance
+            // Truy vấn dữ liệu của ngày đó
+            var dailyData = _context.Attendance
                 .Include(a => a.Admin)
-                .Where(a => a.Date.Month == m && a.Date.Year == y && a.IsApproved == true)
+                .Where(a => a.Date.Date == targetDate.Date)
+                .OrderByDescending(a => a.CheckInTime)
                 .ToList();
 
-            var report = rawData
-                .GroupBy(a => a.AdminId)
-                .Select(g =>
-                {
-                    var validRecords = g.Where(x => x.CheckInTime.HasValue && x.CheckOutTime.HasValue);
-                    long totalTicks = validRecords.Sum(x => (x.CheckOutTime.Value - x.CheckInTime.Value).Ticks);
-                    TimeSpan totalTime = TimeSpan.FromTicks(totalTicks);
-
-                    return new PayrollViewModel
-                    {
-                        FullName = g.FirstOrDefault().Admin.FullName,
-                        EmployeeCode = g.FirstOrDefault().Admin.EmployeeCode,
-                        TotalDays = g.Select(x => x.Date.Date).Distinct().Count(),
-                        TotalTimeFormatted = $"{(int)totalTime.TotalHours} giờ {totalTime.Minutes} phút {totalTime.Seconds} giây"
-                    };
-                })
-                .ToList();
-
-            ViewBag.Month = m;
-            ViewBag.Year = y;
-            return View(report);
+            ViewBag.SelectedDate = targetDate;
+            return View(dailyData); // Phải đảm bảo View tương ứng là DailyAttendanceReport.cshtml
         }
 
+        public IActionResult GetAttendanceDetail(int adminId, int month, int year)
+        {
+            // Lấy dữ liệu chi tiết, bao gồm cả loại nghỉ phép nếu cần
+            var details = _context.Attendance
+                .Where(a => a.AdminId == adminId && a.Date.Month == month && a.Date.Year == year)
+                .OrderByDescending(a => a.Date)
+                .ToList();
+
+            if (details == null || !details.Any())
+            {
+                return Content("<p class='text-center text-muted'>Không tìm thấy dữ liệu chấm công.</p>");
+            }
+
+            return PartialView("_AttendanceDetail", details);
+        }
+
+        [HttpGet]
+        public IActionResult PayrollReport(DateTime? date)
+        {
+            // Lấy ngày cần xem, mặc định là hôm nay
+            DateTime targetDate = date ?? DateTime.Now.Date;
+
+            // Lấy dữ liệu chi tiết từng bản ghi chấm công của ngày đó
+            var dailyDetails = _context.Attendance
+                .Include(a => a.Admin)
+                .Where(a => a.Date.Date == targetDate.Date) // So sánh theo ngày
+                .OrderByDescending(a => a.CheckInTime)
+                .ToList();
+
+            ViewBag.SelectedDate = targetDate;
+
+            // Trả về View cùng tên với file View (PayrollReport.cshtml)
+            return View(dailyDetails);
+        }
         // --- MODULE NGHỈ PHÉP CẬP NHẬT ---
 
         [HttpGet]
@@ -691,17 +708,13 @@ namespace CINEMA.Controllers
             DateTime currentTime = DateTime.Now;
 
             // --- BƯỚC 1: KIỂM TRA ĐIỀU KIỆN PHÂN CA (CHỈ ÁP DỤNG CHO CHECK-IN) ---
-            if (model.type == "in")
-            {
-                // Kiểm tra xem nhân viên có ca làm việc trong ngày hôm nay không
-                bool hasScheduleToday = await _context.WorkSchedules
-                    .AnyAsync(ws => ws.AdminId == adminId && ws.WorkDate.Date == today);
+            // Kiểm tra lịch làm việc chung cho cả In và Out
+            bool hasScheduleToday = await _context.WorkSchedules
+                .AnyAsync(ws => ws.AdminId == adminId && ws.WorkDate.Date == today);
 
-                if (!hasScheduleToday)
-                {
-                    // Trả về JSON báo lỗi để Frontend hiển thị thông báo
-                    return Json(new { success = false, message = "Bạn chưa được phân ca làm việc trong ngày hôm nay nên không thể chấm công!" });
-                }
+            if (!hasScheduleToday)
+            {
+                return Json(new { success = false, message = "Bạn không có ca làm việc hôm nay!" });
             }
 
             // --- BƯỚC 2: LƯU FILE ẢNH (Chỉ thực hiện khi đã qua được bước kiểm tra) ---
