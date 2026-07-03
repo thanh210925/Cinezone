@@ -1,4 +1,4 @@
-﻿@using CINEMA.Models
+@using CINEMA.Models
 @using CINEMA.ViewModels
 @model Tuple<IEnumerable<Attendance>, IEnumerable<PayrollViewModel>>
 @{
@@ -6,127 +6,309 @@
     Layout = "_AdminLayout";
     bool isSuperAdmin = Context.Session.GetString("Role") == "SuperAdmin";
     DateTime selectedDate = ViewBag.SelectedDate ?? DateTime.Now.Date;
+
+    int daysInMonth = DateTime.DaysInMonth(selectedDate.Year, selectedDate.Month);
+    DateTime firstDayOfMonth = new DateTime(selectedDate.Year, selectedDate.Month, 1);
+    int dayOfWeekIndex = (int)firstDayOfMonth.DayOfWeek; // 0 = CN, 1 = T2, ..., 6 = T7
+
+    // Lấy danh sách chấm công trong tháng từ ViewBag
+    var monthAttendanceList = (IEnumerable<Attendance>)ViewBag.MonthAttendance ?? new List<Attendance>();
 }
 
+<style>
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+    }
+    .calendar-header-day {
+        padding: 10px 0;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        border-bottom: 2px solid #e9ecef;
+    }
+    .calendar-day {
+        min-height: 85px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        background-color: #fff;
+        position: relative;
+    }
+    .calendar-day:hover {
+        background-color: #f8f9fa;
+        border-color: #0d6efd;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+    }
+    .calendar-day.today {
+        border: 2px solid #20c997;
+        background-color: #e8fcf7;
+    }
+    .calendar-day.selected {
+        border: 2px solid #0d6efd;
+        background-color: #e7f1ff;
+        box-shadow: 0 0 8px rgba(13, 110, 253, 0.2);
+    }
+    .calendar-day.empty {
+        background-color: #f8f9fa;
+        border-color: #e9ecef;
+        cursor: default;
+        pointer-events: none;
+        opacity: 0.5;
+    }
+    .day-number {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #495057;
+    }
+    .calendar-day.selected .day-number {
+        color: #0d6efd;
+    }
+    .calendar-day.today .day-number {
+        color: #198754;
+    }
+    .img-attendance-thumbnail {
+        width: 45px;
+        height: 45px;
+        object-fit: cover;
+        border-radius: 6px;
+    }
+</style>
+
 <div class="container-fluid mt-4">
-    <div class="card shadow mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="bi bi-camera"></i> Chấm công nhân viên</h5>
-        </div>
-        <div class="card-body text-center">
-            <video id="video" width="400" height="300" autoplay class="border rounded shadow-sm bg-dark"></video>
-            <canvas id="canvas" width="400" height="300" style="display:none;"></canvas>
-            <div class="mt-3">
-                <button class="btn btn-success btn-lg" onclick="takeSnapshot('in')"><i class="bi bi-box-arrow-in-right"></i> Check-in</button>
-                <button class="btn btn-danger btn-lg" onclick="takeSnapshot('out')"><i class="bi bi-box-arrow-right"></i> Check-out</button>
-            </div>
-            <div id="status" class="mt-3 font-weight-bold"></div>
-        </div>
-    </div>
+    <div class="row">
+        <!-- CỘT TRÁI: Lịch chấm công & Bảng tổng hợp công tháng -->
+        <div class="col-lg-7 col-xl-8">
+            <!-- Card Lịch Chấm Công -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+                    <h5 class="mb-0"><i class="bi bi-calendar3"></i> Lịch chấm công tháng @selectedDate.ToString("MM/yyyy")</h5>
+                    <div class="btn-group">
+                        <a href="/Admin/CheckInOut?date=@selectedDate.AddMonths(-1).ToString("yyyy-MM-dd")" class="btn btn-sm btn-outline-light">
+                            <i class="bi bi-chevron-left"></i> Tháng trước
+                        </a>
+                        <a href="/Admin/CheckInOut?date=@selectedDate.AddMonths(1).ToString("yyyy-MM-dd")" class="btn btn-sm btn-outline-light">
+                            Tháng sau <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="calendar-grid">
+                        <div class="calendar-header-day text-danger fw-bold text-center">CN</div>
+                        <div class="calendar-header-day fw-bold text-center">T2</div>
+                        <div class="calendar-header-day fw-bold text-center">T3</div>
+                        <div class="calendar-header-day fw-bold text-center">T4</div>
+                        <div class="calendar-header-day fw-bold text-center">T5</div>
+                        <div class="calendar-header-day fw-bold text-center">T6</div>
+                        <div class="calendar-header-day text-primary fw-bold text-center">T7</div>
 
-    <div class="card shadow mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Ngày: <strong>@selectedDate.ToString("dd/MM/yyyy")</strong></span>
-            <div class="d-flex">
-                <input type="date" id="datePicker" class="form-control me-2" value="@selectedDate.ToString("yyyy-MM-dd")" onchange="changeDate()">
-                @if (isSuperAdmin)
-                {
-                    <button class="btn btn-warning" onclick="approveAll()">Duyệt tất cả</button>
-                }
-            </div>
-        </div>
-        <div class="card-body">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Nhân viên</th>
-                        <th>Giờ vào</th>
-                        <th>Ảnh vào</th>
-                        <th>Giờ ra</th>
-                        <th>Ảnh ra</th>
-                        <th>Trạng thái</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model.Item1)
-                    {
-                        <tr>
-                            <td>@item.Admin?.FullName</td>
-                            <td>@item.CheckInTime?.ToString("HH:mm:ss")</td>
-                            <td>
-                                @if (!string.IsNullOrEmpty(item.CheckInPhoto))
+                        @for (int i = 0; i < dayOfWeekIndex; i++)
+                        {
+                            <div class="calendar-day empty"></div>
+                        }
+
+                        @for (int day = 1; day <= daysInMonth; day++)
+                        {
+                            var currentDate = new DateTime(selectedDate.Year, selectedDate.Month, day);
+                            var isToday = currentDate == DateTime.Now.Date;
+                            var isSelected = currentDate == selectedDate;
+
+                            var dayRecords = monthAttendanceList.Where(a => a.Date.Date == currentDate.Date).ToList();
+
+                            string cellClass = "calendar-day";
+                            if (isToday) cellClass += " today";
+                            if (isSelected) cellClass += " selected";
+
+                            <div class="@cellClass" onclick="selectDate('@currentDate.ToString("yyyy-MM-dd")')">
+                                <span class="day-number">@day</span>
+
+                                @if (isSuperAdmin)
                                 {
-                                    <img src="@item.CheckInPhoto" width="50" class="img-thumbnail" />
-                                }
-                            </td>
-                            <td>@item.CheckOutTime?.ToString("HH:mm:ss")</td>
-                            <td>
-                                @if (!string.IsNullOrEmpty(item.CheckOutPhoto))
-                                {
-                                    <img src="@item.CheckOutPhoto" width="50" class="img-thumbnail" />
-                                }
-                            </td>
-                            <td>
-                                @if (item.IsApproved)
-                                {
-                                    <span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Đã duyệt</span>
+                                    var checkedInCount = dayRecords.Count(r => r.CheckInTime.HasValue);
+                                    if (checkedInCount > 0)
+                                    {
+                                        <span class="badge bg-primary mt-1 px-2 py-1" style="font-size: 0.7rem;">
+                                            <i class="bi bi-people-fill"></i> @checkedInCount NV
+                                        </span>
+                                    }
                                 }
                                 else
                                 {
-                                    @if (isSuperAdmin)
+                                    var userRecord = dayRecords.FirstOrDefault();
+                                    if (userRecord != null)
                                     {
-                                        <button onclick="approveAttendance(@item.AttendanceId)" class="btn btn-sm btn-outline-primary">Duyệt</button>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-warning"><i class="bi bi-clock"></i> Chờ duyệt</span>
+                                        if (userRecord.CheckInTime.HasValue && userRecord.CheckOutTime.HasValue)
+                                        {
+                                            <span class="badge bg-success mt-1 text-white" style="font-size: 0.75rem;" title="Đủ công: @userRecord.CheckInTime?.ToString("HH:mm") - @userRecord.CheckOutTime?.ToString("HH:mm")">
+                                                <i class="bi bi-check-circle-fill"></i> Đủ
+                                            </span>
+                                        }
+                                        else if (userRecord.CheckInTime.HasValue)
+                                        {
+                                            <span class="badge bg-warning text-dark mt-1" style="font-size: 0.75rem;" title="Thiếu Check-out. Check-in: @userRecord.CheckInTime?.ToString("HH:mm")">
+                                                <i class="bi bi-exclamation-triangle-fill"></i> Thiếu
+                                            </span>
+                                        }
                                     }
                                 }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
 
-    <div class="card shadow">
-        <div class="card-header bg-success text-white">
-            <h5><i class="bi bi-file-earmark-text"></i> Bảng tổng hợp công tháng @selectedDate.Month / @selectedDate.Year</h5>
+            <!-- Card Bảng tổng hợp công tháng -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-success text-white py-3">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Bảng tổng hợp công tháng @selectedDate.Month / @selectedDate.Year</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mã NV</th>
+                                    <th>Tên nhân viên</th>
+                                    <th>Số ngày làm</th>
+                                    <th>Tổng thời gian thực tế</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Item2)
+                                {
+                                    <tr>
+                                        <td>@item.EmployeeCode</td>
+                                        <td class="fw-bold">@item.FullName</td>
+                                        <td>@item.TotalDays ngày</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(item.TotalTimeFormatted) && item.TotalTimeFormatted != "0 giờ 0 phút 0 giây")
+                                            {
+                                                <span class="badge bg-info text-dark fs-6 py-2">@item.TotalTimeFormatted</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted fst-italic">Chưa có dữ liệu hợp lệ</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <table class="table table-bordered table-striped">
-                <thead class="table-light">
-                    <tr>
-                        <th>Mã NV</th>
-                        <th>Tên nhân viên</th>
-                        <th>Số ngày làm</th>
-                        <th>Tổng thời gian thực tế</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model.Item2)
+
+        <!-- CỘT PHẢI: Camera chấm công & Chi tiết chấm công ngày đã chọn -->
+        <div class="col-lg-5 col-xl-4">
+            <!-- Card Camera Chấm Công -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-dark text-white py-3">
+                    <h5 class="mb-0"><i class="bi bi-camera"></i> Chấm công Camera</h5>
+                </div>
+                <div class="card-body text-center">
+                    <video id="video" width="100%" height="auto" autoplay class="border rounded shadow-sm bg-dark mb-3" style="max-width: 400px; transform: scaleX(-1);"></video>
+                    <canvas id="canvas" width="400" height="300" style="display:none;"></canvas>
+                    <div>
+                        <button class="btn btn-success btn-lg px-4 me-2" onclick="takeSnapshot('in')">
+                            <i class="bi bi-box-arrow-in-right"></i> Check-in
+                        </button>
+                        <button class="btn btn-danger btn-lg px-4" onclick="takeSnapshot('out')">
+                            <i class="bi bi-box-arrow-right"></i> Check-out
+                        </button>
+                    </div>
+                    <div id="status" class="mt-3 font-weight-bold"></div>
+                </div>
+            </div>
+
+            <!-- Card Chi tiết chấm công ngày được chọn -->
+            <div class="card shadow mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center py-3 bg-light">
+                    <span class="fw-bold text-dark"><i class="bi bi-clock-history"></i> Ngày: @selectedDate.ToString("dd/MM/yyyy")</span>
+                    @if (isSuperAdmin)
                     {
-                        <tr>
-                            <td class="align-middle">@item.EmployeeCode</td>
-                            <td class="align-middle fw-bold">@item.FullName</td>
-                            <td class="align-middle">@item.TotalDays ngày</td>
-                            <td class="align-middle">
-                                @if (!string.IsNullOrEmpty(item.TotalTimeFormatted) && item.TotalTimeFormatted != "0 giờ 0 phút 0 giây")
-                                {
-                                    <span class="badge bg-info text-dark fs-6 py-2">@item.TotalTimeFormatted</span>
-                                }
-                                else
-                                {
-                                    <span class="text-muted fst-italic">Chưa có dữ liệu hợp lệ</span>
-                                }
-                            </td>
-                        </tr>
+                        <button class="btn btn-sm btn-warning" onclick="approveAll()">Duyệt tất cả</button>
                     }
-                </tbody>
-            </table>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nhân viên</th>
+                                    <th>Thời gian</th>
+                                    <th>Ảnh</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.Item1.Any())
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-muted">Không có dữ liệu chấm công ngày này</td>
+                                    </tr>
+                                }
+                                @foreach (var item in Model.Item1)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold">@item.Admin?.FullName</div>
+                                            <small class="text-muted">@item.Admin?.EmployeeCode</small>
+                                        </td>
+                                        <td>
+                                            <div class="text-success"><i class="bi bi-box-arrow-in-right"></i> @(item.CheckInTime?.ToString("HH:mm") ?? "--:--")</div>
+                                            <div class="text-danger"><i class="bi bi-box-arrow-right"></i> @(item.CheckOutTime?.ToString("HH:mm") ?? "--:--")</div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex gap-1">
+                                                @if (!string.IsNullOrEmpty(item.CheckInPhoto))
+                                                {
+                                                    <a href="@item.CheckInPhoto" target="_blank">
+                                                        <img src="@item.CheckInPhoto" class="img-attendance-thumbnail border" title="Ảnh check-in" />
+                                                    </a>
+                                                }
+                                                @if (!string.IsNullOrEmpty(item.CheckOutPhoto))
+                                                {
+                                                    <a href="@item.CheckOutPhoto" target="_blank">
+                                                        <img src="@item.CheckOutPhoto" class="img-attendance-thumbnail border" title="Ảnh check-out" />
+                                                    </a>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @if (item.IsApproved)
+                                            {
+                                                <span class="badge bg-success-subtle text-success py-1"><i class="bi bi-check-circle"></i> Đã duyệt</span>
+                                            }
+                                            else
+                                            {
+                                                @if (isSuperAdmin)
+                                                {
+                                                    <button onclick="approveAttendance(@item.AttendanceId)" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.8rem;">Duyệt</button>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning py-1"><i class="bi bi-clock"></i> Chờ duyệt</span>
+                                                }
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+</div>
 
 @section Scripts {
     <script>
@@ -155,8 +337,8 @@
             });
         }
 
-        function changeDate() {
-            window.location.href = '/Admin/CheckInOut?date=' + document.getElementById('datePicker').value;
+        function selectDate(dateString) {
+            window.location.href = '/Admin/CheckInOut?date=' + dateString;
         }
 
         function approveAttendance(id) {
@@ -166,7 +348,7 @@
         }
 
         function approveAll() {
-            let date = document.getElementById('datePicker').value;
+            let date = '@selectedDate.ToString("yyyy-MM-dd")';
             fetch('/Admin/ApproveAll?date=' + date, { method: 'POST' })
             .then(res => res.json())
             .then(data => { if(data.success) location.reload(); else alert("Lỗi!"); });

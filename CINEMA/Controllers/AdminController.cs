@@ -528,6 +528,18 @@ namespace CINEMA.Controllers
 
             var attendanceList = attendanceQuery.ToList();
 
+            // 4. Lấy toàn bộ dữ liệu chấm công trong tháng để vẽ Lịch
+            var firstDayOfMonth = new DateTime(targetDate.Year, targetDate.Month, 1);
+            var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+            var monthAttendanceQuery = _context.Attendance
+                .Include(a => a.Admin)
+                .Where(a => a.Date >= firstDayOfMonth && a.Date <= lastDayOfMonth);
+            if (!isSuperAdmin)
+            {
+                monthAttendanceQuery = monthAttendanceQuery.Where(a => a.AdminId == myAdminId);
+            }
+            ViewBag.MonthAttendance = monthAttendanceQuery.ToList();
+
             // Lấy dữ liệu lên RAM trước khi tính toán phức tạp
             var rawPayrollData = payrollQuery.ToList();
 
@@ -707,12 +719,13 @@ namespace CINEMA.Controllers
             DateTime today = DateTime.Now.Date;
             DateTime currentTime = DateTime.Now;
 
-            // --- BƯỚC 1: KIỂM TRA ĐIỀU KIỆN PHÂN CA (CHỈ ÁP DỤNG CHO CHECK-IN) ---
-            // Kiểm tra lịch làm việc chung cho cả In và Out
-            bool hasScheduleToday = await _context.WorkSchedules
-                .AnyAsync(ws => ws.AdminId == adminId && ws.WorkDate.Date == today);
+            // --- BƯỚC 1: KIỂM TRA ĐIỀU KIỆN PHÂN CA ---
+            var schedules = await _context.WorkSchedules
+                .Include(ws => ws.Shift)
+                .Where(ws => ws.AdminId == adminId && ws.WorkDate.Date == today)
+                .ToListAsync();
 
-            if (!hasScheduleToday)
+            if (!schedules.Any())
             {
                 return Json(new { success = false, message = "Bạn không có ca làm việc hôm nay!" });
             }
@@ -734,45 +747,96 @@ namespace CINEMA.Controllers
                 return Json(new { success = false, message = "Lỗi khi lưu ảnh chấm công: " + ex.Message });
             }
 
-            // --- BƯỚC 3: XỬ LÝ LOGIC CHECK-IN / CHECK-OUT ---
+            // --- BƯỚC 3: XỬ LÝ LOGIC CHECK-IN / CHECK-OUT (Tối đa 1 bản ghi mỗi ngày & Khung giờ ca làm) ---
+            var existingRecord = await _context.Attendance
+                .FirstOrDefaultAsync(a => a.AdminId == adminId && a.Date.Date == today);
+
+            var currentTimeOfDay = currentTime.TimeOfDay;
+
             if (model.type == "in")
             {
-                // Check-in -> Luôn tạo dòng mới
-                var record = new Attendance
+                // Giới hạn 1 lần Check-in/ngày
+                if (existingRecord != null && existingRecord.CheckInTime.HasValue)
                 {
-                    AdminId = adminId,
-                    Date = today,
-                    CheckInTime = currentTime,
-                    CheckInPhoto = "/uploads/attendance/" + fileName
-                };
-                _context.Attendance.Add(record);
-            }
-            else if (model.type == "out")
-            {
-                // Check-out -> TÌM DÒNG CHECK-IN GẦN NHẤT CHƯA CÓ GIỜ RA để cập nhật
-                var existingRecord = await _context.Attendance
-                    .Where(a => a.AdminId == adminId && a.Date.Date == today && a.CheckOutTime == null)
-                    .OrderByDescending(a => a.CheckInTime)
-                    .FirstOrDefaultAsync();
+                    return Json(new { success = false, message = "Bạn đã thực hiện Check-in ngày hôm nay rồi!" });
+                }
+
+                // Kiểm tra thời gian check-in: Sớm tối đa 30 phút, trễ tối đa 15 phút
+                bool isWithinWindow = false;
+                var sortedShifts = schedules.Select(s => s.Shift).OrderBy(s => s.StartTime).ToList();
+
+                foreach (var shift in sortedShifts)
+                {
+                    var checkInStart = shift.StartTime.Subtract(TimeSpan.FromMinutes(30));
+                    var checkInEnd = shift.StartTime.Add(TimeSpan.FromMinutes(15));
+
+                    if (currentTimeOfDay >= checkInStart && currentTimeOfDay <= checkInEnd)
+                    {
+                        isWithinWindow = true;
+                        break;
+                    }
+                }
+
+                if (!isWithinWindow)
+                {
+                    var earliestShift = sortedShifts.First();
+                    if (currentTimeOfDay < earliestShift.StartTime.Subtract(TimeSpan.FromMinutes(30)))
+                    {
+                        return Json(new { success = false, message = $"Bạn đi làm quá sớm! Ca làm sớm nhất bắt đầu lúc {earliestShift.StartTime:hh\\:mm}. Chỉ được check-in trước tối đa 30 phút." });
+                    }
+
+                    var latestShift = sortedShifts.Last();
+                    if (currentTimeOfDay > latestShift.StartTime.Add(TimeSpan.FromMinutes(15)))
+                    {
+                        return Json(new { success = false, message = $"Bạn đã trễ quá 15 phút so với giờ bắt đầu ca làm ({latestShift.StartTime:hh\\:mm}). Không thể chấm công!" });
+                    }
+
+                    return Json(new { success = false, message = "Thời gian hiện tại không nằm trong khung giờ check-in của bất kỳ ca làm nào hôm nay (cho phép sớm 30 phút và trễ tối đa 15 phút)." });
+                }
 
                 if (existingRecord != null)
                 {
-                    // Cập nhật giờ ra
-                    existingRecord.CheckOutTime = currentTime;
-                    existingRecord.CheckOutPhoto = "/uploads/attendance/" + fileName;
+                    existingRecord.CheckInTime = currentTime;
+                    existingRecord.CheckInPhoto = "/uploads/attendance/" + fileName;
                     _context.Attendance.Update(existingRecord);
                 }
                 else
                 {
-                    // Trường hợp nhân viên quên check-in mà bấm check-out luôn
-                    var newRecord = new Attendance
+                    var record = new Attendance
+                    {
+                        AdminId = adminId,
+                        Date = today,
+                        CheckInTime = currentTime,
+                        CheckInPhoto = "/uploads/attendance/" + fileName
+                    };
+                    _context.Attendance.Add(record);
+                }
+            }
+            else if (model.type == "out")
+            {
+                if (existingRecord != null)
+                {
+                    if (existingRecord.CheckOutTime.HasValue)
+                    {
+                        return Json(new { success = false, message = "Bạn đã thực hiện Check-out ngày hôm nay rồi!" });
+                    }
+                    else
+                    {
+                        existingRecord.CheckOutTime = currentTime;
+                        existingRecord.CheckOutPhoto = "/uploads/attendance/" + fileName;
+                        _context.Attendance.Update(existingRecord);
+                    }
+                }
+                else
+                {
+                    var record = new Attendance
                     {
                         AdminId = adminId,
                         Date = today,
                         CheckOutTime = currentTime,
                         CheckOutPhoto = "/uploads/attendance/" + fileName
                     };
-                    _context.Attendance.Add(newRecord);
+                    _context.Attendance.Add(record);
                 }
             }
 
