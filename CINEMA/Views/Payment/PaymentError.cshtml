@@ -1,34 +1,117 @@
-﻿@{
+@{
     ViewData["Title"] = "Thanh toán thất bại";
-    Layout = "_Layout"; // Hoặc layout chính của bạn
+    Layout = "_Layout";
 }
 
-<div class="container mt-5 mb-5 text-center">
-    <div class="card p-4 p-md-5 shadow-sm mx-auto border-danger" style="max-width: 600px;">
+<!-- Custom Styles for Receipt view -->
+<style>
+    :root {
+        --color-danger: #ef4444;
+        --color-danger-bg: #fef2f2;
+        --color-slate-bg: #f8fafc;
+        --color-border: #e2e8f0;
+    }
 
-        @* Icon lỗi đỏ *@
-        <div style="font-size: 4rem; color: #dc3545;">
+    body {
+        background-color: var(--color-slate-bg);
+    }
+
+    .receipt-container {
+        max-width: 600px;
+        margin: 4rem auto;
+        position: relative;
+    }
+
+    .receipt-card {
+        background: #ffffff;
+        border-radius: 24px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(0,0,0,0.03);
+        padding: 3rem 2.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Jagged/Teeth Bottom Border to mimic ticket receipt */
+    .receipt-card::after {
+        content: '';
+        display: block;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 14px;
+        background: linear-gradient(-45deg, var(--color-slate-bg) 7px, transparent 0), linear-gradient(45deg, var(--color-slate-bg) 7px, transparent 0);
+        background-position: left bottom;
+        background-repeat: repeat-x;
+        background-size: 14px 14px;
+        z-index: 10;
+    }
+
+    /* Glow Check Animations */
+    .status-glow-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem auto;
+        font-size: 3rem;
+        transition: transform 0.3s ease;
+    }
+
+    .status-glow-danger {
+        background: var(--color-danger-bg);
+        color: var(--color-danger);
+        box-shadow: 0 0 25px rgba(239, 68, 68, 0.25);
+        animation: dangerPulse 2s infinite;
+    
+
+    .btn-pill-action {
+        border-radius: 30px;
+        padding: 10px 25px;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+</style>
+
+<div class="container receipt-container">
+    <div class="receipt-card text-center">
+        
+        <!-- HEADER STATUS ZONE -->
+        <div class="status-glow-icon status-glow-danger">
             <i class="bi bi-x-circle-fill"></i>
         </div>
-
-        <h2 class="fw-bold text-danger mt-3 mb-3">Thanh toán không thành công!</h2>
-        <p class="lead">Đã có lỗi xảy ra trong quá trình xử lý thanh toán.</p>
+        <h2 class="fw-bold text-danger m-0">Thanh toán thất bại!</h2>
+        <p class="text-muted mt-2">Đã có lỗi xảy ra trong quá trình xử lý giao dịch thanh toán trực tuyến.</p>
 
         <hr class="my-4">
 
-        @if (!string.IsNullOrEmpty(ViewBag.Message))
-        {
-            <p class="text-danger"><strong>Chi tiết:</strong> @ViewBag.Message</p>
-        }
-        else
-        {
-            <p>Vui lòng thử lại hoặc chọn phương thức thanh toán khác.</p>
-        }
-
-        <div class="mt-4">
-            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary me-2 mb-2"> <i class="bi bi-house-door me-1"></i>Về trang chủ</a>
-            @* Nút quay lại trang thanh toán (có thể cần truyền lại dữ liệu vé) *@
-            @* <a asp-controller="Payment" asp-action="Index" class="btn btn-warning mb-2"> <i class="bi bi-arrow-left me-1"></i>Thử lại thanh toán</a> *@
+        <!-- DYNAMIC ERROR MSG -->
+        <div class="alert alert-danger border-0 rounded-4 p-4 text-start mb-4">
+            <h6 class="fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Chi tiết lỗi:</h6>
+            @if (!string.IsNullOrEmpty(ViewBag.Message))
+            {
+                <p class="mb-0 text-dark small" style="line-height: 1.4;">@ViewBag.Message</p>
+            }
+            else
+            {
+                <p class="mb-0 text-dark small" style="line-height: 1.4;">Không thể xác thực giao dịch chuyển khoản hoặc người dùng đã hủy giao dịch.</p>
+            }
         </div>
+
+        <p class="text-muted small">Bạn có thể truy cập lịch sử đặt vé để thực hiện thanh toán lại hoặc liên hệ với bộ phận hỗ trợ khách hàng của CineZone.</p>
+
+        <!-- ACTIONS BUTTONS -->
+        <div class="mt-5 d-flex gap-2 justify-content-center">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-pill-action px-4">
+                <i class="bi bi-house-door me-1"></i> Trang chủ
+            </a>
+            <a asp-controller="Tickets" asp-action="MyTickets" class="btn btn-danger btn-pill-action px-4 shadow-sm">
+                <i class="bi bi-ticket-perforated me-1"></i> Vé của tôi
+            </a>
+        </div>
+
     </div>
 </div>

@@ -16,7 +16,7 @@ html {
 body {
     margin: 0;
     margin-bottom: 60px;
-    padding-top: 70px; /* Đẩy nội dung xuống dưới navbar */
+    padding-top: 0; /* Đẩy nội dung xuống dưới navbar */
     font-family: Arial, sans-serif;
     /* Flexbox layout */
     display: flex;

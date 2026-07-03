@@ -1,60 +1,192 @@
-﻿@model CINEMA.Models.Customer
+@model CINEMA.Models.Customer
+@{
+    ViewData["Title"] = "Chỉnh sửa hồ sơ";
+}
 
-<div class="container mt-5 d-flex justify-content-center">
-    <div class="card shadow-lg p-4" style="width: 500px; border-radius: 15px;">
+<!-- Custom Styles for Edit Profile Form -->
+<style>
+    :root {
+        --color-primary: #ffc107;
+        --color-primary-dark: #e0a800;
+        --color-dark-bg: #1e1e24;
+    }
 
-        <h3 class="text-center mb-4">
-            <i class="bi bi-pencil-square"></i> Chỉnh sửa hồ sơ
+    body {
+        background-color: #f8fafc;
+    }
+
+    .edit-profile-container {
+        max-width: 600px;
+        margin: 4rem auto;
+    }
+
+    .edit-profile-card {
+        background: #ffffff;
+        border-radius: 24px;
+        padding: 3rem 2.5rem;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(0,0,0,0.03);
+    }
+
+    /* Avatar Edit Overlay */
+    .avatar-edit-wrapper {
+        position: relative;
+        width: 140px;
+        height: 140px;
+        margin: 0 auto 1.5rem auto;
+    }
+
+    .avatar-preview-img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #fff;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        transition: filter 0.3s;
+    }
+
+    .avatar-edit-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.5rem;
+        opacity: 0;
+        transition: opacity 0.3s;
+        cursor: pointer;
+    }
+
+    .avatar-edit-wrapper:hover .avatar-edit-overlay {
+        opacity: 1;
+    }
+
+    .avatar-edit-wrapper:hover .avatar-preview-img {
+        filter: blur(1.5px);
+    }
+
+    /* Custom File Input button style */
+    .file-upload-input {
+        border-radius: 30px;
+        font-size: 0.85rem;
+        padding: 8px 20px;
+        border: 1px dashed #cbd5e1;
+        background: #f8fafc;
+        width: 100%;
+        max-width: 250px;
+        margin: 0 auto;
+        display: block;
+        text-align: center;
+        cursor: pointer;
+    }
+
+    .form-control-pill {
+        border-radius: 30px;
+        padding: 0.75rem 1.25rem;
+        border: 1.5px solid #e2e8f0;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .form-control-pill:focus {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 10px rgba(255, 193, 7, 0.25);
+        outline: none;
+    }
+
+    .btn-pill-save {
+        background: var(--color-primary);
+        color: #111;
+        font-weight: 750;
+        border-radius: 30px;
+        padding: 10px 30px;
+        border: none;
+        box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+        transition: all 0.2s;
+    }
+
+    .btn-pill-save:hover {
+        background: var(--color-primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(255, 193, 7, 0.3);
+        color: #111;
+    }
+
+    .btn-pill-back {
+        border-radius: 30px;
+        padding: 10px 30px;
+        font-weight: 700;
+    }
+</style>
+
+<div class="container edit-profile-container">
+    <div class="edit-profile-card">
+        
+        <h3 class="text-center fw-bold mb-4 text-dark">
+            <i class="bi bi-pencil-square text-warning"></i> Chỉnh sửa hồ sơ
         </h3>
 
         <form asp-action="EditProfile" method="post" enctype="multipart/form-data">
-
-            <!-- Avatar -->
+            <!-- Avatar upload & preview -->
             <div class="text-center mb-4">
-                <img id="previewImg"
-                     src="@(string.IsNullOrEmpty(Model.Avatar) ? "/images/default-avatar.png" : Model.Avatar)"
-                     class="rounded-circle shadow"
-                     style="width:120px;height:120px;object-fit:cover;" />
-
-                <div class="mt-2">
-                    <input type="file" name="avatarFile" class="form-control" onchange="preview(event)" />
+                <div class="avatar-edit-wrapper" onclick="document.getElementById('avatarFile').click()">
+                    <img id="previewImg"
+                         src="@(string.IsNullOrEmpty(Model.Avatar) ? "/images/default-avatar.png" : Model.Avatar)"
+                         class="avatar-preview-img" alt="Avatar preview" />
+                    <div class="avatar-edit-overlay">
+                        <i class="bi bi-camera"></i>
+                    </div>
                 </div>
-            </div>
 
-            <!-- FullName -->
-            <div class="mb-3">
-                <label class="form-label">Họ và tên</label>
-                <input asp-for="FullName" class="form-control" placeholder="Nhập họ tên..." />
-            </div>
-
-            <!-- Phone -->
-            <div class="mb-3">
-                <label class="form-label">Số điện thoại</label>
-                <input asp-for="Phone" class="form-control" placeholder="Nhập số điện thoại..." />
-            </div>
-
-            <!-- Buttons -->
-            <div class="d-flex justify-content-between mt-4">
-                <a asp-action="Profile" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Quay lại
-                </a>
-
-                <button type="submit" class="btn btn-success">
-                    <i class="bi bi-save"></i> Lưu thay đổi
+                <div class="d-none">
+                    <input type="file" id="avatarFile" name="avatarFile" class="form-control" onchange="preview(event)" accept="image/*" />
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5" onclick="document.getElementById('avatarFile').click()">
+                    Chọn ảnh mới
                 </button>
             </div>
 
+            <!-- FullName input -->
+            <div class="mb-4">
+                <label class="form-label fw-bold text-dark small uppercase tracking-wider mb-2">Họ và tên</label>
+                <input asp-for="FullName" class="form-control form-control-pill" placeholder="Nhập họ tên đầy đủ..." required />
+            </div>
+
+            <!-- Phone input -->
+            <div class="mb-4">
+                <label class="form-label fw-bold text-dark small uppercase tracking-wider mb-2">Số điện thoại</label>
+                <input asp-for="Phone" class="form-control form-control-pill" placeholder="Nhập số điện thoại của bạn..." required type="tel" pattern="[0-9]{10,11}" title="Số điện thoại phải có 10 hoặc 11 chữ số" />
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top">
+                <a asp-action="Profile" class="btn btn-outline-secondary btn-pill-back">
+                    <i class="bi bi-arrow-left"></i> Quay lại
+                </a>
+
+                <button type="submit" class="btn btn-pill-save">
+                    <i class="bi bi-save"></i> Lưu thay đổi
+                </button>
+            </div>
         </form>
+
     </div>
 </div>
 
-<!-- Preview Avatar -->
+<!-- Preview Avatar upload dynamically -->
 <script>
     function preview(event) {
-        var reader = new FileReader();
-        reader.onload = function () {
-            document.getElementById('previewImg').src = reader.result;
+        var fileInput = event.target;
+        if (fileInput.files && fileInput.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function () {
+                document.getElementById('previewImg').src = reader.result;
+            }
+            reader.readAsDataURL(fileInput.files[0]);
         }
-        reader.readAsDataURL(event.target.files[0]);
     }
 </script>

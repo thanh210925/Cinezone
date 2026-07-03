@@ -1,14 +1,25 @@
 @using Microsoft.AspNetCore.Http
-@using Microsoft.AspNetCore.Http
 @inject IHttpContextAccessor HttpContextAccessor
 @inject CinemaContext _context
 @{
     // Truy vấn đếm số lượng đơn xin nghỉ phép đang "Chờ duyệt" (Chỉ đếm khi là SuperAdmin)
     int pendingLeaveCount = 0;
-    if (HttpContextAccessor.HttpContext.Session.GetString("Role") == "SuperAdmin")
+    var role = HttpContextAccessor.HttpContext.Session.GetString("Role");
+    if (role == "SuperAdmin")
     {
         pendingLeaveCount = _context.LeaveRequests.Count(l => l.Status == "Chờ duyệt");
     }
+
+    string CurrentController = ViewContext.RouteData.Values["Controller"]?.ToString() ?? "";
+    string CurrentAction = ViewContext.RouteData.Values["Action"]?.ToString() ?? "";
+
+    // Helper cục bộ để so khớp mục đang active theo Controller (và tùy chọn Action)
+    Func<string, string, string> IsActive = (controller, action) =>
+    {
+        bool controllerMatch = string.Equals(CurrentController, controller, StringComparison.OrdinalIgnoreCase);
+        bool actionMatch = string.IsNullOrEmpty(action) || string.Equals(CurrentAction, action, StringComparison.OrdinalIgnoreCase);
+        return (controllerMatch && actionMatch) ? "active" : "";
+    };
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -18,8 +29,235 @@
     <title>@ViewData["Title"] - CineZone Admin</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
     <link rel="stylesheet" href="~/css/admin.css" />
+
+    <style>
+            :root {
+                --sb-bg-top: #1a1d29;
+                --sb-bg-bottom: #12141c;
+                --sb-border: #242837;
+                --sb-text: #9aa1b8;
+                --sb-text-dim: #5f6478;
+                --sb-text-strong: #f3f4f8;
+                --accent: #f2b705;
+                --accent-soft: rgba(242,183,5,.12);
+                --accent-glow: rgba(242,183,5,.35);
+                --danger: #ef4444;
+                --content-bg: #f4f5f9;
+            }
+
+            body {
+                font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+                background: var(--content-bg);
+            }
+
+            /* ===== Sidebar shell ===== */
+            .sidebar {
+                background: linear-gradient(180deg, var(--sb-bg-top) 0%, var(--sb-bg-bottom) 100%);
+                border-right: 1px solid var(--sb-border);
+            }
+
+            .logo {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 22px 20px;
+                border-bottom: 1px solid var(--sb-border);
+            }
+
+            .logo-text {
+                font-weight: 800;
+                letter-spacing: .12em;
+                font-size: 1.05rem;
+                background: linear-gradient(90deg,#fff, var(--accent));
+                -webkit-background-clip: text;
+                background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+            .toggle-btn {
+                background: transparent;
+                border: none;
+                color: var(--sb-text);
+                width: 32px;
+                height: 32px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: .15s ease;
+            }
+
+                .toggle-btn:hover {
+                    background: var(--sb-border);
+                    color: var(--sb-text-strong);
+                }
+
+            .admin-info {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 16px 20px;
+                margin: 12px 14px 6px;
+                background: rgba(255,255,255,.03);
+                border: 1px solid var(--sb-border);
+                border-radius: 14px;
+            }
+
+                .admin-info .avatar {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: var(--accent-soft);
+                    color: var(--accent);
+                    font-size: 1.1rem;
+                    flex-shrink: 0;
+                }
+
+            .admin-name {
+                font-weight: 600;
+                font-size: .9rem;
+                color: var(--sb-text-strong);
+                line-height: 1.2;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .admin-role {
+                font-size: .72rem;
+                color: var(--accent);
+                text-transform: uppercase;
+                letter-spacing: .06em;
+            }
+
+            /* ===== Menu ===== */
+            .sidebar-menu {
+                list-style: none;
+                margin: 0;
+                padding: 8px 12px 24px;
+            }
+
+            .menu-group-title {
+                padding: 16px 12px 6px;
+                font-size: .68rem;
+                font-weight: 700;
+                letter-spacing: .12em;
+                text-transform: uppercase;
+                color: var(--sb-text-dim);
+            }
+
+            .sidebar-menu li {
+                margin: 2px 0;
+            }
+
+            .sidebar-menu a {
+                position: relative;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 10px 14px;
+                margin: 0 2px;
+                border-radius: 10px;
+                color: var(--sb-text);
+                text-decoration: none;
+                font-size: .875rem;
+                font-weight: 500;
+                transition: background .15s ease, color .15s ease, transform .1s ease;
+            }
+
+                .sidebar-menu a i {
+                    font-size: 1.05rem;
+                    width: 20px;
+                    text-align: center;
+                    flex-shrink: 0;
+                    color: var(--sb-text-dim);
+                    transition: color .15s ease;
+                }
+
+                .sidebar-menu a span {
+                    flex: 1;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                .sidebar-menu a:hover {
+                    background: rgba(255,255,255,.05);
+                    color: var(--sb-text-strong);
+                }
+
+                    .sidebar-menu a:hover i {
+                        color: var(--sb-text-strong);
+                    }
+
+                /* Active state: accent bar + soft glow background */
+                .sidebar-menu a.active {
+                    background: var(--accent-soft);
+                    color: var(--sb-text-strong);
+                    font-weight: 600;
+                    box-shadow: inset 0 0 0 1px rgba(242,183,5,.18);
+                }
+
+                    .sidebar-menu a.active i {
+                        color: var(--accent);
+                    }
+
+                    .sidebar-menu a.active::before {
+                        content: "";
+                        position: absolute;
+                        left: -2px;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        width: 4px;
+                        height: 60%;
+                        background: var(--accent);
+                        border-radius: 0 4px 4px 0;
+                        box-shadow: 0 0 10px var(--accent-glow);
+                    }
+
+            .sidebar-menu .badge {
+                font-size: .68rem;
+                padding: .28em .55em;
+            }
+
+            .menu-divider {
+                border-top: 1px solid var(--sb-border);
+                margin: 14px 10px 4px;
+                padding-top: 12px !important;
+            }
+
+            .logout-link {
+                color: #f28b8b !important;
+            }
+
+                .logout-link i {
+                    color: #f28b8b !important;
+                }
+
+                .logout-link:hover {
+                    background: rgba(239,68,68,.1) !important;
+                }
+
+            /* ===== Content ===== */
+            .content-box {
+                background: #fff;
+                border-radius: 16px;
+                box-shadow: 0 1px 3px rgba(20,22,34,.06);
+            }
+
+            .footer {
+                color: #9aa1b8;
+                font-size: .8rem;
+            }
+    </style>
 
     @RenderSection("Styles", required: false)
 </head>
@@ -39,197 +277,182 @@
 
             <div class="admin-info">
                 <div class="avatar"><i class="bi bi-person-fill"></i></div>
-                <div class="admin-name">@Context.Session.GetString("Name")</div>
-                <div class="admin-role">Administrator</div>
+                <div>
+                    <div class="admin-name">@Context.Session.GetString("Name")</div>
+                    <div class="admin-role">@(role == "SuperAdmin" ? "Super Admin" : "Administrator")</div>
+                </div>
             </div>
 
             <ul class="sidebar-menu">
+
+                <li class="menu-group-title">Tổng quan</li>
                 <li>
-                    <a asp-controller="Admin" asp-action="Dashboard" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Admin" ? "active" : "")">
+                    <a asp-controller="Admin" asp-action="Dashboard" class="@IsActive("Admin", "Dashboard")">
                         <i class="bi bi-speedometer2"></i><span>Dashboard</span>
                     </a>
                 </li>
-           
-             @if (HttpContextAccessor.HttpContext.Session.GetString("Role") == "SuperAdmin")
-{
-         <li>
-                    <a asp-controller="Admin" asp-action="StaffList" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "StaffList" ? "active" : "")">
-                        <i class="bi bi-building"></i><span>Quản lý Nhân viên</span>
-                    </a>
-                </li>
-                    //<li class="nav-item">
 
-                      //  <a class="nav-link"
-                        //   asp-controller="Admin"
-                          // asp-action="ActivityLogs">
-
-                            //<i class="bi bi-clock-history"></i>
-
-                            //Nhật ký hoạt động
-
-                        //</a>
-
-                    //</li>
+                @if (role == "SuperAdmin")
+                {
+                    <li class="menu-group-title">Quản trị nhân sự</li>
                     <li>
-                        <a asp-controller="Branch" asp-action="Index">
-                            <i class="bi bi-building"></i>
-                            <span>Quản lý chi nhánh</span>
-                        </a>
-                    </li>
-
-                    <li>
-                        <a asp-controller="Position" asp-action="Index">
-                            <i class="bi bi-person-badge"></i>
-                            <span>Quản lý chức vụ</span>
+                        <a asp-controller="Admin" asp-action="StaffList" class="@IsActive("StaffList", "")">
+                            <i class="bi bi-people-fill"></i><span>Quản lý Nhân viên</span>
                         </a>
                     </li>
                     <li>
-                        <a asp-controller="Shift" asp-action="Index">
-                            <i class="bi bi-person-badge"></i>
-                            <span>Quản lý ca</span>
+                        <a asp-controller="Branch" asp-action="Index" class="@IsActive("Branch", "")">
+                            <i class="bi bi-building"></i><span>Quản lý chi nhánh</span>
                         </a>
                     </li>
                     <li>
-                        <a asp-controller="DutySchedule" asp-action="Index">
-                            <i class="bi bi-person-badge"></i>
-                            <span>Quản lý lịch làm việc
-                            </span>
+                        <a asp-controller="Position" asp-action="Index" class="@IsActive("Position", "")">
+                            <i class="bi bi-person-badge"></i><span>Quản lý chức vụ</span>
                         </a>
                     </li>
                     <li>
-                        <a asp-controller="Admin" asp-action="ManageLeave" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "ManageLeave" ? "active" : "")">
-                            <i class="bi bi-calendar-x"></i><span>Quản lý nghỉ phép
-                                @if (pendingLeaveCount > 0)
-                                {
-                                    <span class="badge bg-danger rounded-pill ms-2">@pendingLeaveCount</span>
-                                }
-                            </span>
-
+                        <a asp-controller="Shift" asp-action="Index" class="@IsActive("Shift", "")">
+                            <i class="bi bi-clock"></i><span>Quản lý ca</span>
                         </a>
-
                     </li>
                     <li>
-                        <a asp-controller="Payroll" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Payroll" ? "active" : "")">
+                        <a asp-controller="DutySchedule" asp-action="Index" class="@IsActive("DutySchedule", "")">
+                            <i class="bi bi-calendar3"></i><span>Quản lý lịch làm việc</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Admin" asp-action="ManageLeave" class="@IsActive("Admin", "ManageLeave")">
+                            <i class="bi bi-calendar-x"></i><span>Quản lý nghỉ phép</span>
+                            @if (pendingLeaveCount > 0)
+                            {
+                                <span class="badge bg-danger rounded-pill">@pendingLeaveCount</span>
+                            }
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Payroll" asp-action="Index" class="@IsActive("Payroll", "")">
                             <i class="bi bi-cash-coin"></i><span>Quản lý lương</span>
                         </a>
                     </li>
+                    <li>
+                        <a asp-controller="Log" asp-action="Index" class="@IsActive("Log", "")">
+                            <i class="bi bi-journal-text"></i><span>Quản lý Nhật ký</span>
+                        </a>
+                    </li>
+                }
 
-
-
-
-    <li>
-        <a asp-controller="Log" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Log" ? "active" : "")">
-            <i class="bi bi-building"></i><span>Quản lý Nhật ký</span>
-        </a>
-    </li>
-}
-                <li class="menu-divider" style="padding: 10px 20px; font-size: 0.8rem; color: #6c757d; text-transform: uppercase;">
-                    Nhân sự
-                </li>
+                <li class="menu-group-title">Nhân sự (cá nhân)</li>
                 <li>
-                    <a asp-controller="Admin" asp-action="MySchedule" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "MySchedule" ? "active" : "")">
+                    <a asp-controller="Admin" asp-action="MySchedule" class="@IsActive("Admin", "MySchedule")">
                         <i class="bi bi-calendar-week"></i><span>Lịch của tôi</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Admin" asp-action="LeaveRequest" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "ApproveLeave" ? "active" : "")">
+                    <a asp-controller="Admin" asp-action="LeaveRequest" class="@IsActive("Admin", "LeaveRequest")">
                         <i class="bi bi-check2-square"></i><span>Đơn xin nghỉ phép</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Admin" asp-action="CheckInOut" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "CheckInOut" ? "active" : "")">
+                    <a asp-controller="Admin" asp-action="CheckInOut" class="@IsActive("Admin", "CheckInOut")">
                         <i class="bi bi-camera"></i><span>Chấm công</span>
                     </a>
                 </li>
 
-
+                <li class="menu-group-title">Vận hành rạp phim</li>
                 <li>
-                    <a asp-controller="Admin" asp-action="CustomerActivityLogs" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Admin" && ViewContext.RouteData.Values["Action"]?.ToString() == "CustomerActivityLogs" ? "active" : "")">
-                        <i class="bi bi-clock-history"></i><span>Nhật ký hoạt động KH</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Admin" asp-action="MovieViewStats" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Admin" && ViewContext.RouteData.Values["Action"]?.ToString() == "MovieViewStats" ? "active" : "")">
-                        <i class="bi bi-eye"></i><span>Thống kê lượt xem phim</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Admin" asp-action="CustomerSearchLogs" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Admin" && ViewContext.RouteData.Values["Action"]?.ToString() == "CustomerSearchLogs" ? "active" : "")">
-                        <i class="bi bi-search"></i><span>Lịch sử tìm kiếm</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Admin" asp-action="TopSearchKeywords" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Admin" && ViewContext.RouteData.Values["Action"]?.ToString() == "TopSearchKeywords" ? "active" : "")">
-                        <i class="bi bi-graph-up"></i><span>Top từ khóa tìm kiếm</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Theater" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Theater" ? "active" : "")">
+                    <a asp-controller="Theater" asp-action="Index" class="@IsActive("Theater", "")">
                         <i class="bi bi-building"></i><span>Quản lý Rạp</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Auditorium" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Auditorium" ? "active" : "")">
+                    <a asp-controller="Auditorium" asp-action="Index" class="@IsActive("Auditorium", "")">
                         <i class="bi bi-easel"></i><span>Quản lý Phòng Chiếu</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Movie" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Movie" ? "active" : "")">
+                    <a asp-controller="Movie" asp-action="Index" class="@IsActive("Movie", "")">
                         <i class="bi bi-film"></i><span>Quản lý Phim</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Showtime" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Showtime" ? "active" : "")">
+                    <a asp-controller="Showtime" asp-action="Index" class="@IsActive("Showtime", "")">
                         <i class="bi bi-calendar-event"></i><span>Quản lý Lịch Chiếu</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Genre" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Genre" ? "active" : "")">
+                    <a asp-controller="Genre" asp-action="Index" class="@IsActive("Genre", "")">
                         <i class="bi bi-tags"></i><span>Quản lý Thể Loại</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Combo" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Combo" ? "active" : "")">
+                    <a asp-controller="Combo" asp-action="Index" class="@IsActive("Combo", "")">
                         <i class="bi bi-cup-straw"></i><span>Quản lý Combo</span>
                     </a>
                 </li>
+
+                <li class="menu-group-title">Kinh doanh &amp; Khách hàng</li>
                 <li>
-                    <a asp-controller="CustomerAdmin" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "CustomerAdmin" ? "active" : "")">
+                    <a asp-controller="CustomerAdmin" asp-action="Index" class="@IsActive("CustomerAdmin", "")">
                         <i class="bi bi-people"></i><span>Quản lý Khách Hàng</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="AdminOrders" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminOrders" ? "active" : "")">
+                    <a asp-controller="AdminOrders" asp-action="Index" class="@IsActive("AdminOrders", "")">
                         <i class="bi bi-bag-check"></i><span>Quản lý Đơn Hàng</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="AdminVoucher" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminVoucher" ? "active" : "")">
+                    <a asp-controller="AdminVoucher" asp-action="Index" class="@IsActive("AdminVoucher", "")">
                         <i class="bi bi-ticket-perforated"></i><span>Quản lý Voucher</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="AdminPopup" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "AdminPopup" ? "active" : "")">
+                    <a asp-controller="AdminPopup" asp-action="Index" class="@IsActive("AdminPopup", "")">
                         <i class="bi bi-megaphone"></i><span>Quản lý Popup</span>
                     </a>
                 </li>
+
+                <li class="menu-group-title">Nhật ký &amp; Phân tích khách hàng</li>
                 <li>
-                    <a asp-controller="Statistics" asp-action="Index" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Statistics" && ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "active" : "")">
+                    <a asp-controller="Admin" asp-action="CustomerActivityLogs" class="@IsActive("Admin", "CustomerActivityLogs")">
+                        <i class="bi bi-clock-history"></i><span>Nhật ký hoạt động KH</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Admin" asp-action="MovieViewStats" class="@IsActive("Admin", "MovieViewStats")">
+                        <i class="bi bi-eye"></i><span>Thống kê lượt xem phim</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Admin" asp-action="CustomerSearchLogs" class="@IsActive("Admin", "CustomerSearchLogs")">
+                        <i class="bi bi-search"></i><span>Lịch sử tìm kiếm</span>
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Admin" asp-action="TopSearchKeywords" class="@IsActive("Admin", "TopSearchKeywords")">
+                        <i class="bi bi-graph-up"></i><span>Top từ khóa tìm kiếm</span>
+                    </a>
+                </li>
+
+                <li class="menu-group-title">Báo cáo &amp; Thống kê</li>
+                <li>
+                    <a asp-controller="Statistics" asp-action="Index" class="@IsActive("Statistics", "Index")">
                         <i class="bi bi-bar-chart-line"></i><span>Báo Cáo Doanh Thu</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Statistics" asp-action="AdvancedStats" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Statistics" && ViewContext.RouteData.Values["Action"]?.ToString() == "AdvancedStats" ? "active" : "")">
+                    <a asp-controller="Statistics" asp-action="AdvancedStats" class="@IsActive("Statistics", "AdvancedStats")">
                         <i class="bi bi-pie-chart"></i><span>Báo cáo chuyên sâu</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Statistics" asp-action="RecommendationRules" class="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Statistics" && ViewContext.RouteData.Values["Action"]?.ToString() == "RecommendationRules" ? "active" : "")">
+                    <a asp-controller="Statistics" asp-action="RecommendationRules" class="@IsActive("Statistics", "RecommendationRules")">
                         <i class="bi bi-diagram-3"></i><span>Quy luật gợi ý (Apriori)</span>
                     </a>
                 </li>
-                <li>
-                    <a asp-controller="Admin" asp-action="Logout">
+
+                <li class="menu-divider">
+                    <a asp-controller="Admin" asp-action="Logout" class="logout-link">
                         <i class="bi bi-box-arrow-right"></i><span>Đăng Xuất</span>
                     </a>
                 </li>
@@ -259,43 +482,43 @@
     @await RenderSectionAsync("Scripts", required: false)
 
     <script>
-        const sidebar = document.getElementById('sidebar');
-        const content = document.getElementById('mainContent');
-        const toggleBtn = document.getElementById('toggleSidebar');
-        const mobileToggleBtn = document.getElementById('mobileToggle');
-        const overlay = document.getElementById('sidebarOverlay');
-        const icon = toggleBtn.querySelector('i');
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('mainContent');
+            const toggleBtn = document.getElementById('toggleSidebar');
+            const mobileToggleBtn = document.getElementById('mobileToggle');
+            const overlay = document.getElementById('sidebarOverlay');
+            const icon = toggleBtn.querySelector('i');
 
-        // Toggle cho Desktop (Thu nhỏ/Phóng to) và nút Đóng trên Mobile
-        toggleBtn.addEventListener('click', () => {
-        if (window.innerWidth > 992) {
-        // Hành vi trên Desktop
-        sidebar.classList.toggle('collapsed');
-        content.classList.toggle('expanded');
-        icon.className = sidebar.classList.contains('collapsed') ? 'bi bi-layout-sidebar' : 'bi bi-list';
-        } else {
-        // Nút trong sidebar trở thành nút Đóng trên Mobile
-        closeMobileSidebar();
-        }
-        });
+            // Toggle cho Desktop (Thu nhỏ/Phóng to) và nút Đóng trên Mobile
+            toggleBtn.addEventListener('click', () => {
+                if (window.innerWidth > 992) {
+                    // Hành vi trên Desktop
+                    sidebar.classList.toggle('collapsed');
+                    content.classList.toggle('expanded');
+                    icon.className = sidebar.classList.contains('collapsed') ? 'bi bi-layout-sidebar' : 'bi bi-list';
+                } else {
+                    // Nút trong sidebar trở thành nút Đóng trên Mobile
+                    closeMobileSidebar();
+                }
+            });
 
-        // Toggle mở Menu trên Mobile
-        if (mobileToggleBtn) {
-        mobileToggleBtn.addEventListener('click', () => {
-        sidebar.classList.add('show-mobile');
-        overlay.classList.add('show');
-        icon.className = 'bi bi-x-lg'; // Đổi icon thành dấu X để tắt
-        });
-        }
+            // Toggle mở Menu trên Mobile
+            if (mobileToggleBtn) {
+                mobileToggleBtn.addEventListener('click', () => {
+                    sidebar.classList.add('show-mobile');
+                    overlay.classList.add('show');
+                    icon.className = 'bi bi-x-lg'; // Đổi icon thành dấu X để tắt
+                });
+            }
 
-        // Đóng menu khi bấm ra ngoài lớp phủ đen
-        overlay.addEventListener('click', closeMobileSidebar);
+            // Đóng menu khi bấm ra ngoài lớp phủ đen
+            overlay.addEventListener('click', closeMobileSidebar);
 
-        function closeMobileSidebar() {
-        sidebar.classList.remove('show-mobile');
-        overlay.classList.remove('show');
-        icon.className = 'bi bi-list'; // Trả lại icon list
-        }
+            function closeMobileSidebar() {
+                sidebar.classList.remove('show-mobile');
+                overlay.classList.remove('show');
+                icon.className = 'bi bi-list'; // Trả lại icon list
+            }
     </script>
 </body>
 </html>

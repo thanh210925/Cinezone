@@ -1,139 +1,303 @@
-﻿@model CINEMA.ViewModels.PaymentViewModel
-@using CINEMA.ViewModels // <-- ADD THIS LINE to fix 'ComboViewModel could not be found'
+@model CINEMA.ViewModels.PaymentViewModel
+@using CINEMA.ViewModels
 @{
     ViewData["Title"] = "Kết quả thanh toán";
-    Layout = "_Layout"; // Or your main layout
+    Layout = "_Layout";
 }
 
-<div class="container mt-5 mb-5 text-center">
-    <div class="card p-4 p-md-5 shadow-sm mx-auto" style="max-width: 600px;">
+<!-- Custom Styles for Receipt view -->
+<style>
+    :root {
+        --color-success: #10b981;
+        --color-success-bg: #ecfdf5;
+        --color-warning: #f59e0b;
+        --color-warning-bg: #fffbeb;
+        --color-slate-bg: #f8fafc;
+        --color-border: #e2e8f0;
+    }
 
-        @* --- Phần hiển thị trạng thái chung --- *@
-        @if (ViewBag.PaymentStatus == "Đã thanh toán")
+    body {
+        background-color: var(--color-slate-bg);
+    }
+
+    .receipt-container {
+        max-width: 600px;
+        margin: 4rem auto;
+        position: relative;
+    }
+
+    .receipt-card {
+        background: #ffffff;
+        border-radius: 24px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(0,0,0,0.03);
+        padding: 3rem 2.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Jagged/Teeth Bottom Border to mimic ticket receipt */
+    .receipt-card::after {
+        content: '';
+        display: block;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 14px;
+        background: linear-gradient(-45deg, var(--color-slate-bg) 7px, transparent 0), linear-gradient(45deg, var(--color-slate-bg) 7px, transparent 0);
+        background-position: left bottom;
+        background-repeat: repeat-x;
+        background-size: 14px 14px;
+        z-index: 10;
+    }
+
+    /* Glow Check Animations */
+    .status-glow-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem auto;
+        font-size: 3rem;
+        transition: transform 0.3s ease;
+    }
+
+    .status-glow-success {
+        background: var(--color-success-bg);
+        color: var(--color-success);
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);
+        animation: successPulse 2s infinite;
+    }
+
+    .status-glow-warning {
+        background: var(--color-warning-bg);
+        color: var(--color-warning);
+        box-shadow: 0 0 25px rgba(245, 158, 11, 0.25);
+        animation: warningPulse 2s infinite;
+    }
+
+    /* Ticket Codes layout */
+    .booking-code-box {
+        background: #fffbeb;
+        border: 2px dashed #f59e0b;
+        border-radius: 12px;
+        padding: 0.75rem 1.5rem;
+        font-family: monospace;
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #d97706;
+        letter-spacing: 1px;
+        display: inline-block;
+        margin-top: 0.5rem;
+    }
+
+    .receipt-details-list {
+        background: #fafafa;
+        border-radius: 16px;
+        padding: 1.5rem;
+        text-align: left;
+        border: 1px solid var(--color-border);
+    }
+
+    .receipt-detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(0,0,0,0.03);
+    }
+
+    .receipt-detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .receipt-detail-label {
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .receipt-detail-val {
+        color: #1e293b;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-align: right;
+        max-width: 60%;
+    }
+
+    .btn-pill-action {
+        border-radius: 30px;
+        padding: 10px 25px;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+</style>
+
+<div class="container receipt-container">
+    <div class="receipt-card text-center">
+        
+        <!-- HEADER STATUS ZONE -->
+        @if (ViewBag.PaymentStatus == "Đã thanh toán" || ViewBag.PaymentStatus == "Completed" || ViewBag.PaymentStatus == "Paid")
         {
-                <div style="font-size: 4rem; color: #198754;"><i class="bi bi-check-circle-fill"></i></div>
-                <h2 class="fw-bold text-success mt-3 mb-3">Thanh toán thành công!</h2>
-                <p class="lead">Cảm ơn bạn đã đặt vé tại CinemaZone.</p>
+            <div class="status-glow-icon status-glow-success">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <h2 class="fw-bold text-success m-0">Thanh toán thành công!</h2>
+            <p class="text-muted mt-2">Cảm ơn bạn đã đặt vé xem phim tại CineZone.</p>
         }
-        else if (ViewBag.PaymentStatus == "Chờ thanh toán")
+        else if (ViewBag.PaymentStatus == "Chờ thanh toán" || ViewBag.PaymentStatus == "Pending")
         {
-                 <div style="font-size: 4rem; color: #ffc107;"><i class="bi bi-hourglass-split"></i></div>
-                <h2 class="fw-bold text-warning mt-3 mb-3">Đặt vé thành công!</h2>
-                <p class="lead">Vui lòng đến quầy vé để hoàn tất thanh toán trước giờ chiếu.</p>
+            <div class="status-glow-icon status-glow-warning">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <h2 class="fw-bold text-warning m-0">Đặt vé thành công!</h2>
+            <p class="text-muted mt-2">Vui lòng đến quầy vé để hoàn tất thanh toán trước giờ chiếu.</p>
         }
-        else { /* Icon Lỗi */ /* Thông báo lỗi */ }
+        else
+        {
+            <div class="status-glow-icon status-glow-warning">
+                <i class="bi bi-info-circle-fill"></i>
+            </div>
+            <h2 class="fw-bold text-warning m-0">Đặt vé thành công!</h2>
+            <p class="text-muted mt-2">Hệ thống ghi nhận trạng thái đơn đặt vé của bạn.</p>
+        }
 
         <hr class="my-4">
 
-        @* --- Phần thông tin thanh toán cơ bản --- *@
+        <!-- BOOKING CODE SECTION -->
         @if (!string.IsNullOrEmpty(ViewBag.BookingCode))
         {
-            <p><strong>Mã đặt vé:</strong> <span class="fw-bold text-danger fs-5 user-select-all">@ViewBag.BookingCode</span></p>
+            <div>
+                <small class="text-muted d-block uppercase tracking-wider small fw-bold">Mã đặt vé của bạn</small>
+                <div class="booking-code-box user-select-all">@ViewBag.BookingCode</div>
+                <small class="text-muted d-block mt-2">Hãy lưu hoặc chụp màn hình mã đặt vé này</small>
+            </div>
         }
-        <p><strong>Phương thức:</strong> @ViewBag.PaymentMethod</p>
-        <p><strong>Trạng thái:</strong> <span class="fw-bold">@ViewBag.PaymentStatus</span></p>
-        <p><strong>Tổng tiền:</strong> <span class="fw-bold">@(((decimal?)ViewBag.Total ?? 0).ToString("N0")) đ</span></p>
+
+        <!-- DETAILS COLLAPSE LIST -->
+        <div class="mt-4">
+            <div class="receipt-details-list">
+                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-file-earmark-text"></i> Thông tin giao dịch</h6>
+                
+                @* Info Khách hàng *@
+                @{
+                    var custName = !string.IsNullOrEmpty(ViewBag.CustomerName) ? ViewBag.CustomerName : (Model != null ? Model.CustomerName : "");
+                    var custPhone = !string.IsNullOrEmpty(ViewBag.CustomerPhone) ? ViewBag.CustomerPhone : (Model != null ? Model.CustomerPhone : "");
+                }
+                @if (!string.IsNullOrEmpty(custName))
+                {
+                    <div class="receipt-detail-row">
+                        <span class="receipt-detail-label">Khách hàng</span>
+                        <span class="receipt-detail-val">@custName (@custPhone)</span>
+                    </div>
+                }
+
+                @* Info Phim *@
+                @{
+                    var movieTitle = !string.IsNullOrEmpty(ViewBag.MovieTitle) ? ViewBag.MovieTitle : (Model != null ? Model.MovieTitle : "");
+                    var showtime = !string.IsNullOrEmpty(ViewBag.Showtime) ? ViewBag.Showtime : (Model != null ? Model.Showtime : "");
+                    var auditorium = !string.IsNullOrEmpty(ViewBag.Auditorium) ? ViewBag.Auditorium : (Model != null ? Model.Auditorium : "");
+                }
+                @if (!string.IsNullOrEmpty(movieTitle))
+                {
+                    <div class="receipt-detail-row">
+                        <span class="receipt-detail-label">Phim</span>
+                        <span class="receipt-detail-val">@movieTitle</span>
+                    </div>
+                    <div class="receipt-detail-row">
+                        <span class="receipt-detail-label">Suất chiếu</span>
+                        <span class="receipt-detail-val text-danger">@showtime</span>
+                    </div>
+                    <div class="receipt-detail-row">
+                        <span class="receipt-detail-label">Phòng chiếu</span>
+                        <span class="receipt-detail-val">@auditorium</span>
+                    </div>
+                }
+
+                @* Info Ghế *@
+                @{
+                    var seats = "";
+                    if (!string.IsNullOrEmpty(ViewBag.SelectedSeats)) {
+                        seats = ViewBag.SelectedSeats;
+                    } else if (Model != null && Model.SelectedSeats != null && Model.SelectedSeats.Any()) {
+                        seats = string.Join(", ", Model.SelectedSeats);
+                    }
+                }
+                @if (!string.IsNullOrEmpty(seats))
+                {
+                    <div class="receipt-detail-row">
+                        <span class="receipt-detail-label">Ghế đã chọn</span>
+                        <span class="receipt-detail-val text-success">@seats</span>
+                    </div>
+                }
+
+                @* Info Loại Vé *@
+                @{
+                    int adultTickets = ViewBag.AdultTickets ?? Model?.AdultTickets ?? 0;
+                    int childTickets = ViewBag.ChildTickets ?? Model?.ChildTickets ?? 0;
+                    int studentTickets = ViewBag.StudentTickets ?? Model?.StudentTickets ?? 0;
+                    var ticketTypes = new List<string>();
+                    if (adultTickets > 0) ticketTypes.Add($"Người lớn ({adultTickets})");
+                    if (childTickets > 0) ticketTypes.Add($"Trẻ em ({childTickets})");
+                    if (studentTickets > 0) ticketTypes.Add($"Học sinh/SV ({studentTickets})");
+                }
+                @if (ticketTypes.Any())
+                {
+                    <div class="receipt-detail-row">
+                        <span class="receipt-detail-label">Vé đã mua</span>
+                        <span class="receipt-detail-val">@string.Join(", ", ticketTypes)</span>
+                    </div>
+                }
+
+                @* Info Combos *@
+                @{
+                    var combosToShow = ViewBag.Combos as List<ComboViewModel>;
+                    if (combosToShow == null && Model?.Combos != null)
+                    {
+                        combosToShow = Model.Combos;
+                    }
+                }
+                @if (combosToShow != null && combosToShow.Count > 0)
+                {
+                    var comboList = combosToShow.Select(c => $"{c.ComboName} x{c.Quantity}");
+                    <div class="receipt-detail-row">
+                        <span class="receipt-detail-label">Bắp nước</span>
+                        <span class="receipt-detail-val">@string.Join(", ", comboList)</span>
+                    </div>
+                }
+
+                @* Payment Info *@
+                <div class="receipt-detail-row border-top mt-2 pt-2">
+                    <span class="receipt-detail-label text-dark fw-bold">Phương thức</span>
+                    <span class="receipt-detail-val">@ViewBag.PaymentMethod</span>
+                </div>
+                <div class="receipt-detail-row">
+                    <span class="receipt-detail-label text-dark fw-bold">Trạng thái</span>
+                    <span class="receipt-detail-val">@ViewBag.PaymentStatus</span>
+                </div>
+                <div class="receipt-detail-row">
+                    <span class="receipt-detail-label text-dark fw-bold">Tổng tiền</span>
+                    <span class="receipt-detail-val text-danger fw-bold fs-6">@(((decimal?)ViewBag.Total ?? 0).ToString("N0")) ₫</span>
+                </div>
+            </div>
+        </div>
+
         @if (!string.IsNullOrEmpty(ViewBag.Message))
         {
-            <p class="mt-3 fst-italic">@ViewBag.Message</p>
+            <p class="mt-4 fst-italic text-muted small">@ViewBag.Message</p>
         }
 
-
-        @* --- PHẦN HIỂN THỊ THÔNG TIN CHI TIẾT --- *@
-        <div class="card mt-4 text-start">
-             <div class="card-header bg-light fw-bold">
-                 Chi tiết đơn hàng
-             </div>
-             <div class="card-body small">
-                 @* Hiển thị thông tin khách hàng (ưu tiên ViewBag) *@
-                 @if (!string.IsNullOrEmpty(ViewBag.CustomerName))
-                {
-                         <p><strong>Khách hàng:</strong> @ViewBag.CustomerName (@ViewBag.CustomerEmail)</p>
-                         <p><strong>Điện thoại:</strong> @ViewBag.CustomerPhone</p>
-                 }
-                else if (Model != null && !string.IsNullOrEmpty(Model.CustomerName))
-                {
-                          <p><strong>Khách hàng:</strong> @Model.CustomerName (@Model.CustomerEmail)</p>
-                          <p><strong>Điện thoại:</strong> @Model.CustomerPhone</p>
-                 }
-
-                 @* Hiển thị thông tin vé (ưu tiên ViewBag) *@
-                 @if (!string.IsNullOrEmpty(ViewBag.MovieTitle))
-                {
-                         <p><strong>Phim:</strong> @ViewBag.MovieTitle</p>
-                         <p><strong>Suất chiếu:</strong> @ViewBag.Showtime</p>
-                         <p><strong>Rạp:</strong> @ViewBag.Auditorium</p>
-                 }
-                else if (Model != null && !string.IsNullOrEmpty(Model.MovieTitle))
-                {
-                          <p><strong>Phim:</strong> @Model.MovieTitle</p>
-                          <p><strong>Suất chiếu:</strong> @Model.Showtime</p>
-                          <p><strong>Rạp:</strong> @Model.Auditorium</p>
-                 }
-
-                 @* Hiển thị ghế (ưu tiên ViewBag) *@
-                 @if (!string.IsNullOrEmpty(ViewBag.SelectedSeats))
-                {
-                         <p><strong>Ghế:</strong> @ViewBag.SelectedSeats</p>
-                 }
-                else if (Model != null && Model.SelectedSeats != null && Model.SelectedSeats.Any())
-                {
-                          <p><strong>Ghế:</strong> @string.Join(", ", Model.SelectedSeats)</p>
-                 }
-
-                 @* Hiển thị số lượng vé (ưu tiên ViewBag) *@
-                 @{
-                         // Lấy giá trị từ ViewBag trước, nếu null thì lấy từ Model
-                         int adultTickets = ViewBag.AdultTickets ?? Model?.AdultTickets ?? 0;
-                         int childTickets = ViewBag.ChildTickets ?? Model?.ChildTickets ?? 0;
-                         int studentTickets = ViewBag.StudentTickets ?? Model?.StudentTickets ?? 0;
-                 }
-                 @if (adultTickets > 0 || childTickets > 0 || studentTickets > 0)
-                 {
-                         <p><strong>Loại vé:</strong>
-                             @if (adultTickets > 0)
-                            {
-                                 <span>Người lớn (@adultTickets),</span>
-                             }
-                             @if (childTickets > 0)
-                            {
-                                 <span>Trẻ em (@childTickets),</span>
-                             }
-                             @if (studentTickets > 0)
-                            {
-                                 <span>Học sinh/SV (@studentTickets)</span>
-                             }
-                             @* Remove trailing comma if needed *@
-                         </p>
-                 }
-
-                 @* Hiển thị combo (ưu tiên ViewBag) *@
-                 @{
-                        // 👇 FIX: Use 'if' instead of '??' operator here 👇
-                        var combosToShow = ViewBag.Combos as List<ComboViewModel>;
-                        if (combosToShow == null && Model?.Combos != null)
-                        {
-                                combosToShow = Model.Combos;
-                        }
-                 }
-                 @if (combosToShow != null && combosToShow.Count > 0)
-                 {
-                         <p class="mb-1"><strong>Combo:</strong></p>
-                         <ul class="list-unstyled ms-3"> @* Use list-unstyled for cleaner look *@
-                             @foreach (var combo in combosToShow)
-                             {
-                                     <li>- @combo.ComboName x @combo.Quantity</li>
-                             }
-                         </ul>
-                 }
-             </div>
+        <!-- ACTIONS BUTTONS -->
+        <div class="mt-5 d-flex gap-2 justify-content-center">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-pill-action px-4">
+                <i class="bi bi-house-door me-1"></i> Trang chủ
+            </a>
+            <a asp-controller="Tickets" asp-action="MyTickets" class="btn btn-success btn-pill-action px-4 shadow-sm">
+                <i class="bi bi-ticket-perforated me-1"></i> Vé của tôi
+            </a>
         </div>
-        @* --- KẾT THÚC PHẦN HIỂN THỊ THÔNG TIN CHI TIẾT --- *@
 
-
-        <div class="mt-4">
-            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary me-2 mb-2"> <i class="bi bi-house-door me-1"></i>Về trang chủ</a>
-            <a asp-controller="Tickets" asp-action="MyTickets" class="btn btn-primary mb-2"> <i class="bi bi-ticket-perforated me-1"></i>Xem vé của tôi</a>
-        </div>
     </div>
 </div>

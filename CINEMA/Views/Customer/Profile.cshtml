@@ -1,215 +1,464 @@
-﻿@model CINEMA.Models.Customer
+@model CINEMA.Models.Customer
 @{
     ViewData["Title"] = "Hồ sơ cá nhân";
+    
+    var ringClass = Model.MembershipLevel == "Kim cương" ? "ring-diamond" :
+                    Model.MembershipLevel == "Bạc" ? "ring-silver" : "ring-bronze";
+                    
+    var badgeClass = Model.MembershipLevel == "Kim cương" ? "badge-diamond" :
+                     Model.MembershipLevel == "Bạc" ? "badge-silver" : "badge-bronze";
 }
 
-<div class="container mt-4">
+<!-- Custom Styles for Premium Member Dashboard -->
+<style>
+    :root {
+        --bronze-glow: 0 0 20px rgba(217, 119, 6, 0.4);
+        --silver-glow: 0 0 20px rgba(71, 85, 105, 0.3);
+        --diamond-glow: 0 0 25px rgba(8, 145, 178, 0.5);
+        
+        --bronze-color: #d97706;
+        --silver-color: #475569;
+        --diamond-color: #0891b2;
+    }
 
-    <div class="profile-card p-4 text-center">
+    body {
+        background-color: #f8fafc;
+    }
 
-        <!-- Avatar -->
-        <img src="@(string.IsNullOrEmpty(Model.Avatar) ? "/images/default-avatar.png" : Model.Avatar)"
-             class="avatar mb-3" />
+    .profile-dashboard-container {
+        max-width: 1100px;
+        margin: 3rem auto;
+    }
 
-        <h3 class="fw-bold">@Model.FullName</h3>
-        <p class="text-muted">@Model.Email</p>
+    /* Left Card: Member Pass */
+    .profile-card-left {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        border-radius: 24px;
+        padding: 3rem 2rem;
+        color: #ffffff;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+        position: relative;
+        overflow: hidden;
+    }
 
-        <!-- 🎯 Membership -->
-        <button class="membership-badge
-            @(Model.MembershipLevel == "Kim cương" ? "diamond" :
-                              Model.MembershipLevel == "Bạc" ? "silver" : "bronze")"
-                data-bs-toggle="modal"
-                data-bs-target="#modalMembership">
-            @Model.MembershipLevel
-        </button>
+    .profile-card-left::after {
+        content: '';
+        position: absolute;
+        width: 250px;
+        height: 250px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 50%;
+        bottom: -100px;
+        right: -100px;
+    }
 
-        <!-- 💰 Total -->
-        <div class="mt-4">
-            <p class="text-muted mb-1">Tổng chi tiêu</p>
-            <h2 class="fw-bold text-danger">@Model.TotalSpent.ToString("N0") đ</h2>
+    /* Avatar Glow Rings */
+    .avatar-container {
+        position: relative;
+        width: 130px;
+        height: 130px;
+        margin: 0 auto 1.5rem auto;
+        z-index: 2;
+    }
+
+    .avatar-image {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid rgba(255, 255, 255, 0.15);
+        background: #ffffff;
+        position: relative;
+        z-index: 3;
+    }
+
+    .ring-bronze::after {
+        content: '';
+        position: absolute;
+        top: -6px; left: -6px; right: -6px; bottom: -6px;
+        border-radius: 50%;
+        border: 3px solid var(--bronze-color);
+        box-shadow: var(--bronze-glow);
+        z-index: 1;
+    }
+
+    .ring-silver::after {
+        content: '';
+        position: absolute;
+        top: -6px; left: -6px; right: -6px; bottom: -6px;
+        border-radius: 50%;
+        border: 3px solid var(--silver-color);
+        box-shadow: var(--silver-glow);
+        z-index: 1;
+    }
+
+    .ring-diamond::after {
+        content: '';
+        position: absolute;
+        top: -6px; left: -6px; right: -6px; bottom: -6px;
+        border-radius: 50%;
+        border: 3px solid var(--diamond-color);
+        box-shadow: var(--diamond-glow);
+        z-index: 1;
+        animation: rotateGlow 4s linear infinite;
+    }
+
+    /* Badges */
+    .pass-badge {
+        border: none;
+        border-radius: 30px;
+        padding: 6px 18px;
+        font-weight: 800;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: transform 0.2s;
+    }
+
+    .pass-badge:hover {
+        transform: scale(1.05);
+    }
+
+    .badge-bronze { background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); color: #fff; }
+    .badge-silver { background: linear-gradient(135deg, #475569 0%, #94a3b8 100%); color: #fff; }
+    .badge-diamond { background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%); color: #fff; }
+
+    /* Progress bar */
+    .progress-wrapper {
+        margin-top: 2rem;
+    }
+
+    .progress-bar-container {
+        height: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 30px;
+        overflow: hidden;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        border-radius: 30px;
+        background: linear-gradient(90deg, #ffc107, #ff9800);
+        position: relative;
+        transition: width 0.5s ease;
+    }
+
+    /* Right column stats */
+    .stat-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+        border-color: #cbd5e1;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon-money { background: #ecfdf5; color: #10b981; }
+    .stat-icon-phone { background: #eff6ff; color: #3b82f6; }
+    .stat-icon-calendar { background: #fff7ed; color: #f97316; }
+    .stat-icon-clock { background: #faf5ff; color: #a855f7; }
+
+    /* Benefit Cards */
+    .benefit-tier-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        padding: 1.5rem;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+    }
+
+    .benefit-tier-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    .active-tier {
+        border-width: 2px;
+    }
+
+    .active-tier-bronze { border-color: var(--bronze-color); background: rgba(217, 119, 6, 0.02); }
+    .active-tier-silver { border-color: var(--silver-color); background: rgba(71, 85, 105, 0.02); }
+    .active-tier-diamond { border-color: var(--diamond-color); background: rgba(8, 145, 178, 0.02); }
+
+    .active-ribbon {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: #10b981;
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 800;
+        padding: 3px 10px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+</style>
+
+<div class="container profile-dashboard-container">
+    
+    <div class="row">
+        
+        <!-- LEFT COLUMN: MEMBER CARD (1/3 width) -->
+        <div class="col-lg-4 col-md-5">
+            <div class="profile-card-left text-center">
+                <!-- Avatar with glowing tier ring -->
+                <div class="avatar-container @ringClass">
+                    <img src="@(string.IsNullOrEmpty(Model.Avatar) ? "/images/default-avatar.png" : Model.Avatar)"
+                         class="avatar-image" alt="@Model.FullName avatar" />
+                </div>
+
+                <h3 class="fw-bold mb-1 text-white">@Model.FullName</h3>
+                <p class="text-white-50 small mb-3">@Model.Email</p>
+
+                <!-- Badge level badge -->
+                <button class="pass-badge @badgeClass" data-bs-toggle="modal" data-bs-target="#modalMembership">
+                    @Model.MembershipLevel
+                </button>
+
+                <!-- Total Spent Segment -->
+                <div class="mt-4 pt-3 border-top border-secondary">
+                    <span class="text-white-50 small d-block">Tổng tiền tích lũy:</span>
+                    <h3 class="fw-bold text-warning m-0">@Model.TotalSpent.ToString("N0") ₫</h3>
+                </div>
+
+                <!-- Next Tier Progress -->
+                <div class="progress-wrapper">
+                    <div class="d-flex justify-content-between text-white-50 small mb-1">
+                        <span>Tiến trình hạng</span>
+                        <span>@Model.ProgressPercent%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" style="width: @Model.ProgressPercent%"></div>
+                    </div>
+                    
+                    <small class="text-white-50 d-block mt-2">
+                        @if (Model.MembershipLevel != "Kim cương")
+                        {
+                            @:Còn thiếu <b>@Model.NextLevelAmount.ToString("N0") ₫</b> để thăng hạng 🚀
+                        }
+                        else
+                        {
+                            @:🎉 Bạn đã đạt cấp bậc cao nhất!
+                        }
+                    </small>
+                </div>
+
+                <!-- Action Button Actions -->
+                <div class="mt-5 d-flex gap-2">
+                    <a asp-action="EditProfile" class="btn btn-warning fw-bold text-dark w-100 rounded-pill py-2">
+                        <i class="bi bi-pencil-square"></i> Chỉnh sửa
+                    </a>
+                    <a asp-controller="Customer" asp-action="Logout" class="btn btn-outline-light w-100 rounded-pill py-2">
+                        <i class="bi bi-box-arrow-right"></i> Đăng xuất
+                    </a>
+                </div>
+            </div>
         </div>
 
-        <!-- 🚀 Progress -->
-        <div class="mt-3">
-            <div class="progress rounded-pill">
-                <div class="progress-bar progress-custom"
-                     style="width:@Model.ProgressPercent%">
-                    @Model.ProgressPercent%
+        <!-- RIGHT COLUMN: STATS & TIER BENEFITS (2/3 width) -->
+        <div class="col-lg-8 col-md-7 ps-lg-4">
+            
+            <!-- Welcome Header -->
+            <div class="mb-4">
+                <h4 class="fw-bold text-dark m-0">Xin chào, @Model.FullName!</h4>
+                <p class="text-muted small">Chào mừng bạn quay trở lại với không gian điện ảnh CineZone.</p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="row g-3 mb-5">
+                <div class="col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-money">
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block small uppercase fw-bold">Tổng chi tiêu</small>
+                            <span class="fw-bold text-dark fs-5">@Model.TotalSpent.ToString("N0") ₫</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-phone">
+                            <i class="bi bi-telephone"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block small uppercase fw-bold">Số điện thoại</small>
+                            <span class="fw-bold text-dark fs-6">@Model.Phone</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-calendar">
+                            <i class="bi bi-calendar3"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block small uppercase fw-bold">Thành viên từ</small>
+                            <span class="fw-bold text-dark fs-6">@Model.CreatedAt?.ToString("dd/MM/yyyy")</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-clock">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block small uppercase fw-bold">Đăng nhập cuối</small>
+                            <span class="fw-bold text-dark fs-6">@Model.LastLogin?.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <small class="text-muted d-block mt-2">
-                @if (Model.MembershipLevel != "Kim cương")
-                {
-                    @:Còn <b>@Model.NextLevelAmount.ToString("N0") đ</b> để lên hạng 🚀
-                }
-                else
-                {
-                    @:🎉 Bạn đã đạt hạng cao nhất!
-                }
-            </small>
-        </div>
+            <!-- Tier Perks Segment -->
+            <div>
+                <h5 class="fw-bold mb-4 text-dark"><i class="bi bi-award"></i> Đặc quyền hạng thành viên</h5>
+                
+                <div class="row g-3">
+                    <!-- Dong Card -->
+                    <div class="col-md-4">
+                        <div class="benefit-tier-card @(Model.MembershipLevel == "Đồng" ? "active-tier active-tier-bronze" : "")"
+                             data-bs-toggle="modal" data-bs-target="#modalDong">
+                            @if (Model.MembershipLevel == "Đồng")
+                            {
+                                <span class="active-ribbon">Đang có</span>
+                            }
+                            <div>
+                                <h6 class="fw-bold text-warning mb-1">🥉 Hạng Đồng</h6>
+                                <p class="text-muted small">Tích lũy từ 0 - 3tr</p>
+                            </div>
+                            <small class="text-primary fw-bold mt-2">Xem đặc quyền <i class="bi bi-chevron-right"></i></small>
+                        </div>
+                    </div>
 
-        <!-- 🏆 Tier -->
-        <div class="mt-5">
-            <h5 class="fw-bold mb-3">🏆 Hạng thành viên</h5>
+                    <!-- Bac Card -->
+                    <div class="col-md-4">
+                        <div class="benefit-tier-card @(Model.MembershipLevel == "Bạc" ? "active-tier active-tier-silver" : "")"
+                             data-bs-toggle="modal" data-bs-target="#modalBac">
+                            @if (Model.MembershipLevel == "Bạc")
+                            {
+                                <span class="active-ribbon">Đang có</span>
+                            }
+                            <div>
+                                <h6 class="fw-bold text-secondary mb-1">🥈 Hạng Bạc</h6>
+                                <p class="text-muted small">Tích lũy từ 3tr - 10tr</p>
+                            </div>
+                            <small class="text-primary fw-bold mt-2">Xem đặc quyền <i class="bi bi-chevron-right"></i></small>
+                        </div>
+                    </div>
 
-            <div class="tier-wrapper">
-
-                <div class="tier @(Model.MembershipLevel == "Đồng" ? "active" : "")"
-                     data-bs-toggle="modal" data-bs-target="#modalDong">
-                    🥉 Đồng
-                    <small>0 - 3tr</small>
+                    <!-- Kim cuong Card -->
+                    <div class="col-md-4">
+                        <div class="benefit-tier-card @(Model.MembershipLevel == "Kim cương" ? "active-tier active-tier-diamond" : "")"
+                             data-bs-toggle="modal" data-bs-target="#modalKimCuong">
+                            @if (Model.MembershipLevel == "Kim cương")
+                            {
+                                <span class="active-ribbon">Đang có</span>
+                            }
+                            <div>
+                                <h6 class="fw-bold text-info mb-1">💎 Kim Cương</h6>
+                                <p class="text-muted small">Tích lũy trên 10tr</p>
+                            </div>
+                            <small class="text-primary fw-bold mt-2">Xem đặc quyền <i class="bi bi-chevron-right"></i></small>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="tier @(Model.MembershipLevel == "Bạc" ? "active" : "")"
-                     data-bs-toggle="modal" data-bs-target="#modalBac">
-                    🥈 Bạc
-                    <small>3tr - 10tr</small>
-                </div>
-
-                <div class="tier @(Model.MembershipLevel == "Kim cương" ? "active" : "")"
-                     data-bs-toggle="modal" data-bs-target="#modalKimCuong">
-                    💎 Kim cương
-                    <small>> 10tr</small>
-                </div>
-
             </div>
-        </div>
 
-        <hr class="my-4" />
-
-        <!-- 📋 Info -->
-        <div class="row text-start small">
-            <div class="col-md-6 mb-2">📞 <b>@Model.Phone</b></div>
-            <div class="col-md-6 mb-2">📅 @Model.CreatedAt?.ToString("dd/MM/yyyy")</div>
-            <div class="col-md-6 mb-2">⏱ @Model.LastLogin?.ToString("dd/MM/yyyy HH:mm")</div>
-        </div>
-
-        <!-- Buttons -->
-        <div class="mt-4 d-flex justify-content-center gap-2">
-            <a asp-action="EditProfile" class="btn btn-primary">✏️ Chỉnh sửa</a>
-            <a asp-controller="Customer" asp-action="Logout" class="btn btn-outline-danger">Đăng xuất</a>
         </div>
 
     </div>
+
 </div>
-<style>
-.profile-card {
-    background:#fff;
-    border-radius:20px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.1);
-}
 
-.avatar {
-    width:120px;height:120px;
-    border-radius:50%;
-    object-fit:cover;
-    box-shadow:0 5px 15px rgba(0,0,0,0.2);
-}
-
-.membership-badge {
-    border:none;
-    padding:10px 20px;
-    border-radius:20px;
-    font-weight:bold;
-    cursor:pointer;
-    transition:0.2s;
-}
-.membership-badge:hover { transform:scale(1.1); }
-
-.bronze { background:#ffcc80; }
-.silver { background:#cfd8dc; }
-.diamond { background:#90caf9; }
-
-.progress { height:20px; }
-.progress-custom {
-    background:linear-gradient(90deg,#00c6ff,#0072ff);
-}
-
-.tier-wrapper {
-    display:flex;
-    gap:10px;
-}
-
-.tier {
-    flex:1;
-    padding:12px;
-    border-radius:12px;
-    background:#f5f5f5;
-    cursor:pointer;
-    transition:0.3s;
-}
-.tier:hover { transform:translateY(-3px); }
-
-.tier.active {
-    background:linear-gradient(135deg,#00c6ff,#0072ff);
-    color:white;
-    transform:scale(1.05);
-}
-
-.tier small {
-    display:block;
-    font-size:12px;
-}
-</style>
-
-
+<!-- Bronze Privilege Modal -->
 <div class="modal fade" id="modalDong" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header border-0" style="background: #e67e22; color: white;">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 rounded-top-4" style="background: linear-gradient(135deg, #d97706, #f59e0b); color: white;">
                 <h5 class="modal-title fw-bold">🥉 ĐẶC QUYỀN HẠNG ĐỒNG</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
-                <ul class="list-unstyled">
-                    <li class="mb-3"><i class="bi bi-star-fill text-warning me-2"></i> <b>Tích điểm:</b> Tích lũy 3% giá trị hóa đơn.</li>
-                    <li class="mb-3"><i class="bi bi-gift-fill text-danger me-2"></i> <b>Quà sinh nhật:</b> Tặng 1 combo bắp nước miễn phí.</li>
-                    <li class="mb-3"><i class="bi bi-lightning-charge-fill text-primary me-2"></i> <b>Ưu đãi:</b> Nhận tin tức sớm nhất về các phim bom tấn và suất chiếu sớm.</li>
-                    <li><i class="bi bi-check-circle-fill text-success me-2"></i> <b>Đặt vé:</b> Đặt vé trực tuyến nhanh chóng, không chờ đợi.</li>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-3 d-flex align-items-start"><i class="bi bi-star-fill text-warning me-3 mt-1"></i> <span><b>Tích điểm:</b> Tích lũy 3% giá trị hóa đơn.</span></li>
+                    <li class="mb-3 d-flex align-items-start"><i class="bi bi-gift-fill text-danger me-3 mt-1"></i> <span><b>Quà sinh nhật:</b> Tặng 1 combo bắp nước miễn phí.</span></li>
+                    <li class="mb-3 d-flex align-items-start"><i class="bi bi-lightning-charge-fill text-primary me-3 mt-1"></i> <span><b>Ưu đãi:</b> Nhận tin tức sớm nhất về các phim bom tấn và suất chiếu sớm.</span></li>
+                    <li class="d-flex align-items-start"><i class="bi bi-check-circle-fill text-success me-3 mt-1"></i> <span><b>Đặt vé:</b> Đặt vé trực tuyến nhanh chóng, không lo hết chỗ.</span></li>
                 </ul>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Bạc -->
+<!-- Silver Privilege Modal -->
 <div class="modal fade" id="modalBac" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header border-0" style="background: #95a5a6; color: white;">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 rounded-top-4" style="background: linear-gradient(135deg, #475569, #94a3b8); color: white;">
                 <h5 class="modal-title fw-bold">🥈 ĐẶC QUYỀN HẠNG BẠC</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
-                <p class="text-muted small italic">Bao gồm tất cả quyền lợi hạng Đồng và thêm:</p>
-                <ul class="list-unstyled">
-                    <li class="mb-3"><i class="bi bi-star-fill text-warning me-2"></i> <b>Tích điểm:</b> Tích lũy 7% giá trị hóa đơn (Gấp đôi hạng Đồng).</li>
-                    <li class="mb-3"><i class="bi bi-ticket-perforated-fill text-danger me-2"></i> <b>Quà sinh nhật:</b> Tặng 01 cặp vé xem phim 2D miễn phí.</li>
-                    <li class="mb-3"><i class="bi bi-percent text-success me-2"></i> <b>Happy Day:</b> Giảm thêm 10% bắp nước vào thứ 3 hàng tuần.</li>
-                    <li><i class="bi bi-award-fill text-primary me-2"></i> <b>Quà tặng độc quyền:</b> Ưu tiên đổi điểm nhận các vật phẩm phim (ly, túi, mô hình).</li>
+                <p class="text-muted small italic border-bottom pb-2">Bao gồm tất cả quyền lợi hạng Đồng và thêm:</p>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-3 d-flex align-items-start"><i class="bi bi-star-fill text-warning me-3 mt-1"></i> <span><b>Tích điểm:</b> Tích lũy 7% giá trị hóa đơn (Gấp đôi hạng Đồng).</span></li>
+                    <li class="mb-3 d-flex align-items-start"><i class="bi bi-ticket-perforated-fill text-danger me-3 mt-1"></i> <span><b>Quà sinh nhật:</b> Tặng 01 cặp vé xem phim 2D miễn phí.</span></li>
+                    <li class="mb-3 d-flex align-items-start"><i class="bi bi-percent text-success me-3 mt-1"></i> <span><b>Happy Day:</b> Giảm thêm 10% bắp nước vào thứ 3 hàng tuần.</span></li>
+                    <li class="d-flex align-items-start"><i class="bi bi-award-fill text-primary me-3 mt-1"></i> <span><b>Quà tặng độc quyền:</b> Ưu tiên đổi điểm nhận các vật phẩm phim đặc sắc.</span></li>
                 </ul>
             </div>
         </div>
     </div>
 </div>
-<!-- Kim cương -->
+
+<!-- Diamond Privilege Modal -->
 <div class="modal fade" id="modalKimCuong" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header border-0" style="background: linear-gradient(135deg, #3498db, #2c3e50); color: white;">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 rounded-top-4" style="background: linear-gradient(135deg, #0891b2, #06b6d4); color: white;">
                 <h5 class="modal-title fw-bold">💎 ĐẶC QUYỀN KIM CƯƠNG</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
-                <p class="text-primary fw-bold">Hạng thành viên cao quý nhất</p>
-                <ul class="list-unstyled">
-                    <li class="mb-3"><i class="bi bi-star-fill text-warning me-2"></i> <b>Tích điểm:</b> Tích lũy tối đa 10% giá trị hóa đơn.</li>
-                    <li class="mb-3"><i class="bi bi-gem text-info me-2"></i> <b>Quà sinh nhật VIP:</b> Combo 2 vé giường nằm/VIP + Suất ăn nhẹ tại rạp.</li>
-                    <li class="mb-3"><i class="bi bi-person-workspace text-danger me-2"></i> <b>Phục vụ ưu tiên:</b> Quầy check-in riêng, không cần xếp hàng.</li>
-                    <li class="mb-3"><i class="bi bi-arrow-up-circle-fill text-success me-2"></i> <b>Nâng cấp miễn phí:</b> Nâng cấp lên ghế VIP miễn phí nếu rạp còn trống.</li>
-                    <li><i class="bi bi-calendar-event-fill text-warning me-2"></i> <b>Sự kiện:</b> Vé mời tham gia các buổi Premiere ra mắt phim cùng nghệ sĩ.</li>
+                <p class="text-primary fw-bold border-bottom pb-2">Hạng thành viên cao quý nhất của CineZone:</p>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-3 d-flex align-items-start"><i class="bi bi-star-fill text-warning me-3 mt-1"></i> <span><b>Tích điểm:</b> Tích lũy tối đa 10% giá trị hóa đơn.</span></li>
+                    <li class="mb-3 d-flex align-items-start"><i class="bi bi-gem text-info me-3 mt-1"></i> <span><b>Quà sinh nhật VIP:</b> Combo 2 vé giường nằm/VIP + phần ăn nhẹ sang trọng tại rạp.</span></li>
+                    <li class="mb-3 d-flex align-items-start"><i class="bi bi-person-workspace text-danger me-3 mt-1"></i> <span><b>Phục vụ ưu tiên:</b> Lối đi riêng, quầy check-in riêng không cần chờ đợi.</span></li>
+                    <li class="mb-3 d-flex align-items-start"><i class="bi bi-arrow-up-circle-fill text-success me-3 mt-1"></i> <span><b>Nâng cấp miễn phí:</b> Tự động nâng cấp lên hạng ghế VIP nếu phòng chiếu còn chỗ trống.</span></li>
+                    <li class="d-flex align-items-start"><i class="bi bi-calendar-event-fill text-warning me-3 mt-1"></i> <span><b>Sự kiện đặc quyền:</b> Nhận vé mời tham gia Premiere ra mắt phim cùng nghệ sĩ.</span></li>
                 </ul>
             </div>
         </div>

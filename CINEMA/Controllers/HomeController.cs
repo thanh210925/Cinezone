@@ -198,19 +198,15 @@ namespace CINEMA.Controllers
         [HttpGet]
         public IActionResult GetMoviesByTheater(int theaterId)
         {
+            var now = DateTime.Now; // Lấy thời gian hiện tại
             var movies = _context.Showtimes
                 .Include(s => s.Movie)
                 .Include(s => s.Auditorium)
-                .Where(s =>
-                       s.Auditorium.TheaterId == theaterId &&
-                       s.IsActive == true &&
-                       s.Movie.IsActive == true &&
-                       s.StartTime >= DateTime.Now)
-                .Select(s => new
-                {
-                    s.Movie.MovieId,
-                    s.Movie.Title
-                })
+                .Where(s => s.Auditorium.TheaterId == theaterId &&
+                            s.IsActive == true &&
+                            s.Movie.IsActive == true &&
+                            s.StartTime > now) // Thay >= bằng > để loại bỏ các suất vừa đúng giờ này
+                .Select(s => new { s.Movie.MovieId, s.Movie.Title })
                 .Distinct()
                 .OrderBy(m => m.Title)
                 .ToList();
@@ -222,16 +218,15 @@ namespace CINEMA.Controllers
         [HttpGet]
         public IActionResult GetShowtimes(int theaterId, int movieId)
         {
+            var now = DateTime.Now;
             var showtimes = _context.Showtimes
                 .Include(s => s.Auditorium)
-                 .Where(s =>
-                       s.Auditorium.TheaterId == theaterId &&
-                       s.MovieId == movieId &&
-                       s.IsActive == true &&
-                       s.StartTime >= DateTime.Now)
-             .OrderBy(s => s.StartTime)
-                .Select(s => new
-                {
+                .Where(s => s.Auditorium.TheaterId == theaterId &&
+                            s.MovieId == movieId &&
+                            s.IsActive == true &&
+                            s.StartTime > now) // Chỉ lấy các suất chưa diễn ra
+                .OrderBy(s => s.StartTime)
+                .Select(s => new {
                     s.ShowtimeId,
                     Date = s.StartTime!.Value.ToString("yyyy-MM-dd"),
                     Time = s.StartTime!.Value.ToString("HH:mm"),
@@ -347,17 +342,24 @@ namespace CINEMA.Controllers
         public IActionResult Schedule(DateTime? date)
         {
             var selectedDate = date?.Date ?? DateTime.Today;
+            var now = DateTime.Now; // Khai báo biến 'now' ở đây
 
+            // 1. Lấy danh sách phim có lịch chiếu trong ngày được chọn
             var movies = _context.Movies
                 .Include(m => m.Genres)
-                .Include(m => m.Showtimes)
-                    .ThenInclude(s => s.Auditorium)
+                .Include(m => m.Showtimes.Where(s =>
+                    s.StartTime.HasValue &&
+                    ((selectedDate > DateTime.Today) || (s.StartTime > now))
+                ))
+                .ThenInclude(s => s.Auditorium)
                     .ThenInclude(a => a.Theater)
                 .Where(m =>
-                       m.IsActive == true &&
-                       m.Showtimes.Any(s =>
-                           s.StartTime.HasValue &&
-                           s.StartTime.Value.Date == selectedDate))
+                    m.IsActive == true &&
+                    m.Showtimes.Any(s =>
+                        s.StartTime.HasValue &&
+                        s.StartTime.Value.Date == selectedDate &&
+                        ((selectedDate > DateTime.Today) || (s.StartTime > now))
+                    ))
                 .OrderBy(m => m.Title)
                 .ToList();
 
@@ -795,24 +797,23 @@ namespace CINEMA.Controllers
         [HttpGet]
         public IActionResult MoviesByGenre(int genreId)
         {
-            LogActivity("VIEW_GENRE", genreId: genreId);
-
-            var genre = _context.Genres
-                .FirstOrDefault(g => g.GenreId == genreId);
+            // 1. Tìm thể loại trước để lấy tên
+            var genre = _context.Genres.FirstOrDefault(g => g.GenreId == genreId);
 
             if (genre == null)
                 return NotFound("Thể loại không tồn tại.");
 
+            // 2. Ghi log: Truyền genre.Name vào tham số metadata
+            LogActivity("VIEW_GENRE", genreId: genreId, metadata: "Thể loại: " + genre.Name);
+
+            // 3. Lấy danh sách phim như cũ
             var movies = _context.Movies
                 .Include(m => m.Genres)
-                .Where(m =>
-                    m.IsActive == true &&
-                    m.Genres.Any(g => g.GenreId == genreId))
+                .Where(m => m.IsActive == true && m.Genres.Any(g => g.GenreId == genreId))
                 .OrderByDescending(m => m.ReleaseDate)
                 .ToList();
 
             ViewBag.GenreName = genre.Name;
-
             return View(movies);
         }
     }
