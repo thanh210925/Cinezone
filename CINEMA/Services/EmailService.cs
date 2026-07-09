@@ -103,6 +103,7 @@ namespace CINEMA.Services
 
             foreach (var movie in movies)
             {
+                string movieDetailUrl = $"{baseUrl.TrimEnd('/')}/Home/BookTicket/{movie.MovieId}";
                 // Xử lý PosterUrl
                 string posterUrl = movie.PosterUrl ?? "";
                 if (!string.IsNullOrEmpty(posterUrl) && (posterUrl.StartsWith("/") || posterUrl.StartsWith("\\")))
@@ -121,35 +122,44 @@ namespace CINEMA.Services
 
                 sb.Append($@"
             <div class='movie-card'>
-                <div class='movie-info-container'>
-                    <div class='movie-poster-cell'>
-                        <img class='movie-poster' src='{posterUrl}' alt='{movie.Title}' />
+                <a href='{movieDetailUrl}' style='text-decoration: none; display: block; color: inherit;'>
+                    <div class='movie-info-container'>
+                        <div class='movie-poster-cell'>
+                            <img class='movie-poster' src='{posterUrl}' alt='{movie.Title}' />
+                        </div>
+                        <div class='movie-details-cell'>
+                            <h3 class='movie-title'>{movie.Title}</h3>
+                            <div class='movie-meta'>
+                                <span class='{ageClass}'>{ageRating}</span>
+                                <span class='meta-tag'>{movie.Language ?? "Phụ đề"}</span>
+                            </div>
+                            <div style='font-size: 13px; color: #94a3b8; margin: 4px 0;'>
+                                <strong>Thời lượng:</strong> {durationText}
+                            </div>
+                            <div style='font-size: 13px; color: #94a3b8; margin: 4px 0;'>
+                                <strong>Quốc gia:</strong> {movie.Country ?? "Chưa rõ"}
+                            </div>
+                            <div style='font-size: 13px; color: #94a3b8; margin: 4px 0;'>
+                                <strong>Khởi chiếu:</strong> {releaseDateText}
+                            </div>
+                            <p class='movie-desc'>{movie.Description ?? "Không có mô tả chi tiết cho bộ phim này."}</p>
+                            <div style='margin-top: 12px;'>
+                                <span style='display: inline-block; background: linear-gradient(90deg, #ec4899 0%, #f43f5e 100%); color: #ffffff; font-size: 12px; font-weight: bold; padding: 6px 15px; border-radius: 20px; text-decoration: none; box-shadow: 0 2px 5px rgba(244, 63, 94, 0.3);'>🎟 ĐẶT VÉ NGAY</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class='movie-details-cell'>
-                        <h3 class='movie-title'>{movie.Title}</h3>
-                        <div class='movie-meta'>
-                            <span class='{ageClass}'>{ageRating}</span>
-                            <span class='meta-tag'>{movie.Language ?? "Phụ đề"}</span>
-                        </div>
-                        <div style='font-size: 13px; color: #94a3b8; margin: 4px 0;'>
-                            <strong>Thời lượng:</strong> {durationText}
-                        </div>
-                        <div style='font-size: 13px; color: #94a3b8; margin: 4px 0;'>
-                            <strong>Quốc gia:</strong> {movie.Country ?? "Chưa rõ"}
-                        </div>
-                        <div style='font-size: 13px; color: #94a3b8; margin: 4px 0;'>
-                            <strong>Khởi chiếu:</strong> {releaseDateText}
-                        </div>
-                        <p class='movie-desc'>{movie.Description ?? "Không có mô tả chi tiết cho bộ phim này."}</p>
-                    </div>
-                </div>
+                </a>
             </div>
 ");
             }
 
+            string globalCtaUrl = movies.Count == 1
+                ? $"{baseUrl.TrimEnd('/')}/Home/BookTicket/{movies[0].MovieId}"
+                : baseUrl;
+
             sb.Append($@"
             <div class='cta-container'>
-                <a href='{baseUrl}' class='cta-btn'>ĐẶT VÉ NGAY</a>
+                <a href='{globalCtaUrl}' class='cta-btn'>ĐẶT VÉ NGAY</a>
             </div>
         </div>
         <div class='footer'>

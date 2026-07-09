@@ -78,6 +78,7 @@ namespace CINEMA.Controllers
                     // Nhân bản list phim để tránh EF DbContext reference issues trong đa luồng
                     var moviesToNotify = validMovies.Select(m => new Movie
                     {
+                        MovieId = m.MovieId,
                         Title = m.Title,
                         Description = m.Description,
                         Duration = m.Duration,
@@ -165,6 +166,7 @@ namespace CINEMA.Controllers
                     // Nhân bản list phim để tránh EF DbContext reference issues trong đa luồng
                     var moviesToNotify = importedMovies.Select(m => new Movie
                     {
+                        MovieId = m.MovieId,
                         Title = m.Title,
                         Description = m.Description,
                         Duration = m.Duration,
@@ -272,6 +274,13 @@ namespace CINEMA.Controllers
                 .FirstOrDefault(m => m.MovieId == id);
 
             if (movie == null) return NotFound();
+
+            // Xóa log hoạt động và lượt xem liên quan đến phim
+            var activityLogs = _context.UserActivityLogs.Where(l => l.MovieId == id);
+            _context.UserActivityLogs.RemoveRange(activityLogs);
+
+            var movieViews = _context.UserMovieViews.Where(v => v.MovieId == id);
+            _context.UserMovieViews.RemoveRange(movieViews);
 
             // Xóa vé + suất chiếu
             if (movie.Showtimes != null)

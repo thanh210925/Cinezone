@@ -21,7 +21,7 @@ namespace CINEMA.Services // Đổi namespace cho khớp với dự án của b�
                 var apiKey = _config["GeminiApiKey"];
 
                 // Dùng model gemini-1.5-flash cho tốc độ phản hồi nhanh nhất
-                var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={"keyAPI"}";
+                var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={apiKey}";
                 // Tạo cấu trúc dữ liệu JSON đúng chuẩn mà Google yêu cầu
                 var requestBody = new
                 {
