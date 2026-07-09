@@ -21,6 +21,46 @@ namespace CINEMA.Controllers
         // ==================== DANH SÁCH PHIM ====================
         public IActionResult Index()
         {
+            // Tự động ngưng chiếu các phim có ngày kết thúc (EndDate) đã qua, hoặc toàn bộ suất chiếu đã kết thúc
+            var now = DateTime.Now;
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var activeMovies = _context.Movies
+                .Include(m => m.Showtimes)
+                .Where(m => m.IsActive == true)
+                .ToList();
+
+            var modified = false;
+            foreach (var m in activeMovies)
+            {
+                // 1. Kiểm tra ngày kết thúc của phim (EndDate)
+                if (m.EndDate.HasValue && m.EndDate.Value < today)
+                {
+                    m.IsActive = false;
+                    modified = true;
+                }
+                // 2. Hoặc kiểm tra nếu tất cả các suất chiếu đã kết thúc
+                else if (m.Showtimes.Any())
+                {
+                    bool allEnded = m.Showtimes.All(s => {
+                        if (s.EndTime.HasValue) return s.EndTime < now;
+                        if (s.StartTime.HasValue && m.Duration.HasValue)
+                            return s.StartTime.Value.AddMinutes(m.Duration.Value) < now;
+                        return s.StartTime < now;
+                    });
+
+                    if (allEnded)
+                    {
+                        m.IsActive = false;
+                        modified = true;
+                    }
+                }
+            }
+
+            if (modified)
+            {
+                _context.SaveChanges();
+            }
+
             var movies = _context.Movies
                 .OrderByDescending(m => m.ReleaseDate)
                 .ToList();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CINEMA.Models;
@@ -18,6 +18,8 @@ public partial class Movie
     public string? PosterUrl { get; set; }
 
     public DateOnly? ReleaseDate { get; set; }
+
+    public DateOnly? EndDate { get; set; }
 
     public string? Language { get; set; }
 

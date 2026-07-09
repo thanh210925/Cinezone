@@ -1,4 +1,4 @@
-﻿@model CINEMA.Models.Movie
+@model CINEMA.Models.Movie
 @{
     ViewData["Title"] = "Chi tiết phim";
     Layout = "_AdminLayout";
@@ -26,6 +26,7 @@
                 <h3 class="fw-bold mb-3">@Model.Title</h3>
                 <p><b>⏱ Thời lượng:</b> @(Model.Duration.HasValue? Model.Duration + " phút" : "-")</p>
                 <p><b>📅 Ngày khởi chiếu:</b> @(Model.ReleaseDate.HasValue? Model.ReleaseDate.Value.ToString("dd/MM/yyyy") : "-")</p>
+                <p><b>📅 Ngày kết thúc chiếu:</b> @(Model.EndDate.HasValue? Model.EndDate.Value.ToString("dd/MM/yyyy") : "-")</p>
                 <p><b>🌍 Quốc gia:</b> @Model.Country</p>
                 <p><b>🗣 Ngôn ngữ:</b> @Model.Language</p>
                 <p><b>🔞 Giới hạn tuổi:</b> @Model.AgeRating</p>

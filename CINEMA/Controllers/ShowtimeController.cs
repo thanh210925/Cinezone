@@ -1,4 +1,4 @@
-﻿using CINEMA.Models;
+using CINEMA.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CINEMA.Helpers;

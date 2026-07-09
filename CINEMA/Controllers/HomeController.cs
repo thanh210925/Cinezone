@@ -35,6 +35,7 @@ namespace CINEMA.Controllers
             var keywordNoSign = RemoveDiacritics(keyword);
 
             var movies = _context.Movies
+                .Include(m => m.Genres)
                 .AsEnumerable()
                 .Where(m =>
                     m.ReleaseDate.HasValue &&
@@ -57,6 +58,11 @@ namespace CINEMA.Controllers
             HttpContext.Session.SetString("LatestInteraction", "Search");
             HttpContext.Session.SetString("LatestSearchKeyword", keyword);
 
+            // Ghi log tìm kiếm vào UserActivityLogs để cá nhân hóa gợi ý
+            int? searchMovieId = movies.FirstOrDefault()?.MovieId;
+            int? searchGenreId = movies.FirstOrDefault()?.Genres?.FirstOrDefault()?.GenreId;
+            LogActivity("SEARCH", movieId: searchMovieId, genreId: searchGenreId, metadata: keyword);
+
             if (!movies.Any())
             {
                 ViewBag.SuggestMovies = _context.Movies
@@ -74,12 +80,52 @@ namespace CINEMA.Controllers
         public IActionResult Index()
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
+            var now = DateTime.Now;
+
+            // Tự động ngưng chiếu các phim có ngày kết thúc (EndDate) đã qua, hoặc toàn bộ suất chiếu đã kết thúc
+            var activeMovies = _context.Movies
+                .Include(m => m.Showtimes)
+                .Where(m => m.IsActive == true)
+                .ToList();
+
+            var modified = false;
+            foreach (var m in activeMovies)
+            {
+                // 1. Kiểm tra ngày kết thúc của phim (EndDate)
+                if (m.EndDate.HasValue && m.EndDate.Value < today)
+                {
+                    m.IsActive = false;
+                    modified = true;
+                }
+                // 2. Hoặc kiểm tra nếu tất cả các suất chiếu đã kết thúc
+                else if (m.Showtimes.Any())
+                {
+                    bool allEnded = m.Showtimes.All(s => {
+                        if (s.EndTime.HasValue) return s.EndTime < now;
+                        if (s.StartTime.HasValue && m.Duration.HasValue)
+                            return s.StartTime.Value.AddMinutes(m.Duration.Value) < now;
+                        return s.StartTime < now;
+                    });
+
+                    if (allEnded)
+                    {
+                        m.IsActive = false;
+                        modified = true;
+                    }
+                }
+            }
+
+            if (modified)
+            {
+                _context.SaveChanges();
+            }
 
             // Phim đang chiếu
             var movies = _context.Movies
                 .Where(m => m.IsActive == true &&
                             m.ReleaseDate.HasValue &&
-                            m.ReleaseDate <= today)
+                            m.ReleaseDate <= today &&
+                            (!m.EndDate.HasValue || m.EndDate >= today))
                 .OrderByDescending(m => m.ReleaseDate)
                 .ToList();
 
@@ -350,29 +396,43 @@ namespace CINEMA.Controllers
         [HttpGet]
         public IActionResult Schedule(DateTime? date)
         {
-            var selectedDate = date?.Date ?? DateTime.Today;
-            var now = DateTime.Now; // Khai báo biến 'now' ở đây
+            var today = DateTime.Today;
+            var maxDate = today.AddDays(29); // Cho phép chọn bấm xem lịch cả tháng
+            
+            var selectedDate = date?.Date ?? today;
+            if (selectedDate < today || selectedDate > maxDate)
+            {
+                selectedDate = today;
+            }
+            
+            var now = DateTime.Now;
+            var isRestricted = selectedDate > today.AddDays(1); // Chỉ cho phép xem suất chiếu 2 ngày gần nhất
+            
+            List<Movie> movies = new List<Movie>();
 
-            // 1. Lấy danh sách phim có lịch chiếu trong ngày được chọn
-            var movies = _context.Movies
-                .Include(m => m.Genres)
-                .Include(m => m.Showtimes.Where(s =>
-                    s.StartTime.HasValue &&
-                    ((selectedDate > DateTime.Today) || (s.StartTime > now))
-                ))
-                .ThenInclude(s => s.Auditorium)
-                    .ThenInclude(a => a.Theater)
-                .Where(m =>
-                    m.IsActive == true &&
-                    m.Showtimes.Any(s =>
+            if (!isRestricted)
+            {
+                movies = _context.Movies
+                    .Include(m => m.Genres)
+                    .Include(m => m.Showtimes.Where(s =>
                         s.StartTime.HasValue &&
-                        s.StartTime.Value.Date == selectedDate &&
                         ((selectedDate > DateTime.Today) || (s.StartTime > now))
                     ))
-                .OrderBy(m => m.Title)
-                .ToList();
+                    .ThenInclude(s => s.Auditorium)
+                        .ThenInclude(a => a.Theater)
+                    .Where(m =>
+                        m.IsActive == true &&
+                        m.Showtimes.Any(s =>
+                            s.StartTime.HasValue &&
+                            s.StartTime.Value.Date == selectedDate &&
+                            ((selectedDate > DateTime.Today) || (s.StartTime > now))
+                        ))
+                    .OrderBy(m => m.Title)
+                    .ToList();
+            }
 
             ViewBag.SelectedDate = selectedDate;
+            ViewBag.IsRestricted = isRestricted;
 
             return View(movies);
         }
@@ -641,86 +701,64 @@ namespace CINEMA.Controllers
             var today = DateOnly.FromDateTime(DateTime.Today);
             var customerId = HttpContext.Session.GetInt32("CustomerId");
 
-            string? interactionType = HttpContext.Session.GetString("LatestInteraction");
-            string? searchKeyword = HttpContext.Session.GetString("LatestSearchKeyword");
-            int? clickedMovieId = HttpContext.Session.GetInt32("LatestClickedMovieId");
-
-            // Fallback to database logs if Session doesn't have them
-            if (string.IsNullOrEmpty(interactionType))
-            {
-                var latestClick = _context.UserActivityLogs
-                    .Where(l => (customerId != null && l.CustomerId == customerId) || l.SessionId == HttpContext.Session.Id)
-                    .Where(l => l.MovieId != null && (l.ActivityType == "VIEW_MOVIE" || l.ActivityType == "BOOK_TICKET"))
-                    .OrderByDescending(l => l.CreatedAt)
-                    .FirstOrDefault();
-
-                var latestSearch = customerId != null ? _context.UserSearchLogs
-                    .Where(s => s.CustomerId == customerId)
-                    .OrderByDescending(s => s.CreatedAt)
-                    .FirstOrDefault() : null;
-
-                if (latestClick != null && latestSearch != null)
-                {
-                    if (latestSearch.CreatedAt > latestClick.CreatedAt)
-                    {
-                        interactionType = "Search";
-                        searchKeyword = latestSearch.Keyword;
-                    }
-                    else
-                    {
-                        interactionType = "Click";
-                        clickedMovieId = latestClick.MovieId;
-                    }
-                }
-                else if (latestClick != null)
-                {
-                    interactionType = "Click";
-                    clickedMovieId = latestClick.MovieId;
-                }
-                else if (latestSearch != null)
-                {
-                    interactionType = "Search";
-                    searchKeyword = latestSearch.Keyword;
-                }
-            }
-
-            List<Movie> recommendedMovies = new List<Movie>();
             List<int> targetGenreIds = new List<int>();
-            int? excludeMovieId = null;
 
-            if (interactionType == "Click" && clickedMovieId.HasValue)
+            // [1] Nếu người dùng đã đăng nhập: Gợi ý cá nhân hóa dựa trên lịch sử hoạt động cá nhân
+            if (customerId.HasValue)
             {
-                excludeMovieId = clickedMovieId.Value;
-                var clickedMovie = _context.Movies
-                    .Include(m => m.Genres)
-                    .FirstOrDefault(m => m.MovieId == excludeMovieId && m.IsActive == true);
-
-                if (clickedMovie != null && clickedMovie.Genres != null)
-                {
-                    targetGenreIds = clickedMovie.Genres.Select(g => g.GenreId).ToList();
-                }
-            }
-            else if (interactionType == "Search" && !string.IsNullOrEmpty(searchKeyword))
-            {
-                var keywordNoSign = RemoveDiacritics(searchKeyword);
-                var matchedMovies = _context.Movies
-                    .Include(m => m.Genres)
-                    .Where(m => m.IsActive == true)
-                    .AsEnumerable()
-                    .Where(m => RemoveDiacritics(m.Title ?? "").Contains(keywordNoSign))
+                targetGenreIds = _context.UserActivityLogs
+                    .Where(l => l.CustomerId == customerId && (l.MovieId != null || l.GenreId != null))
+                    .Include(l => l.Movie)
+                        .ThenInclude(m => m.Genres)
+                    .Include(l => l.Genre)
+                    .AsSplitQuery()
+                    .ToList()
+                    .SelectMany(l => {
+                        var list = new List<Genre>();
+                        if (l.Genre != null) list.Add(l.Genre);
+                        if (l.Movie?.Genres != null) list.AddRange(l.Movie.Genres);
+                        return list;
+                    })
+                    .GroupBy(g => g.GenreId)
+                    .Select(group => new {
+                        GenreId = group.Key,
+                        Count = group.Count()
+                    })
+                    .OrderByDescending(x => x.Count)
+                    .Select(x => x.GenreId)
+                    .Take(3)
                     .ToList();
-
-                if (matchedMovies.Any())
-                {
-                    targetGenreIds = matchedMovies
-                        .SelectMany(m => m.Genres)
-                        .Select(g => g.GenreId)
-                        .Distinct()
-                        .ToList();
-                }
             }
 
-            // Lấy danh sách phim Khách hàng đã xem để loại trừ (chỉ áp dụng nếu đã đăng nhập)
+            // [2] Nếu là khách chưa đăng nhập HOẶC khách đã đăng nhập nhưng chưa có lịch sử hoạt động:
+            // Gợi ý dựa trên lịch sử hoạt động tổng của tất cả người dùng (xu hướng chung)
+            if (!targetGenreIds.Any())
+            {
+                targetGenreIds = _context.UserActivityLogs
+                    .Where(l => l.MovieId != null || l.GenreId != null)
+                    .Include(l => l.Movie)
+                        .ThenInclude(m => m.Genres)
+                    .Include(l => l.Genre)
+                    .AsSplitQuery()
+                    .ToList()
+                    .SelectMany(l => {
+                        var list = new List<Genre>();
+                        if (l.Genre != null) list.Add(l.Genre);
+                        if (l.Movie?.Genres != null) list.AddRange(l.Movie.Genres);
+                        return list;
+                    })
+                    .GroupBy(g => g.GenreId)
+                    .Select(group => new {
+                        GenreId = group.Key,
+                        Count = group.Count()
+                    })
+                    .OrderByDescending(x => x.Count)
+                    .Select(x => x.GenreId)
+                    .Take(3)
+                    .ToList();
+            }
+
+            // Lấy danh sách phim Khách hàng đã xem/đã mua để loại trừ (nếu đã đăng nhập)
             var viewedMovieIds = customerId.HasValue 
                 ? _context.UserMovieViews
                     .Where(v => v.CustomerId == customerId.Value)
@@ -728,12 +766,13 @@ namespace CINEMA.Controllers
                     .ToList()
                 : new List<int>();
 
+            List<Movie> recommendedMovies = new List<Movie>();
+
             if (targetGenreIds.Any())
             {
                 recommendedMovies = _context.Movies
                     .Include(m => m.Genres)
                     .Where(m => m.IsActive == true 
-                             && m.MovieId != excludeMovieId
                              && m.Genres.Any(g => targetGenreIds.Contains(g.GenreId))
                              && !viewedMovieIds.Contains(m.MovieId)
                              && m.ReleaseDate.HasValue
@@ -749,7 +788,6 @@ namespace CINEMA.Controllers
                 var currentRecommendedIds = recommendedMovies.Select(r => r.MovieId).ToList();
                 var fallbackMovies = _context.Movies
                     .Where(m => m.IsActive == true
-                             && m.MovieId != excludeMovieId
                              && !viewedMovieIds.Contains(m.MovieId)
                              && !currentRecommendedIds.Contains(m.MovieId)
                              && m.ReleaseDate.HasValue

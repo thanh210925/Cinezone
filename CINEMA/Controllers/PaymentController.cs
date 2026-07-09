@@ -437,6 +437,27 @@ namespace CINEMA.Controllers
                         voucher.UsedCount++;
                     }
                 }
+
+                // 📌 GHI LOG ĐẶT VÉ THÀNH CÔNG VÀO DATABASE
+                var firstTicket = order.Tickets.FirstOrDefault();
+                int? logMovieId = null;
+                if (firstTicket != null)
+                {
+                    var showtimeObj = _context.Showtimes.Find(firstTicket.ShowtimeId);
+                    logMovieId = showtimeObj?.MovieId;
+                }
+                
+                var successLog = new UserActivityLog
+                {
+                    CustomerId = order.CustomerId,
+                    SessionId = HttpContext.Session.Id,
+                    ActivityType = "BOOK_TICKET",
+                    MovieId = logMovieId,
+                    Metadata = $"Thanh toán thành công qua VNPAY cho đơn hàng #{order.OrderId}.",
+                    CreatedAt = DateTime.Now
+                };
+                _context.UserActivityLogs.Add(successLog);
+
                 _context.SaveChanges();
 
                 ViewBag.Total = order.TotalAmount;

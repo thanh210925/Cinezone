@@ -291,6 +291,11 @@
                         <i class="bi bi-speedometer2"></i><span>Dashboard</span>
                     </a>
                 </li>
+                <li>
+                    <a asp-controller="Admin" asp-action="ChatSupport" class="@IsActive("Admin", "ChatSupport")">
+                        <i class="bi bi-chat-dots-fill"></i><span>Hỗ trợ Khách hàng</span>
+                    </a>
+                </li>
 
                 @if (role == "SuperAdmin")
                 {
@@ -478,6 +483,20 @@
         </main>
     </div>
 
+    <!-- Toast Container cho thông báo tin nhắn mới toàn cục -->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        <div id="globalChatToast" class="toast align-items-center text-white bg-primary border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" style="display: none; transition: opacity 0.3s ease; border-radius: 10px;">
+            <div class="d-flex p-2">
+                <div class="toast-body">
+                    <strong id="toast-title" class="d-block mb-1 text-warning">🔔 Tin nhắn mới</strong>
+                    <span id="toast-body-text">Bạn nhận được một tin nhắn mới từ khách hàng.</span>
+                    <a href="/Admin/ChatSupport" class="btn btn-light btn-sm text-primary fw-bold d-block mt-2" style="width: fit-content;">Hỗ trợ ngay</a>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="document.getElementById('globalChatToast').style.display = 'none';"></button>
+            </div>
+        </div>
+    </div>
+
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 
@@ -518,6 +537,41 @@
                 sidebar.classList.remove('show-mobile');
                 overlay.classList.remove('show');
                 icon.className = 'bi bi-list'; // Trả lại icon list
+            }
+
+            // Hàm hiển thị Toast thông báo toàn cục
+            window.showGlobalToast = function(title, message) {
+                let toast = document.getElementById('globalChatToast');
+                document.getElementById('toast-title').innerText = title;
+                document.getElementById('toast-body-text').innerText = message;
+                toast.style.display = 'block';
+                toast.style.opacity = '1';
+                
+                // Tự động ẩn sau 8 giây
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => { toast.style.display = 'none'; }, 300);
+                }, 8000);
+            };
+
+            // Nếu KHÔNG phải trang ChatSupport, kết nối SignalR để nhận thông báo tin nhắn toàn cục
+            if (window.location.pathname.toLowerCase().indexOf('/admin/chatsupport') === -1) {
+                let script = document.createElement('script');
+                script.src = "https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js";
+                script.onload = function() {
+                    let conn = new signalR.HubConnectionBuilder()
+                        .withUrl("/chatHub")
+                        .withAutomaticReconnect()
+                        .build();
+
+                    conn.on("ReceiveMessageFromCustomer", function (customerId, customerName, messageText, time, isFirstMessage) {
+                        let title = isFirstMessage ? `🎉 Khách hàng mới: ${customerName}` : `✉️ Tin nhắn mới từ ${customerName}`;
+                        window.showGlobalToast(title, messageText);
+                    });
+
+                    conn.start().catch(err => console.log("SignalR global listener failed: ", err));
+                };
+                document.head.appendChild(script);
             }
     </script>
 </body>

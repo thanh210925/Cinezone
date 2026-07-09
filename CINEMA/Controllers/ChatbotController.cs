@@ -1,4 +1,4 @@
-﻿using CINEMA.Models;
+using CINEMA.Models;
 using CINEMA.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -130,6 +130,28 @@ Quy tắc:
             {
                 return Json($"❌ Lỗi hệ thống: {ex.Message}");
             }
+        }
+
+        [HttpGet]
+        public IActionResult GetChatHistory()
+        {
+            var customerId = HttpContext.Session.GetInt32("CustomerId");
+            if (customerId == null)
+                return Json(new { success = false, message = "Chưa đăng nhập" });
+
+            var messages = _context.ChatMessages
+                .Where(m => m.CustomerId == customerId.Value)
+                .OrderBy(m => m.CreatedAt)
+                .Select(m => new
+                {
+                    type = m.IsFromCustomer ? "user" : "admin",
+                    senderName = m.IsFromCustomer ? "Bạn" : "Nhân viên hỗ trợ",
+                    text = m.MessageText,
+                    time = m.CreatedAt.ToString("HH:mm dd/MM")
+                })
+                .ToList();
+
+            return Json(new { success = true, messages = messages });
         }
 
         // =====================================================

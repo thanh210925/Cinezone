@@ -1,4 +1,4 @@
-﻿using CINEMA.Models;
+using CINEMA.Models;
 using CINEMA.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -56,6 +56,17 @@ namespace CINEMA.Controllers
             };
 
             _context.Customers.Add(customer);
+            _context.SaveChanges();
+
+            // Ghi log hoạt động đăng ký
+            _context.UserActivityLogs.Add(new UserActivityLog
+            {
+                CustomerId = customer.CustomerId,
+                SessionId = HttpContext.Session.Id,
+                ActivityType = "REGISTER",
+                Metadata = $"Khách hàng {customer.FullName} đăng ký tài khoản thành công.",
+                CreatedAt = DateTime.Now
+            });
             _context.SaveChanges();
 
             // Sau khi đăng ký → về trang Login
@@ -117,6 +128,20 @@ namespace CINEMA.Controllers
             HttpContext.Session.SetString("CustomerName", customer.FullName);
             HttpContext.Session.SetString("CustomerEmail", customer.Email);
 
+            // Cập nhật đăng nhập cuối của người dùng
+            customer.LastLogin = DateTime.Now;
+            
+            // Ghi log hoạt động đăng nhập
+            _context.UserActivityLogs.Add(new UserActivityLog
+            {
+                CustomerId = customer.CustomerId,
+                SessionId = HttpContext.Session.Id,
+                ActivityType = "LOGIN",
+                Metadata = "Người dùng đăng nhập thành công.",
+                CreatedAt = DateTime.Now
+            });
+            _context.SaveChanges();
+
             // 🟩 Điều hướng
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                 return Redirect(model.ReturnUrl);
@@ -148,14 +173,37 @@ namespace CINEMA.Controllers
                 return View();
             }
 
+            // Ghi log hoạt động quên mật khẩu
+            _context.UserActivityLogs.Add(new UserActivityLog
+            {
+                CustomerId = customer.CustomerId,
+                SessionId = HttpContext.Session.Id,
+                ActivityType = "FORGOT_PASSWORD",
+                Metadata = "Khách hàng yêu cầu khôi phục mật khẩu.",
+                CreatedAt = DateTime.Now
+            });
+            _context.SaveChanges();
+ 
             ViewBag.Message = $"Hướng dẫn đặt lại mật khẩu đã được gửi đến {email}.";
             return View();
         }
 
-        // ------------------ 🟢 ĐĂNG XUẤT ------------------
         [HttpGet]
         public IActionResult Logout()
         {
+            var customerId = HttpContext.Session.GetInt32("CustomerId");
+            if (customerId.HasValue)
+            {
+                _context.UserActivityLogs.Add(new UserActivityLog
+                {
+                    CustomerId = customerId,
+                    SessionId = HttpContext.Session.Id,
+                    ActivityType = "LOGOUT",
+                    Metadata = "Khách hàng đăng xuất.",
+                    CreatedAt = DateTime.Now
+                });
+                _context.SaveChanges();
+            }
             HttpContext.Session.Clear();
             return RedirectToAction("Login", "Customer");
         }
@@ -207,6 +255,17 @@ namespace CINEMA.Controllers
 
             _context.SaveChanges();
 
+            // Ghi log hoạt động cập nhật hồ sơ
+            _context.UserActivityLogs.Add(new UserActivityLog
+            {
+                CustomerId = customer.CustomerId,
+                SessionId = HttpContext.Session.Id,
+                ActivityType = "EDIT_PROFILE",
+                Metadata = "Khách hàng cập nhật thông tin cá nhân.",
+                CreatedAt = DateTime.Now
+            });
+            _context.SaveChanges();
+ 
             return RedirectToAction("Profile");
         }
         // ================= LOGIN GOOGLE =================
@@ -266,6 +325,20 @@ namespace CINEMA.Controllers
             HttpContext.Session.SetInt32("CustomerId", customer.CustomerId);
             HttpContext.Session.SetString("CustomerName", customer.FullName);
             HttpContext.Session.SetString("CustomerEmail", customer.Email);
+
+            // Cập nhật đăng nhập cuối của người dùng
+            customer.LastLogin = DateTime.Now;
+
+            // Ghi log hoạt động đăng nhập
+            _context.UserActivityLogs.Add(new UserActivityLog
+            {
+                CustomerId = customer.CustomerId,
+                SessionId = HttpContext.Session.Id,
+                ActivityType = "LOGIN",
+                Metadata = "Người dùng đăng nhập thành công qua Google.",
+                CreatedAt = DateTime.Now
+            });
+            await _context.SaveChangesAsync();
 
             if (!string.IsNullOrEmpty(returnUrl)
                 && Url.IsLocalUrl(returnUrl))

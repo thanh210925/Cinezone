@@ -1,4 +1,4 @@
-﻿@model CINEMA.Models.Movie
+@model CINEMA.Models.Movie
 @{
     ViewData["Title"] = "Sửa phim";
     Layout = "_AdminLayout";
@@ -31,14 +31,19 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-4">
+                            <div class="col-md-4 mb-4">
                                 <label class="form-label fw-semibold">Thời lượng (phút)</label>
                                 <input asp-for="Duration" type="number" class="form-control" placeholder="120" />
                             </div>
-                            <div class="col-md-6 mb-4">
+                            <div class="col-md-4 mb-4">
                                 <label class="form-label fw-semibold">Ngày khởi chiếu</label>
                                 <input asp-for="ReleaseDate" type="date" class="form-control"
                                        value="@(Model.ReleaseDate.HasValue? Model.ReleaseDate.Value.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) : "")" />
+                            </div>
+                            <div class="col-md-4 mb-4">
+                                <label class="form-label fw-semibold">Ngày kết thúc chiếu</label>
+                                <input asp-for="EndDate" type="date" class="form-control"
+                                       value="@(Model.EndDate.HasValue? Model.EndDate.Value.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) : "")" />
                             </div>
                         </div>
 

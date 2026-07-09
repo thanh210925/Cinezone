@@ -1,4 +1,4 @@
-﻿@model CINEMA.Models.MovieListViewModel
+@model CINEMA.Models.MovieListViewModel
 @{
     ViewData["Title"] = "Quản lý nhập phim";
     Layout = "_AdminLayout";
@@ -68,13 +68,17 @@
                             <input name="Movies[${movieIndex}].Title" class="form-control" placeholder="Tên phim..." required>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="fw-bold small text-muted">Thời lượng (phút)</label>
                             <input name="Movies[${movieIndex}].Duration" type="number" class="form-control" placeholder="120">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="fw-bold small text-muted">Ngày khởi chiếu</label>
                             <input name="Movies[${movieIndex}].ReleaseDate" type="date" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="fw-bold small text-muted">Ngày kết thúc chiếu</label>
+                            <input name="Movies[${movieIndex}].EndDate" type="date" class="form-control">
                         </div>
 
                         <div class="col-md-4">

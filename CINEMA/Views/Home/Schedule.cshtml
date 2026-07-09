@@ -1,4 +1,4 @@
-﻿@model List<CINEMA.Models.Movie>
+@model List<CINEMA.Models.Movie>
 @{
     ViewData["Title"] = "Lịch chiếu phim";
     var selectedDate = (DateTime)ViewBag.SelectedDate;
@@ -14,41 +14,72 @@
         <p class="text-muted fs-5 mb-4">
             @selectedDate.ToString("dddd, dd/MM/yyyy", new System.Globalization.CultureInfo("vi-VN"))
         </p>
-        <form method="get"
-              class="bg-white rounded-pill shadow-lg mx-auto px-4 py-3 d-flex align-items-center justify-content-between"
-              style="max-width: 720px; gap: 16px;">
+        <div class="position-relative px-4 mx-auto" style="max-width: 900px;">
+            <!-- Nút mũi tên trái -->
+            <button type="button" class="scroll-arrow scroll-arrow-left" onclick="scrollTabs('left')">
+                <i class="bi bi-chevron-left"></i>
+            </button>
 
-            <!-- Nhóm trái: Icon + label + input -->
-            <div class="d-flex align-items-center flex-grow-1 gap-3">
-                <label class="text-muted fw-semibold mb-0 d-flex align-items-center gap-2">
-                    <i class="bi bi-calendar-date text-primary fs-5"></i>
-                    <span>Chọn ngày:</span>
-                </label>
+            <!-- Danh sách lịch cuộn ngang -->
+            <div id="dateTabsContainer" class="d-flex align-items-center gap-2 mb-4 pb-2" 
+                 style="overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none;">
+                @for (int i = 0; i < 30; i++)
+                {
+                    var day = DateTime.Today.AddDays(i);
+                    var isActive = selectedDate.Date == day.Date;
+                    
+                    string dayLabel = "";
+                    bool isWeekend = day.DayOfWeek == DayOfWeek.Saturday || day.DayOfWeek == DayOfWeek.Sunday;
 
-                <input type="date"
-                       name="date"
-                       class="form-control border-0 bg-light rounded-3 fw-semibold px-3 py-2"
-                       value="@selectedDate.ToString("yyyy-MM-dd")"
-                       style="max-width: 250px; height: 45px;" />
+                    if (i == 0) {
+                        dayLabel = "H.nay";
+                    } else {
+                        dayLabel = day.DayOfWeek switch {
+                            DayOfWeek.Sunday => "C.Nhật",
+                            DayOfWeek.Monday => "Thứ 2",
+                            DayOfWeek.Tuesday => "Thứ 3",
+                            DayOfWeek.Wednesday => "Thứ 4",
+                            DayOfWeek.Thursday => "Thứ 5",
+                            DayOfWeek.Friday => "Thứ 6",
+                            DayOfWeek.Saturday => "Thứ 7",
+                            _ => ""
+                        };
+                    }
+
+                    <a asp-action="Schedule" asp-route-date="@day.ToString("yyyy-MM-dd")" 
+                       class="date-tab @(isActive ? "date-tab-active" : "") @(isWeekend ? "date-tab-weekend" : "")"
+                       id="tab-@day.ToString("yyyy-MM-dd")">
+                        <span class="date-tab-header">@day.ToString("dd/MM")</span>
+                        <span class="date-tab-footer">@dayLabel</span>
+                    </a>
+                }
             </div>
 
-            <!-- Nút bấm bên phải -->
-            <button type="submit"
-                    class="btn btn-primary rounded-pill px-4 py-2 d-flex align-items-center gap-2 fw-semibold shadow-sm"
-                    style="height: 45px;">
-                <i class="bi bi-search"></i> Xem lịch
+            <!-- Nút mũi tên phải -->
+            <button type="button" class="scroll-arrow scroll-arrow-right" onclick="scrollTabs('right')">
+                <i class="bi bi-chevron-right"></i>
             </button>
-        </form>
+        </div>
+
+        <!-- Bộ lọc thời gian -->
+        <div class="d-flex justify-content-start justify-content-md-center align-items-center gap-2 flex-wrap mb-4 pb-3 border-bottom">
+            <button class="btn time-filter-btn btn-pink-active px-3 py-2 rounded-pill fw-semibold" onclick="filterTime('all', this)">Tất cả</button>
+            <button class="btn time-filter-btn btn-light-grey px-3 py-2 rounded-pill fw-semibold" onclick="filterTime('truoc12', this)">Trước 12:00</button>
+            <button class="btn time-filter-btn btn-light-grey px-3 py-2 rounded-pill fw-semibold" onclick="filterTime('12to15', this)">12:00 - 15:00</button>
+            <button class="btn time-filter-btn btn-light-grey px-3 py-2 rounded-pill fw-semibold" onclick="filterTime('15to18', this)">15:00 - 18:00</button>
+            <button class="btn time-filter-btn btn-light-grey px-3 py-2 rounded-pill fw-semibold" onclick="filterTime('18to21', this)">18:00 - 21:00</button>
+            <button class="btn time-filter-btn btn-light-grey px-3 py-2 rounded-pill fw-semibold" onclick="filterTime('sau21', this)">Sau 21:00</button>
+        </div>
 
     </div>
 
 
     @if (Model != null && Model.Any())
     {
-        <div class="row gy-4">
+        <div class="row gy-4" id="movieListContainer">
             @foreach (var movie in Model)
             {
-                <div class="col-12">
+                <div class="col-12 movie-card-item">
                     <div class="card shadow-lg border-0 overflow-hidden movie-card">
                         <div class="row g-0">
                             <!-- Movie Poster -->
@@ -113,7 +144,7 @@
                                         {
                                             @foreach (var theaterGroup in showtimesByTheater)
                                             {
-                                                <div class="mb-3">
+                                                <div class="mb-3 theater-block-item">
                                                     <!-- 🎯 TÊN RẠP -->
                                                     <h6 class="fw-bold text-primary mb-1">
                                                         <i class="bi bi-geo-alt-fill me-1"></i>
@@ -132,7 +163,8 @@
                                                                    asp-action="BookTicket"
                                                                    asp-route-id="@movie.MovieId"
                                                                    asp-route-showtimeId="@s.ShowtimeId"
-                                                                   class="btn-showtime shadow-sm text-decoration-none">
+                                                                   class="btn-showtime shadow-sm text-decoration-none"
+                                                                   data-time="@s.StartTime?.ToString("HH:mm")">
 
                                                                 <div class="fw-bold fs-5">
                                                                     @s.StartTime?.ToString("HH:mm")
@@ -171,63 +203,121 @@
     {
         <div class="text-center py-5">
             <i class="bi bi-calendar-x display-1 text-muted mb-4"></i>
-            <h4 class="text-muted mb-2">Không có suất chiếu</h4>
-            <p class="text-muted">Không có phim nào chiếu trong ngày này. Vui lòng chọn ngày khác.</p>
+            @if (ViewBag.IsRestricted == true)
+            {
+                <h4 class="text-muted mb-2">Hôm nay chưa có suất chiếu mới</h4>
+                <p class="text-muted">Suất chiếu cho ngày này chưa được mở bán. Vui lòng quay lại sau.</p>
+            }
+            else
+            {
+                <h4 class="text-muted mb-2">Không có suất chiếu</h4>
+                <p class="text-muted">Không có phim nào chiếu trong ngày này. Vui lòng chọn ngày khác.</p>
+            }
         </div>
     }
 </div>
 
-<!-- CSS -->
-<style>
-    body{
-        padding-top: 0;
-    }
-    .text-gradient {
-        background: linear-gradient(45deg, #0d6efd, #6610f2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
 
-    .movie-card {
-        border-radius: 16px;
-        overflow: hidden;
-        transition: all 0.3s ease;
-        background: #fff;
-    }
 
-        .movie-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-        }
-
-    .btn-showtime {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        width: 130px;
-        padding: 12px;
-        border-radius: 10px;
-        border: 2px solid #0d6efd;
-        color: #0d6efd;
-        background-color: #ffffff;
-        transition: all 0.2s ease;
-        text-align: center;
-    }
-
-        .btn-showtime:hover {
-            background: linear-gradient(135deg, #0d6efd, #5b9df9);
-            color: #fff;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 18px rgba(13,110,253,0.35);
-        }
-
-            .btn-showtime:hover .text-muted {
-                color: #e0e0e0 !important;
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Tự động cuộn tab ngày đang chọn vào giữa màn hình
+            let activeTab = document.querySelector(".date-tab-active");
+            if (activeTab) {
+                activeTab.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
             }
+        });
 
-    .theater-block {
-        padding: 10px 0;
-        border-bottom: 1px dashed #ccc;
-    }
-</style>
+        function filterTime(range, btn) {
+            // Cập nhật trạng thái active cho các nút bộ lọc
+            document.querySelectorAll('.time-filter-btn').forEach(b => {
+                b.classList.remove('btn-pink-active');
+                b.classList.add('btn-light-grey');
+            });
+            btn.classList.remove('btn-light-grey');
+            btn.classList.add('btn-pink-active');
+
+            // Định nghĩa mốc thời gian lọc
+            let minHour = 0, maxHour = 24;
+            if (range === 'truoc12') { maxHour = 12; }
+            else if (range === '12to15') { minHour = 12; maxHour = 15; }
+            else if (range === '15to18') { minHour = 15; maxHour = 18; }
+            else if (range === '18to21') { minHour = 18; maxHour = 21; }
+            else if (range === 'sau21') { minHour = 21; }
+
+            let totalVisibleMovies = 0;
+
+            document.querySelectorAll('.movie-card-item').forEach(movieCard => {
+                let movieHasVisibleShowtime = false;
+
+                movieCard.querySelectorAll('.theater-block-item').forEach(theaterBlock => {
+                    let theaterHasVisibleShowtime = false;
+
+                    theaterBlock.querySelectorAll('.btn-showtime').forEach(showtimeBtn => {
+                        let timeStr = showtimeBtn.getAttribute('data-time'); // Định dạng "HH:mm"
+                        if (timeStr) {
+                            let hour = parseInt(timeStr.split(':')[0]);
+                            if (hour >= minHour && hour < maxHour) {
+                                showtimeBtn.style.setProperty('display', 'inline-flex', 'important');
+                                theaterHasVisibleShowtime = true;
+                                movieHasVisibleShowtime = true;
+                            } else {
+                                showtimeBtn.style.setProperty('display', 'none', 'important');
+                            }
+                        }
+                    });
+
+                    // Ẩn/Hiện cụm rạp nếu không có suất chiếu thỏa mãn
+                    if (theaterHasVisibleShowtime) {
+                        theaterBlock.style.display = 'block';
+                    } else {
+                        theaterBlock.style.display = 'none';
+                    }
+                });
+
+                // Ẩn/Hiện bộ phim nếu không có suất chiếu nào thỏa mãn
+                if (movieHasVisibleShowtime) {
+                    movieCard.style.display = 'block';
+                    totalVisibleMovies++;
+                } else {
+                    movieCard.style.display = 'none';
+                }
+            });
+
+            // Hiển thị thông báo khi không có kết quả phù hợp
+            let noResultMsg = document.getElementById('noShowtimeResultMsg');
+            let container = document.getElementById('movieListContainer');
+            if (totalVisibleMovies === 0) {
+                if (!noResultMsg && container) {
+                    let msgHtml = `
+                        <div id="noShowtimeResultMsg" class="text-center py-5">
+                            <i class="bi bi-clock-history display-1 text-muted mb-4"></i>
+                            <h4 class="text-muted mb-2">Không có suất chiếu phù hợp</h4>
+                            <p class="text-muted">Không có suất chiếu nào trong khoảng thời gian đã chọn.</p>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('afterend', msgHtml);
+                } else if (noResultMsg) {
+                    noResultMsg.style.display = 'block';
+                }
+            } else {
+                if (noResultMsg) {
+                    noResultMsg.style.display = 'none';
+                }
+            }
+        }
+
+        function scrollTabs(direction) {
+            let container = document.getElementById('dateTabsContainer');
+            if (container) {
+                let scrollAmount = 270; // Cuộn khoảng 3 ô lịch mỗi lần bấm
+                if (direction === 'left') {
+                    container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                } else {
+                    container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                }
+            }
+        }
+    </script>
+}

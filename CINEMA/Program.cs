@@ -14,6 +14,7 @@ namespace CINEMA
 
             // 🟢 Add services
             builder.Services.AddControllersWithViews();
+            builder.Services.AddSignalR();
 
             builder.Services.AddDbContext<CinemaContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("CinemaDb")));
@@ -41,69 +42,31 @@ namespace CINEMA
                 options.LoginPath = "/Customer/Login";
             })
             // GG
-   ;
-           
+            ;
+
 
             var app = builder.Build();
 
-            // 🛠️ Tự động kiểm tra và tạo 3 bảng tracking nếu chưa có trong Database
+            // 🟢 Tự động thêm cột EndDate vào bảng Movies nếu chưa có
             using (var scope = app.Services.CreateScope())
             {
                 var context = scope.ServiceProvider.GetRequiredService<CinemaContext>();
                 try
                 {
                     context.Database.ExecuteSqlRaw(@"
-                        IF OBJECT_ID('dbo.UserActivityLogs', 'U') IS NULL
+                        IF NOT EXISTS (
+                            SELECT * FROM sys.columns 
+                            WHERE object_id = OBJECT_ID(N'[dbo].[Movies]') 
+                            AND name = 'EndDate'
+                        )
                         BEGIN
-                            CREATE TABLE [dbo].[UserActivityLogs] (
-                                [LogId] bigint IDENTITY(1,1) NOT NULL,
-                                [CustomerId] int NULL,
-                                [SessionId] nvarchar(max) NULL,
-                                [ActivityType] nvarchar(max) NOT NULL,
-                                [MovieId] int NULL,
-                                [GenreId] int NULL,
-                                [Metadata] nvarchar(max) NULL,
-                                [DeviceType] nvarchar(max) NULL,
-                                [CreatedAt] datetime2 NOT NULL,
-                                CONSTRAINT [PK_UserActivityLogs] PRIMARY KEY ([LogId]),
-                                CONSTRAINT [FK_UserActivityLogs_Customers_CustomerId] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customers] ([CustomerId]),
-                                CONSTRAINT [FK_UserActivityLogs_Genres_GenreId] FOREIGN KEY ([GenreId]) REFERENCES [dbo].[Genres] ([GenreId]),
-                                CONSTRAINT [FK_UserActivityLogs_Movies_MovieId] FOREIGN KEY ([MovieId]) REFERENCES [dbo].[Movies] ([MovieId])
-                            );
-                        END;
-
-                        IF OBJECT_ID('dbo.UserMovieViews', 'U') IS NULL
-                        BEGIN
-                            CREATE TABLE [dbo].[UserMovieViews] (
-                                [Id] bigint IDENTITY(1,1) NOT NULL,
-                                [CustomerId] int NOT NULL,
-                                [MovieId] int NOT NULL,
-                                [ViewCount] int NOT NULL,
-                                [LastViewedAt] datetime2 NOT NULL,
-                                CONSTRAINT [PK_UserMovieViews] PRIMARY KEY ([Id]),
-                                CONSTRAINT [FK_UserMovieViews_Customers_CustomerId] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customers] ([CustomerId]) ON DELETE CASCADE,
-                                CONSTRAINT [FK_UserMovieViews_Movies_MovieId] FOREIGN KEY ([MovieId]) REFERENCES [dbo].[Movies] ([MovieId]) ON DELETE CASCADE
-                            );
-                            CREATE UNIQUE INDEX [IX_UserMovieViews_CustomerId_MovieId] ON [dbo].[UserMovieViews] ([CustomerId], [MovieId]);
-                        END;
-
-                        IF OBJECT_ID('dbo.UserSearchLogs', 'U') IS NULL
-                        BEGIN
-                            CREATE TABLE [dbo].[UserSearchLogs] (
-                                [Id] bigint IDENTITY(1,1) NOT NULL,
-                                [CustomerId] int NULL,
-                                [Keyword] nvarchar(max) NOT NULL,
-                                [ResultCount] int NULL,
-                                [CreatedAt] datetime2 NOT NULL,
-                                CONSTRAINT [PK_UserSearchLogs] PRIMARY KEY ([Id]),
-                                CONSTRAINT [FK_UserSearchLogs_Customers_CustomerId] FOREIGN KEY ([CustomerId]) REFERENCES [dbo].[Customers] ([CustomerId])
-                            );
-                        END;
+                            ALTER TABLE [dbo].[Movies] ADD [EndDate] [date] NULL;
+                        END
                     ");
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // Bỏ qua lỗi nếu database chưa sẵn sàng hoặc không đủ quyền
+                    Console.WriteLine($"[DB Setup Error]: {ex.Message}");
                 }
             }
 
@@ -124,6 +87,8 @@ namespace CINEMA
             app.UseAuthorization();
 
       
+
+            app.MapHub<CINEMA.Hubs.ChatHub>("/chatHub");
 
             app.MapControllerRoute(
                 name: "default",

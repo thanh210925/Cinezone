@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
@@ -52,6 +52,13 @@
 </head>
 
 <body class="d-flex flex-column min-vh-100">
+    <script>
+        (function () {
+            if (localStorage.getItem("userTheme") === "dark") {
+                document.body.classList.add("dark-theme");
+            }
+        })();
+    </script>
 
     <header>
         <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow fixed-top">
@@ -87,7 +94,12 @@
                         </li>
                     </ul>
 
-                    <ul class="navbar-nav ms-auto">
+                    <ul class="navbar-nav ms-auto align-items-center">
+                        <li class="nav-item me-2">
+                            <button class="btn btn-link nav-link p-1 border-0" id="btn-theme-toggle" onclick="toggleTheme()" title="Đổi chế độ sáng/tối" style="box-shadow: none;">
+                                <i class="bi bi-moon-fill fs-5" id="theme-icon"></i>
+                            </button>
+                        </li>
                         @if (Context.Session.GetString("CustomerName") == null)
                         {
                             <li class="nav-item">
@@ -277,11 +289,15 @@
     <button id="btnBackToTop" title="Lên đầu trang">
         <i class="bi bi-arrow-up-short"></i>
     </button>
-    <div id="chat-toggle">💬</div>
+    <div id="chat-toggle">
+        💬
+        <span id="chat-badge" class="badge bg-danger rounded-pill" style="display: none; position: absolute; top: -5px; right: -5px; font-size: 10px; padding: 4px 6px;">0</span>
+    </div>
 
     <div id="chatbox">
         <div id="chat-header">
-            🎬 Hỗ trợ đặt vé
+            <span id="chat-header-title">🎬 Hỗ trợ đặt vé</span>
+            <span id="back-to-bot" style="display: none; cursor: pointer; margin-right: 15px; font-size: 12px; color: #ffc107;" onclick="switchToBotChat()">🤖 Hỏi Bot</span>
             <span onclick="toggleChat()" style="cursor: pointer;">✖</span>
         </div>
 
@@ -295,6 +311,7 @@
                 <button onclick="quickAsk('phim đang chiếu')">🎬 Phim đang chiếu</button>
                 <button onclick="quickAsk('lịch chiếu')">⏰ Lịch chiếu</button>
                 <button onclick="quickAsk('ghế trống')">💺 Ghế trống</button>
+                <button onclick="switchToHumanChat()" style="background-color: #0d6efd; color: white;">💬 Gặp nhân viên</button>
             </div>
         </div>
 
@@ -307,6 +324,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 
@@ -333,67 +351,174 @@
         });
 
         // SCRIPT CHATBOX
+        let isHumanChatMode = false;
+        let customerChatConnection = null;
+        let unreadCount = 0;
+        let isUserLoggedIn = @(Context.Session.GetInt32("CustomerId") != null ? "true" : "false");
+
         function toggleChat() {
-        let box = document.getElementById("chatbox");
-        box.style.display = box.style.display === "none" || box.style.display === "" ? "block" : "none";
+            let box = document.getElementById("chatbox");
+            let isOpening = box.style.display === "none" || box.style.display === "";
+            box.style.display = isOpening ? "block" : "none";
+            
+            if (isOpening) {
+                unreadCount = 0;
+                let badge = document.getElementById("chat-badge");
+                badge.style.display = "none";
+                badge.innerText = "0";
+            }
         }
 
         document.getElementById("chat-toggle").onclick = toggleChat;
 
-        function addMessage(text, type) {
-        let div = document.createElement("div");
-        div.className = "message " + type;
-        let bubble = `<div class="bubble">${text}</div>`;
+        function addMessage(text, type, time = null) {
+            let div = document.createElement("div");
+            div.className = "message " + (type === "user" ? "user" : "bot");
+            
+            let avatarIcon = type === "bot" ? "🤖" : (type === "admin" ? "👨‍💼" : "");
+            let avatarHtml = avatarIcon ? `<div class="avatar">${avatarIcon}</div>` : "";
+            
+            let timeColor = type === "user" ? "#ffeef4" : "#6c757d";
+            let timeHtml = time ? `<small class="d-block mt-1" style="font-size: 9px; color: ${timeColor}; text-align: ${type === 'user' ? 'right' : 'left'}">${time}</small>` : "";
+            let bubble = `<div class="bubble">${text}${timeHtml}</div>`;
 
-        if (type === "bot") {
-        div.innerHTML = `<div class="avatar">🤖</div>` + bubble;
-        } else {
-        div.innerHTML = bubble;
-        }
+            div.innerHTML = avatarHtml + bubble;
 
-        document.getElementById("chat-body").appendChild(div);
-        let body = document.getElementById("chat-body");
-        body.scrollTop = body.scrollHeight;
+            document.getElementById("chat-body").appendChild(div);
+            let body = document.getElementById("chat-body");
+            body.scrollTop = body.scrollHeight;
         }
 
         function sendMessage() {
-        let input = document.getElementById("chatInput");
-        let msg = input.value.trim();
+            let input = document.getElementById("chatInput");
+            let msg = input.value.trim();
 
-        if (!msg) return;
+            if (!msg) return;
 
-        addMessage(msg, "user");
+            if (isHumanChatMode) {
+                if (customerChatConnection && customerChatConnection.state === signalR.HubConnectionState.Connected) {
+                    customerChatConnection.invoke("SendMessageFromCustomer", msg)
+                        .catch(err => console.error("Gửi tin nhắn qua SignalR thất bại: ", err));
+                    input.value = "";
+                } else {
+                    addMessage("❌ Mất kết nối. Vui lòng bấm 'Gặp nhân viên' để kết nối lại.", "bot");
+                }
+            } else {
+                addMessage(msg, "user");
 
-        let typing = document.createElement("div");
-        typing.className = "message bot";
-        typing.id = "typing";
-        typing.innerHTML = `<div class="avatar">🤖</div><div class="bubble">Đang trả lời...</div>`;
-        document.getElementById("chat-body").appendChild(typing);
+                let typing = document.createElement("div");
+                typing.className = "message bot";
+                typing.id = "typing";
+                typing.innerHTML = `<div class="avatar">🤖</div><div class="bubble">Đang trả lời...</div>`;
+                document.getElementById("chat-body").appendChild(typing);
 
-        let body = document.getElementById("chat-body");
-        body.scrollTop = body.scrollHeight;
+                let body = document.getElementById("chat-body");
+                body.scrollTop = body.scrollHeight;
 
-        fetch('/Chatbot/Ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg })
-        })
-        .then(res => res.json())
-        .then(data => {
-        document.getElementById("typing")?.remove();
-        addMessage(data, "bot");
-        });
+                fetch('/Chatbot/Ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("typing")?.remove();
+                    addMessage(data, "bot");
+                });
 
-        input.value = "";
+                input.value = "";
+            }
         }
 
         document.getElementById("chatInput").addEventListener("keypress", function (e) {
-        if (e.key === "Enter") sendMessage();
+            if (e.key === "Enter") sendMessage();
         });
 
         function quickAsk(text) {
-        document.getElementById("chatInput").value = text;
-        sendMessage();
+            document.getElementById("chatInput").value = text;
+            sendMessage();
+        }
+
+        function switchToHumanChat() {
+            if (!isUserLoggedIn) {
+                addMessage("🤖 Bạn vui lòng đăng nhập để gặp nhân viên hỗ trợ nhé!", "bot");
+                return;
+            }
+
+            isHumanChatMode = true;
+            document.getElementById("chat-header-title").innerText = "👨‍💼 Hỗ trợ trực tuyến";
+            document.getElementById("back-to-bot").style.setProperty("display", "inline", "important");
+
+            let chatBody = document.getElementById("chat-body");
+            chatBody.innerHTML = `<div class="text-center py-3 text-muted">Đang tải lịch sử chat...</div>`;
+
+            fetch('/Chatbot/GetChatHistory')
+                .then(res => res.json())
+                .then(data => {
+                    chatBody.innerHTML = "";
+                    if (data.success && data.messages.length > 0) {
+                        data.messages.forEach(msg => {
+                            addMessage(msg.text, msg.type, msg.time);
+                        });
+                    } else {
+                        addMessage("Xin chào! Nhân viên rạp phim CineZone có thể giúp gì cho bạn ạ?", "admin");
+                    }
+                    
+                    initCustomerSignalR();
+                });
+        }
+
+        function switchToBotChat() {
+            isHumanChatMode = false;
+            document.getElementById("chat-header-title").innerText = "🎬 Hỗ trợ đặt vé";
+            document.getElementById("back-to-bot").style.setProperty("display", "none", "important");
+            
+            let chatBody = document.getElementById("chat-body");
+            chatBody.innerHTML = `
+                <div class="message bot">
+                    <div class="avatar">🤖</div>
+                    <div class="bubble">Chào bạn! Tôi đã trở lại. Bạn muốn hỏi gì thêm không?</div>
+                </div>
+                <div class="suggestions">
+                    <button onclick="quickAsk('phim đang chiếu')">🎬 Phim đang chiếu</button>
+                    <button onclick="quickAsk('lịch chiếu')">⏰ Lịch chiếu</button>
+                    <button onclick="quickAsk('ghế trống')">💺 Ghế trống</button>
+                    <button onclick="switchToHumanChat()" style="background-color: #0d6efd; color: white;">💬 Gặp nhân viên</button>
+                </div>
+            `;
+        }
+
+        function initCustomerSignalR() {
+            if (customerChatConnection) return;
+
+            customerChatConnection = new signalR.HubConnectionBuilder()
+                .withUrl("/chatHub")
+                .withAutomaticReconnect()
+                .build();
+
+            customerChatConnection.on("ReceiveMessageFromAdmin", function (adminName, messageText, time) {
+                let box = document.getElementById("chatbox");
+                if (box.style.display === "block" && isHumanChatMode) {
+                    addMessage(messageText, "admin", time);
+                } else {
+                    unreadCount++;
+                    let badge = document.getElementById("chat-badge");
+                    badge.innerText = unreadCount;
+                    badge.style.display = "block";
+                }
+            });
+
+            customerChatConnection.on("ReceiveMessage", function (senderType, messageText, time) {
+                if (isHumanChatMode) {
+                    addMessage(messageText, senderType, time);
+                }
+            });
+
+            customerChatConnection.start().catch(err => console.error("Customer SignalR connection error: ", err));
+        }
+
+        if (isUserLoggedIn) {
+            setTimeout(initCustomerSignalR, 2000);
         }
         // ==========================================
         // 🚀 SCRIPT BACK TO TOP
@@ -418,24 +543,27 @@
         });
         const btn = document.getElementById("themeBtn");
 
-btn.onclick = function () {
+        if (btn) {
+            btn.onclick = function () {
+                document.body.classList.toggle("dark-mode");
+                if(document.body.classList.contains("dark-mode")){
+                    localStorage.setItem("theme","dark");
+                    btn.innerHTML="☀️ Light Mode";
+                }else{
+                    localStorage.setItem("theme","light");
+                    btn.innerHTML="🌙 Dark Mode";
+                }
+            }
 
-    document.body.classList.toggle("dark-mode");
-
-    if(document.body.classList.contains("dark-mode")){
-        localStorage.setItem("theme","dark");
-        btn.innerHTML="☀️ Light Mode";
-    }else{
-        localStorage.setItem("theme","light");
-        btn.innerHTML="🌙 Dark Mode";
-    }
-
-}
-
-if(localStorage.getItem("theme")=="dark"){
-    document.body.classList.add("dark-mode");
-    btn.innerHTML="☀️ Light Mode";
-}
+            if(localStorage.getItem("theme")=="dark"){
+                document.body.classList.add("dark-mode");
+                btn.innerHTML="☀️ Light Mode";
+            }
+        } else {
+            if(localStorage.getItem("theme")=="dark"){
+                document.body.classList.add("dark-mode");
+            }
+        }
     </script>
 </body>
 </html>

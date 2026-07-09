@@ -38,13 +38,108 @@
                         @Model.Description
                     </p>
 
-                    <!-- Nút Trailer (Đã khôi phục) -->
-                    @if (!string.IsNullOrEmpty(Model.TrailerUrl))
-                    {
-                        <button type="button" class="btn btn-outline-danger btn-sm fw-bold mb-4" data-bs-toggle="modal" data-bs-target="#trailerModal" data-trailer="@Model.TrailerUrl" data-title="@Model.Title">
-                            <i class="bi bi-play-circle-fill me-1"></i> Xem trailer
-                        </button>
-                    }
+                    <!-- Nút Trailer & Chia sẻ -->
+                    <style>
+                        .share-title {
+                            font-weight: 600;
+                            font-size: 0.88rem;
+                            color: #495057;
+                        }
+                        .btn-share-custom {
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 6px;
+                            font-size: 0.82rem;
+                            font-weight: 600;
+                            padding: 6px 14px;
+                            border-radius: 8px;
+                            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                            text-decoration: none;
+                            cursor: pointer;
+                            border: none;
+                        }
+                        .btn-share-facebook {
+                            background-color: #e7f0ff;
+                            color: #1877F2;
+                        }
+                        .btn-share-facebook:hover {
+                            background-color: #1877F2;
+                            color: #ffffff;
+                            transform: translateY(-2px);
+                            box-shadow: 0 4px 10px rgba(24, 119, 242, 0.3);
+                        }
+                        .btn-share-zalo {
+                            background-color: #e5f1ff;
+                            color: #0068FF;
+                        }
+                        .btn-share-zalo:hover {
+                            background-color: #0068FF;
+                            color: #ffffff;
+                            transform: translateY(-2px);
+                            box-shadow: 0 4px 10px rgba(0, 104, 255, 0.3);
+                        }
+                        .btn-share-tiktok {
+                            background-color: #f1f1f1;
+                            color: #000000;
+                        }
+                        .btn-share-tiktok:hover {
+                            background-color: #000000;
+                            color: #ffffff;
+                            transform: translateY(-2px);
+                            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+                        }
+                        .btn-share-messenger {
+                            background-color: #e5f4ff;
+                            color: #0084FF;
+                        }
+                        .btn-share-messenger:hover {
+                            background-color: #0084FF;
+                            color: #ffffff;
+                            transform: translateY(-2px);
+                            box-shadow: 0 4px 10px rgba(0, 132, 255, 0.3);
+                        }
+                        .btn-share-success {
+                            background-color: #198754 !important;
+                            color: #ffffff !important;
+                            transform: scale(1.03);
+                        }
+                    </style>
+
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+                        @if (!string.IsNullOrEmpty(Model.TrailerUrl))
+                        {
+                            <button type="button" class="btn btn-outline-danger btn-sm fw-bold me-2" data-bs-toggle="modal" data-bs-target="#trailerModal" data-trailer="@Model.TrailerUrl" data-title="@Model.Title">
+                                <i class="bi bi-play-circle-fill me-1"></i> Xem trailer
+                            </button>
+                        }
+
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="share-title"><i class="bi bi-share-fill text-muted me-1"></i> Chia sẻ:</span>
+                            
+                            <!-- Facebook Share -->
+                            <a href="#" onclick="shareFacebook(window.location.href); return false;" class="btn-share-custom btn-share-facebook" title="Chia sẻ lên Facebook">
+                                <i class="bi bi-facebook"></i> Facebook
+                            </a>
+
+                            <!-- Messenger (Sao chép link) -->
+                            <button type="button" onclick="copyShareLink(this)" class="btn-share-custom btn-share-messenger" title="Sao chép liên kết cho Messenger">
+                                <i class="bi bi-messenger"></i> Messenger
+                            </button>
+
+                            <!-- Zalo (Sao chép link) -->
+                            <button type="button" onclick="copyShareLink(this)" class="btn-share-custom btn-share-zalo" title="Sao chép liên kết cho Zalo">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style="vertical-align: -0.125em;">
+                                    <path d="M12 2C6.477 2 2 5.82 2 10.533c0 2.656 1.42 5.016 3.656 6.575-.126.782-.555 2.455-.66 2.875-.13.522.186.514.39.38 1.543-.996 3.612-2.392 4.544-2.88 3.511.787 7.07-.937 8.07-4.95C19.07 7.82 15.93 2 12 2zm.75 12h-3.5v-1.5l2.25-2.25H9.25V9h3.5v1.5L10.5 12.75h2.25V14z"/>
+                                </svg> Zalo
+                            </button>
+
+                            <!-- TikTok Share (Sao chép link) -->
+                            <button type="button" onclick="copyShareLink(this)" class="btn-share-custom btn-share-tiktok" title="Sao chép liên kết cho TikTok">
+                                <i class="bi bi-tiktok"></i> Sao chép link
+                            </button>
+                        </div>
+                    </div>
 
                     <!-- Danh sách suất chiếu (Đã khôi phục) -->
                   <div class="border-top pt-4">
@@ -552,6 +647,64 @@
 
             calcTotal();
             updateSelectedSeats();
+        }
+
+        // Chia sẻ mạng xã hội
+        window.shareFacebook = function(url) {
+            window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), 'sharer', 'toolbar=0,status=0,width=626,height=436');
+        };
+
+        // Sao chép liên kết trực tiếp cho các nút khác
+
+
+        window.copyShareLink = function(button) {
+            const url = window.location.href;
+            
+            const showSuccess = () => {
+                const originalContent = button.innerHTML;
+                button.innerHTML = '<i class="bi bi-check2"></i> Đã chép!';
+                button.classList.add('btn-share-success');
+                setTimeout(() => {
+                    button.innerHTML = originalContent;
+                    button.classList.remove('btn-share-success');
+                }, 2000);
+            };
+
+            // Kiểm tra và sử dụng API Clipboard hiện đại nếu khả dụng trong Secure Context (HTTPS/localhost)
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(showSuccess).catch(err => {
+                    fallbackCopyText(url, showSuccess);
+                });
+            } else {
+                fallbackCopyText(url, showSuccess);
+            }
+        };
+
+        function fallbackCopyText(text, callback) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0"; // Ẩn khỏi màn hình
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    callback();
+                } else {
+                    console.error('execCommand copy không thành công');
+                    alert('Không thể tự động sao chép. Bạn hãy copy thủ công từ thanh địa chỉ nhé!');
+                }
+            } catch (err) {
+                console.error('Lỗi khi sao chép liên kết bằng execCommand: ', err);
+                alert('Không thể tự động sao chép. Bạn hãy copy thủ công từ thanh địa chỉ nhé!');
+            }
+
+            document.body.removeChild(textArea);
         }
     </script>
 }
