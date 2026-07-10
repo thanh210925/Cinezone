@@ -645,16 +645,7 @@ document.addEventListener("DOMContentLoaded", function () {
             )
         );
 
-               // Khởi tạo Swiper (Đặt ngay trên cùng của thẻ script)
-               var swiper = new Swiper(".popularSwiper", {
-            slidesPerView: "auto",
-            centeredSlides: true,
-            loop: true,
-            spaceBetween: 30
-        });
-        let movieRank = 0;
-            function renderMovie(movie) {
-                movieRank++;
+        function renderMovie(movie, rank) {
             const slide = document.createElement("div");
             slide.className = "swiper-slide";
 
@@ -662,93 +653,94 @@ document.addEventListener("DOMContentLoaded", function () {
             const ageRating = movie.ageRating || "P";
             const duration = movie.duration || 0;
             let rankBadge = "";
-    if (movieRank <= 3) {
-        let icon = movieRank === 1 ? '<i class="bi bi-crown-fill me-1"></i>' : (movieRank === 2 ? '<i class="bi bi-trophy-fill me-1"></i>' : '<i class="bi bi-award-fill me-1"></i>');
-        rankBadge = `<div class="rank-badge rank-${movieRank}">${icon}Top ${movieRank}</div>`;
-    }
-                    slide.innerHTML = `
-        <div class="movie-card shadow-lg border rounded-4 overflow-hidden position-relative">
-            ${rankBadge}
-            <div class="movie-poster-container">
-
-                <img src="${movie.posterUrl}"
-                     class="w-100"
-                     style="height:400px; object-fit:cover;">
-
-                <div class="movie-overlay">
-
-                    <div class="overlay-content text-center">
-
-                        <div class="movie-meta mb-3">
-                            <span class="badge bg-secondary me-2">${ageRating}</span>
-                            <span class="text-white">${duration} phút</span>
+            if (rank <= 3) {
+                let icon = rank === 1 ? '<i class="bi bi-crown-fill me-1"></i>' : (rank === 2 ? '<i class="bi bi-trophy-fill me-1"></i>' : '<i class="bi bi-award-fill me-1"></i>');
+                rankBadge = `<div class="rank-badge rank-${rank}">${icon}Top ${rank}</div>`;
+            }
+            slide.innerHTML = `
+                <div class="movie-card shadow-lg border rounded-4 overflow-hidden position-relative">
+                    ${rankBadge}
+                    <div class="movie-poster-container">
+                        <img src="${movie.posterUrl}"
+                             class="w-100"
+                             style="height:400px; object-fit:cover;">
+                        <div class="movie-overlay">
+                            <div class="overlay-content text-center">
+                                <div class="movie-meta mb-3">
+                                    <span class="badge bg-secondary me-2">${ageRating}</span>
+                                    <span class="text-white">${duration} phút</span>
+                                </div>
+                                <a href="/Home/BookTicket/${movie.movieId}?isRecommend=true"
+                                   class="btn btn-danger rounded-pill px-4">
+                                    Đặt vé
+                                </a>
+                            </div>
                         </div>
-
-                        <a href="/Home/BookTicket/${movie.movieId}"
-                           class="btn btn-danger rounded-pill px-4">
-                            Đặt vé
-                        </a>
-
                     </div>
-
-                </div>
-
-            </div>
-
-            <div class="p-3 bg-white text-center">
-                <h5 class="fw-bold text-truncate mb-0">${movie.title}</h5>
-            </div>
-
-        </div>`;
-            swiper.appendSlide(slide);
+                    <div class="p-3 bg-white text-center">
+                        <h5 class="fw-bold text-truncate mb-0">${movie.title}</h5>
+                    </div>
+                </div>`;
+            list.appendChild(slide);
         }
-        // Hiển thị phim được xem nhiều trước
+
+        const allMovies = [];
+
+        // Lấy danh sách phim phổ biến trước
         popularMovies.forEach(movie => {
-
-            movieIds.add(movie.movieId);
-
-            renderMovie(movie);
-
+            if (!movieIds.has(movie.movieId)) {
+                movieIds.add(movie.movieId);
+                allMovies.push(movie);
+            }
         });
 
-        // Cập nhật lại Swiper và hiển thị Top 1 ở giữa đầu tiên
-        swiper.update();
-        if (swiper.params.loop) {
-            swiper.loopDestroy();
-            swiper.loopCreate();
-        }
-        swiper.slideToLoop(0, 0);
-
-        // Sau đó thêm phim gợi ý
+        // Sau đó thêm phim gợi ý và khởi tạo Swiper
         fetch("/Home/Recommend")
             .then(res => res.json())
             .then(data => {
+                if (data && data.length > 0) {
+                    data.forEach(movie => {
+                        if (!movieIds.has(movie.movieId)) {
+                            movieIds.add(movie.movieId);
+                            allMovies.push(movie);
+                        }
+                    });
+                }
+            })
+            .catch(err => console.log(err))
+            .finally(() => {
+                // Nếu số lượng phim từ 2 đến 4, nhân bản danh sách phim để Swiper loop chạy mượt mà
+                let moviesToRender = [...allMovies];
+                if (allMovies.length > 1 && allMovies.length < 5) {
+                    while (moviesToRender.length < 5) {
+                        moviesToRender = moviesToRender.concat(allMovies);
+                    }
+                }
 
-                if (!data)
-                    return;
-
-                data.forEach(movie => {
-
-                    if (movieIds.has(movie.movieId))
-                        return;
-
-                    movieIds.add(movie.movieId);
-
-                    renderMovie(movie);
-
+                // Render toàn bộ phim vào DOM
+                moviesToRender.forEach(movie => {
+                    const rank = allMovies.indexOf(movie) + 1;
+                    renderMovie(movie, rank);
                 });
 
-                // Cập nhật lại Swiper sau khi thêm các phim gợi ý
-                swiper.update();
-                if (swiper.params.loop) {
-                    swiper.loopDestroy();
-                    swiper.loopCreate();
+                // Chỉ bật loop khi tổng số phim > 1
+                const isLoopable = moviesToRender.length > 1;
+
+                // Khởi tạo Swiper SAU KHI toàn bộ phim đã được thêm vào DOM
+                const swiper = new Swiper(".popularSwiper", {
+                    slidesPerView: "auto",
+                    centeredSlides: true,
+                    loop: isLoopable,
+                    spaceBetween: 30,
+                    grabCursor: true
+                });
+                
+                if (isLoopable) {
+                    swiper.slideToLoop(0, 0);
+                } else {
+                    swiper.slideTo(0, 0);
                 }
-                swiper.slideToLoop(0, 0);
-
-            })
-            .catch(err => console.log(err));
-
+            });
     }
 
     // =========================
