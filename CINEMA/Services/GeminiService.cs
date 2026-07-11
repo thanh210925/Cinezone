@@ -14,12 +14,21 @@ namespace CINEMA.Services // Đổi namespace cho khớp với dự án của b�
             _config = config;
         }
 
+        public bool HasValidKey
+        {
+            get
+            {
+                var apiKey = _config["GeminiApiKey"];
+                return !string.IsNullOrEmpty(apiKey) && apiKey != "AQ.KeyAPI" && apiKey != "apiKey";
+            }
+        }
+
         public async Task<string> Ask(string message)
         {
             var apiKey = _config["GeminiApiKey"];
-            if (string.IsNullOrEmpty("keyAPI") || apiKey == "apiKey")
+            if (string.IsNullOrEmpty(apiKey) || apiKey == "AQ.KeyAPI" || apiKey == "apiKey")
             {
-                apiKey = "keyAPI";
+                // Bỏ qua hoặc cấu hình dự phòng
             }
 
             var modelsToTry = new[] { "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.0-flash" };
@@ -29,7 +38,7 @@ namespace CINEMA.Services // Đổi namespace cho khớp với dự án của b�
             {
                 try
                 {
-                    var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={"keyAPI"}";
+                    var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
                     var requestBody = new
                     {
                         contents = new[]

@@ -24,9 +24,14 @@ namespace CINEMA.Controllers
         // ============================
         //  HIỂN THỊ TRANG THỐNG KÊ
         // ============================
-        public async Task<IActionResult> Index(DateTime? from, DateTime? to)
+        public async Task<IActionResult> Index(DateTime? from, DateTime? to, int? theaterId, int? movieId)
         {
-            var model = await BuildDashboard(from, to);
+            ViewBag.Theaters = await _context.Theaters.Where(t => t.IsActive == true).ToListAsync();
+            ViewBag.Movies = await _context.Movies.Where(m => m.IsActive == true).ToListAsync();
+            ViewBag.SelectedTheaterId = theaterId;
+            ViewBag.SelectedMovieId = movieId;
+
+            var model = await BuildDashboard(from, to, theaterId, movieId);
             return View(model);
         }
 
@@ -34,7 +39,7 @@ namespace CINEMA.Controllers
         //  HÀM XỬ LÝ THỐNG KÊ GỘP CHUẨN (GIT + LOCAL)
         // ============================
      
-            public async Task<RevenueDashboardViewModel> BuildDashboard(DateTime? from, DateTime? to)
+        public async Task<RevenueDashboardViewModel> BuildDashboard(DateTime? from, DateTime? to, int? theaterId = null, int? movieId = null)
         {
             var today = DateTime.Today;
             var startOfMonth = new DateTime(today.Year, today.Month, 1);
@@ -50,19 +55,22 @@ namespace CINEMA.Controllers
             var model = new RevenueDashboardViewModel
             {
                 FromDate = from,
-                ToDate = to
+                ToDate = to,
+                SelectedTheaterId = theaterId
             };
 
             // =====================================================
             // 1. LẤY ĐƠN HÀNG ĐÃ THANH TOÁN (Lúc này query luôn có khoảng thời gian giới hạn)
             // =====================================================
             var paidOrdersQuery = _context.Orders
+                .Include(o => o.Customer)
                 .Include(o => o.Tickets)
                     .ThenInclude(t => t.Showtime)
                         .ThenInclude(s => s.Movie)
                 .Include(o => o.Tickets)
                     .ThenInclude(t => t.Showtime)
                         .ThenInclude(s => s.Auditorium)
+                            .ThenInclude(a => a.Theater)
                 .Include(o => o.OrderCombos)
                     .ThenInclude(oc => oc.Combo)
                 .Where(o => o.Status != null &&
@@ -78,9 +86,17 @@ namespace CINEMA.Controllers
                 paidOrdersQuery = paidOrdersQuery.Where(o => o.CreatedAt <= toEnd);
             }
 
-            var paidOrders = await paidOrdersQuery.ToListAsync();
+            if (theaterId.HasValue && theaterId.Value > 0)
+            {
+                paidOrdersQuery = paidOrdersQuery.Where(o => o.Tickets.Any(t => t.Showtime.Auditorium.TheaterId == theaterId.Value));
+            }
 
-            // ... Giữ nguyên toàn bộ các logic tính toán (Tổng doanh thu, phim, combo, biểu đồ...) ở phía dưới ...
+            if (movieId.HasValue && movieId.Value > 0)
+            {
+                paidOrdersQuery = paidOrdersQuery.Where(o => o.Tickets.Any(t => t.Showtime.MovieId == movieId.Value));
+            }
+
+            var paidOrders = await paidOrdersQuery.ToListAsync();
 
 
             // =====================================================
@@ -126,6 +142,14 @@ namespace CINEMA.Controllers
             {
                 var toEnd = to.Value.Date.AddDays(1).AddTicks(-1);
                 allOrdersQuery = allOrdersQuery.Where(o => o.CreatedAt <= toEnd);
+            }
+            if (theaterId.HasValue && theaterId.Value > 0)
+            {
+                allOrdersQuery = allOrdersQuery.Where(o => o.Tickets.Any(t => t.Showtime.Auditorium.TheaterId == theaterId.Value));
+            }
+            if (movieId.HasValue && movieId.Value > 0)
+            {
+                allOrdersQuery = allOrdersQuery.Where(o => o.Tickets.Any(t => t.Showtime.MovieId == movieId.Value));
             }
 
             model.PaidOrders = await allOrdersQuery.CountAsync(o => o.Status != null && o.Status.ToLower().Contains("thanh toán"));
@@ -478,6 +502,164 @@ namespace CINEMA.Controllers
                                 2)
                     });
             }
+
+            // =====================================================
+            // 🪙 THÀNH PHẦN THỐNG KÊ CHI TIẾT NÂNG CAO
+            // =====================================================
+            model.TicketRevenue = paidOrders.SelectMany(o => o.Tickets).Sum(t => t.Price ?? 0);
+            model.GrossComboRevenue = paidOrders.SelectMany(o => o.OrderCombos).Sum(oc => (oc.UnitPrice ?? 0) * (oc.Quantity ?? 0));
+            model.TotalDiscount = paidOrders.Sum(o => o.DiscountAmount ?? 0);
+            model.NetRevenue = model.TotalRevenue;
+
+            // -- Doanh thu theo Rạp & Tỷ lệ lấp đầy --
+            var allTheaters = await _context.Theaters.ToListAsync();
+            foreach (var th in allTheaters)
+            {
+                var thTickets = paidOrders
+                    .SelectMany(o => o.Tickets)
+                    .Where(t => t.Showtime?.Auditorium?.TheaterId == th.TheaterId)
+                    .ToList();
+
+                var thOrders = paidOrders
+                    .Where(o => o.Tickets.Any(t => t.Showtime?.Auditorium?.TheaterId == th.TheaterId))
+                    .ToList();
+
+                var ticketRev = thTickets.Sum(t => t.Price ?? 0);
+                var comboRev = thOrders.SelectMany(o => o.OrderCombos).Sum(oc => (oc.UnitPrice ?? 0) * (oc.Quantity ?? 0));
+                var totalRev = thOrders.Sum(o => o.TotalAmount ?? 0);
+
+                // Tính tỷ lệ lấp đầy ghế theo rạp
+                var showtimeIds = thTickets.Select(t => t.ShowtimeId).Distinct().ToList();
+                int totalSeatsAvailable = 0;
+                foreach (var sId in showtimeIds)
+                {
+                    var showtimeObj = _context.Showtimes.FirstOrDefault(s => s.ShowtimeId == sId);
+                    if (showtimeObj?.AuditoriumId != null)
+                    {
+                        var seatCount = await _context.Seats.CountAsync(s => s.AuditoriumId == showtimeObj.AuditoriumId);
+                        totalSeatsAvailable += seatCount;
+                    }
+                }
+                double occRate = totalSeatsAvailable > 0 ? Math.Round((double)thTickets.Count / totalSeatsAvailable * 100, 2) : 0;
+
+                model.TheaterRevenues.Add(new TheaterRevenueViewModel
+                {
+                    TheaterName = th.Name,
+                    TicketsSold = thTickets.Count,
+                    TicketRevenue = ticketRev,
+                    ComboRevenue = comboRev,
+                    TotalRevenue = totalRev,
+                    OccupancyRate = occRate
+                });
+            }
+
+            // -- Khung giờ & Ngày vàng --
+            var dayOfWeekNames = new Dictionary<DayOfWeek, string>
+            {
+                { DayOfWeek.Monday, "Thứ Hai" },
+                { DayOfWeek.Tuesday, "Thứ Ba" },
+                { DayOfWeek.Wednesday, "Thứ Tư" },
+                { DayOfWeek.Thursday, "Thứ Năm" },
+                { DayOfWeek.Friday, "Thứ Sáu" },
+                { DayOfWeek.Saturday, "Thứ Bảy" },
+                { DayOfWeek.Sunday, "Chủ Nhật" }
+            };
+
+            var peakDaysMap = dayOfWeekNames.ToDictionary(kvp => kvp.Value, kvp => new PeakDayViewModel { DayOfWeek = kvp.Value });
+            var dbPeakDays = paidOrders
+                .SelectMany(o => o.Tickets)
+                .Where(t => t.Order?.CreatedAt != null)
+                .GroupBy(t => t.Order.CreatedAt.Value.DayOfWeek)
+                .Select(g => new {
+                    Day = g.Key,
+                    Count = g.Count(),
+                    Rev = g.Sum(t => t.Price ?? 0)
+                }).ToList();
+
+            foreach (var item in dbPeakDays)
+            {
+                var dayName = dayOfWeekNames[item.Day];
+                if (peakDaysMap.ContainsKey(dayName))
+                {
+                    peakDaysMap[dayName].TicketCount = item.Count;
+                    peakDaysMap[dayName].Revenue = item.Rev;
+                }
+            }
+            model.PeakDays = peakDaysMap.Values.ToList();
+
+            var hourSlots = new List<string> { "Sáng (08:00 - 12:00)", "Chiều (12:00 - 17:00)", "Tối (17:00 - 22:00)", "Đêm (22:00 - 07:59)" };
+            var peakHoursMap = hourSlots.ToDictionary(slot => slot, slot => new PeakHourViewModel { TimeSlot = slot });
+
+            var dbPeakHours = paidOrders
+                .SelectMany(o => o.Tickets)
+                .Where(t => t.Showtime != null && t.Showtime.StartTime != null)
+                .GroupBy(t => {
+                    int hour = t.Showtime.StartTime.Value.Hour;
+                    if (hour >= 8 && hour < 12) return "Sáng (08:00 - 12:00)";
+                    if (hour >= 12 && hour < 17) return "Chiều (12:00 - 17:00)";
+                    if (hour >= 17 && hour < 22) return "Tối (17:00 - 22:00)";
+                    return "Đêm (22:00 - 07:59)";
+                })
+                .Select(g => new {
+                    Slot = g.Key,
+                    Count = g.Count(),
+                    Rev = g.Sum(t => t.Price ?? 0)
+                }).ToList();
+
+            foreach (var item in dbPeakHours)
+            {
+                if (peakHoursMap.ContainsKey(item.Slot))
+                {
+                    peakHoursMap[item.Slot].TicketCount = item.Count;
+                    peakHoursMap[item.Slot].Revenue = item.Rev;
+                }
+            }
+            model.PeakHours = peakHoursMap.Values.ToList();
+
+            // -- Phân tích phương thức thanh toán --
+            model.PaymentMethodStats = paidOrders
+                .GroupBy(o => string.IsNullOrEmpty(o.PaymentMethod) ? "Khác" : o.PaymentMethod)
+                .Select(g => new PaymentMethodStatViewModel
+                {
+                    PaymentMethod = g.Key,
+                    OrderCount = g.Count(),
+                    TotalRevenue = g.Sum(o => o.TotalAmount ?? 0)
+                })
+                .ToList();
+
+            // -- Doanh thu phòng chiếu --
+            model.RoomRevenues = paidOrders
+                .SelectMany(o => o.Tickets)
+                .Where(t => t.Showtime?.Auditorium != null)
+                .GroupBy(t => new { t.Showtime.Auditorium.AuditoriumId, RoomName = t.Showtime.Auditorium.Name, TheaterName = t.Showtime.Auditorium.Theater.Name })
+                .Select(g => new RoomRevenueViewModel
+                {
+                    RoomName = g.Key.RoomName,
+                    TheaterName = g.Key.TheaterName,
+                    TicketsSold = g.Count(),
+                    Revenue = g.Sum(t => t.Price ?? 0)
+                })
+                .OrderByDescending(r => r.Revenue)
+                .Take(10)
+                .ToList();
+
+            // -- Top khách hàng VIP --
+            model.TopCustomers = paidOrders
+                .Where(o => o.Customer != null)
+                .GroupBy(o => o.Customer)
+                .Select(g => new CustomerSpendViewModel
+                {
+                    FullName = g.Key.FullName,
+                    Email = g.Key.Email,
+                    Phone = g.Key.Phone ?? "Không có",
+                    MembershipLevel = g.Key.MembershipLevel,
+                    TicketsBooked = g.SelectMany(o => o.Tickets).Count(),
+                    TotalSpent = g.Sum(o => o.TotalAmount ?? 0)
+                })
+                .OrderByDescending(c => c.TotalSpent)
+                .Take(5)
+                .ToList();
+
             return model;
         }
 

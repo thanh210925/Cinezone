@@ -1,46 +1,171 @@
-﻿body {
+/* --- Custom Styles for CineZone Premium Revenue Dashboard --- */
+
+/* Glassmorphism & Shadow Utilities */
+.glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.035);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-/* --- Tùy chỉnh Tab Navigation --- */
-.nav-pills .nav-link {
-    color: #6c757d;
-    font-weight: 500;
-    transition: all 0.3s ease;
+
+.glass-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.075);
 }
 
-    .nav-pills .nav-link:hover:not(.active) {
-        background-color: #f8f9fa;
-        color: #0d6efd;
-    }
+/* Gradient Background Colors for KPIs */
+.gradient-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+    color: white;
+}
 
-    .nav-pills .nav-link.active {
-        background: linear-gradient(90deg, #0d6efd 0%, #0099ff 100%);
-        color: white;
-        box-shadow: 0 4px 10px rgba(13, 110, 253, 0.25);
-    }
+.gradient-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
 
-/* --- Tùy chỉnh Table dữ liệu --- */
-.custom-table th {
-    font-size: 0.85rem;
-    text-transform: uppercase;
+.gradient-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+}
+
+.gradient-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #f43f5e 100%);
+    color: white;
+}
+
+.gradient-purple {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    color: white;
+}
+
+/* Premium Navigation Pills */
+.nav-pills-premium {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 6px;
+    border-radius: 40px;
+    display: inline-flex;
+    flex-wrap: wrap;
+}
+
+.nav-pills-premium .nav-link {
+    border-radius: 30px;
+    color: #4b5563;
     font-weight: 600;
-    padding-top: 1.2rem;
-    padding-bottom: 1.2rem;
-    letter-spacing: 0.5px;
+    padding: 8px 22px;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
 }
 
-.custom-table td {
-    padding-top: 1rem;
-    padding-bottom: 1rem;
+.nav-pills-premium .nav-link:hover {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.06);
+}
+
+.nav-pills-premium .nav-link.active {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+}
+
+/* Premium Table Customizations */
+.table-premium {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+.table-premium th {
+    background-color: #f9fafb;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: #374151;
+    letter-spacing: 0.7px;
+    padding: 14px 18px;
+    border-bottom: 2px solid #f3f4f6;
+    border-top: none;
+}
+
+.table-premium td {
+    font-size: 0.875rem;
+    padding: 14px 18px;
+    color: #1f2937;
+    border-bottom: 1px solid #f3f4f6;
     vertical-align: middle;
 }
 
-/* --- Biểu tượng hình tròn --- */
-.icon-shape {
-    width: 45px;
-    height: 45px;
+.table-premium tr:last-child td {
+    border-bottom: none;
 }
 
-/* --- Responsive Chart Container --- */
+.table-premium tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table-premium tbody tr:hover {
+    background-color: rgba(59, 130, 246, 0.015);
+}
+
+/* Rounded Profile Avatar Icon */
+.avatar {
+    font-size: 0.875rem;
+    font-weight: 700;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+/* Custom Scrollbar for Long Lists */
+.table-responsive::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Rounded Icon shapes */
+.icon-shape {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+/* Chart Layout container */
 .chart-container {
+    position: relative;
     width: 100%;
+    transition: opacity 0.3s ease;
+}
+
+/* Custom shadow effects for input forms */
+.form-select-sm, .form-control-sm {
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    transition: all 0.15s ease;
+}
+
+.form-select-sm:focus, .form-control-sm:focus {
+    border-color: #3b82f6;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }

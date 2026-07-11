@@ -1,295 +1,387 @@
-﻿@model CINEMA.ViewModels.RevenueDashboardViewModel
+@model CINEMA.ViewModels.RevenueDashboardViewModel
 @{
-    ViewData["Title"] = "Thống kê doanh thu";
+    ViewData["Title"] = "Báo cáo doanh thu chi tiết";
     Layout = "_AdminLayout";
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/revenue-dashboard.css" />
+    <style>
+        /* CSS nội bộ hỗ trợ các yếu tố Glassmorphism & Visual Premium */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+        }
+        .gradient-primary {
+            background: linear-gradient(135deg, #0d6efd 0%, #00d2ff 100%);
+            color: white;
+        }
+        .gradient-success {
+            background: linear-gradient(135deg, #198754 0%, #56ab2f 100%);
+            color: white;
+        }
+        .gradient-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
+            color: white;
+        }
+        .gradient-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #ff758c 100%);
+            color: white;
+        }
+        .gradient-purple {
+            background: linear-gradient(135deg, #6f42c1 0%, #b883ff 100%);
+            color: white;
+        }
+        .nav-pills-premium {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            padding: 5px;
+            border-radius: 30px;
+        }
+        .nav-pills-premium .nav-link {
+            border-radius: 25px;
+            color: #5a626a;
+            font-weight: 600;
+            padding: 8px 20px;
+            transition: all 0.25s ease;
+        }
+        .nav-pills-premium .nav-link:hover {
+            color: #0d6efd;
+            background: rgba(13, 110, 253, 0.05);
+        }
+        .nav-pills-premium .nav-link.active {
+            background: linear-gradient(90deg, #0d6efd 0%, #0284c7 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.2);
+        }
+        .table-premium th {
+            background-color: #f8f9fa;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            color: #495057;
+            letter-spacing: 0.6px;
+            border-bottom: 2px solid #eef2f5;
+        }
+        .table-premium td {
+            font-size: 0.9rem;
+            padding: 14px 16px;
+        }
+        .badge-vip {
+            background: linear-gradient(135deg, #f2b705 0%, #d4af37 100%);
+            color: #12141c;
+            font-weight: 700;
+            text-shadow: 0 1px 1px rgba(255,255,255,0.3);
+        }
+    </style>
 }
 
 <div class="container-fluid py-4">
-
+    <!-- TIÊU ĐỀ TRANG VÀ NÚT XUẤT CSV -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
             <h4 class="fw-bold text-primary mb-0 d-flex align-items-center">
                 <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
-                    <i class="bi bi-bar-chart-fill fs-5"></i>
+                    <i class="bi bi-graph-up-arrow fs-5"></i>
                 </div>
-                Báo cáo doanh thu
+                Trung tâm Phân tích Doanh thu CineZone
             </h4>
             <p class="text-muted ms-5 ps-2 mb-0 mt-1">
                 @if (Model.FromDate.HasValue || Model.ToDate.HasValue)
                 {
-                    // Kiểm tra xem có phải khoảng thời gian mặc định của tháng hiện tại không
                     var today = DateTime.Today;
                     var defaultFrom = new DateTime(today.Year, today.Month, 1);
                     if (Model.FromDate == defaultFrom && Model.ToDate == today)
                     {
-                        <span>Đang xem mặc định: <strong>Tháng hiện tại (@today.ToString("MM/yyyy"))</strong></span>
+                        <span>Báo cáo mặc định: <strong>Tháng hiện tại (@today.ToString("MM/yyyy"))</strong></span>
                     }
                     else
                     {
-                        <span>Đang lọc: <strong>@Model.FromDate?.ToString("dd/MM/yyyy") - @Model.ToDate?.ToString("dd/MM/yyyy")</strong></span>
+                        <span>Báo cáo lọc: <strong>@Model.FromDate?.ToString("dd/MM/yyyy") - @Model.ToDate?.ToString("dd/MM/yyyy")</strong></span>
                     }
                 }
                 else
                 {
-                    <span>Đang xem: <strong>Toàn thời gian</strong></span>
+                    <span>Báo cáo: <strong>Toàn thời gian</strong></span>
+                }
+                @if (ViewBag.SelectedTheaterId != null && (int)ViewBag.SelectedTheaterId > 0)
+                {
+                    var theaterName = (ViewBag.Theaters as List<CINEMA.Models.Theater>)?.FirstOrDefault(t => t.TheaterId == (int)ViewBag.SelectedTheaterId)?.Name;
+                    <span> | Rạp: <strong>@theaterName</strong></span>
+                }
+                @if (ViewBag.SelectedMovieId != null && (int)ViewBag.SelectedMovieId > 0)
+                {
+                    var movieName = (ViewBag.Movies as List<CINEMA.Models.Movie>)?.FirstOrDefault(m => m.MovieId == (int)ViewBag.SelectedMovieId)?.Title;
+                    <span> | Phim: <strong>@movieName</strong></span>
                 }
             </p>
         </div>
 
-        <!-- BỘ LỌC ĐA NĂNG (GỒM LỌC NHANH THEO THÁNG VÀ LỌC THEO NGÀY TÙY CHỈNH) -->
-        <div class="bg-white p-2 rounded-pill shadow-sm border">
-            <form id="filterForm" method="get" class="d-flex align-items-center m-0">
-                <!-- Chọn tháng nhanh -->
-                <div class="d-flex align-items-center px-3 border-end">
-                    <label class="text-muted small me-2 text-nowrap"><i class="bi bi-calendar3 me-1"></i>Xem theo tháng</label>
-                    <select id="quickMonthFilter" class="form-select form-select-sm border-0 bg-transparent shadow-none fw-medium text-primary" style="cursor: pointer; width: auto;">
-                        <option value="">-- Chọn tháng --</option>
-                        @for (int i = 0; i < 12; i++)
-                        {
-                            var targetMonth = DateTime.Today.AddMonths(-i);
-                            var valString = targetMonth.ToString("yyyy-MM");
-                            var displayString = $"Tháng {targetMonth.ToString("MM/yyyy")}";
-                            <option value="@valString">@displayString</option>
-                        }
-                    </select>
-                </div>
-
-                <!-- Từ ngày -->
-                <div class="d-flex align-items-center px-3 border-end">
-                    <label class="text-muted small me-2 text-nowrap">Từ ngày</label>
-                    <input type="date" id="inputFrom" name="from" class="form-control form-control-sm border-0 bg-transparent shadow-none" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
-                </div>
-
-                <!-- Đến ngày -->
-                <div class="d-flex align-items-center px-3 border-end">
-                    <label class="text-muted small me-2 text-nowrap">Đến ngày</label>
-                    <input type="date" id="inputTo" name="to" class="form-control form-control-sm border-0 bg-transparent shadow-none" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
-                </div>
-
-                <!-- Nút Lọc -->
-                <div class="px-2">
-                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-medium text-nowrap">
-                        <i class="bi bi-funnel me-1"></i> Lọc
-                    </button>
-                </div>
-            </form>
+        <div class="d-flex gap-2">
+            <button onclick="exportToCSV()" class="btn btn-success rounded-pill px-4 fw-medium shadow-sm d-flex align-items-center gap-2">
+                <i class="bi bi-file-earmark-spreadsheet fs-5"></i> Xuất Báo Cáo CSV
+            </button>
         </div>
     </div>
 
-    <!-- [ĐOẠN TABS CONTENT GIỮ NGUYÊN HOÀN TOÀN TỪ CODE CŨ CỦA BẠN] -->
+    <!-- BỘ LỌC ĐA NĂNG ĐỒNG BỘ -->
+    <div class="bg-white p-3 rounded-4 shadow-sm border mb-4">
+        <form id="filterForm" method="get" class="row g-3 align-items-center">
+            <!-- Chọn tháng nhanh -->
+            <div class="col-md-3 border-end">
+                <label class="text-muted small fw-semibold d-block mb-1"><i class="bi bi-calendar3 me-1"></i>Chọn nhanh tháng</label>
+                <select id="quickMonthFilter" class="form-select form-select-sm border-0 bg-light fw-medium text-primary">
+                    <option value="">-- Chọn tháng --</option>
+                    @for (int i = 0; i < 12; i++)
+                    {
+                        var targetMonth = DateTime.Today.AddMonths(-i);
+                        var valString = targetMonth.ToString("yyyy-MM");
+                        var displayString = $"Tháng {targetMonth.ToString("MM/yyyy")}";
+                        <option value="@valString">@displayString</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Từ ngày -->
+            <div class="col-md-2 border-end">
+                <label class="text-muted small fw-semibold d-block mb-1">Từ ngày</label>
+                <input type="date" id="inputFrom" name="from" class="form-control form-control-sm border-0 bg-light fw-medium" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+
+            <!-- Đến ngày -->
+            <div class="col-md-2 border-end">
+                <label class="text-muted small fw-semibold d-block mb-1">Đến ngày</label>
+                <input type="date" id="inputTo" name="to" class="form-control form-control-sm border-0 bg-light fw-medium" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+
+            <!-- Lọc theo Rạp -->
+            <div class="col-md-2 border-end">
+                <label class="text-muted small fw-semibold d-block mb-1"><i class="bi bi-building me-1"></i>Rạp chiếu</label>
+                <select name="theaterId" class="form-select form-select-sm border-0 bg-light fw-medium text-primary">
+                    <option value="">-- Tất cả rạp --</option>
+                    @foreach (var th in ViewBag.Theaters as List<CINEMA.Models.Theater>)
+                    {
+                        <option value="@th.TheaterId" selected="@(ViewBag.SelectedTheaterId == th.TheaterId ? "selected" : null)">@th.Name</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Lọc theo Phim -->
+            <div class="col-md-2 border-end">
+                <label class="text-muted small fw-semibold d-block mb-1"><i class="bi bi-film me-1"></i>Phim chiếu</label>
+                <select name="movieId" class="form-select form-select-sm border-0 bg-light fw-medium text-primary">
+                    <option value="">-- Tất cả phim --</option>
+                    @foreach (var mv in ViewBag.Movies as List<CINEMA.Models.Movie>)
+                    {
+                        <option value="@mv.MovieId" selected="@(ViewBag.SelectedMovieId == mv.MovieId ? "selected" : null)">@mv.Title</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Nút Lọc -->
+            <div class="col-md-1">
+                <label class="d-none d-md-block mb-1">&nbsp;</label>
+                <button type="submit" class="btn btn-primary btn-sm w-100 rounded-pill px-3 fw-bold">
+                    <i class="bi bi-funnel"></i> Lọc
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- HỆ THỐNG TABS DƯỚI DẠNG THÀNH PHẦN PREMIUM -->
     <div class="d-flex justify-content-center mb-4">
-        <ul class="nav nav-pills gap-2 p-1 bg-white border rounded-pill shadow-sm" id="dashboardTabs" role="tablist">
-            <li class="nav-item"><button class="nav-link active rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#tongquan" type="button"><i class="bi bi-graph-up me-1"></i> Tổng Quan</button></li>
-            <li class="nav-item"><button class="nav-link rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#phim" type="button"><i class="bi bi-film me-1"></i> Theo Phim</button></li>
-            <li class="nav-item"><button class="nav-link rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#suatchieu" type="button"><i class="bi bi-calendar-event me-1"></i> Suất Chiếu</button></li>
-            <li class="nav-item"><button class="nav-link rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#combo" type="button"><i class="bi bi-cup-straw me-1"></i> Combo</button></li>
-            <li class="nav-item"><button class="nav-link rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#voucher" type="button"><i class="bi bi-ticket-perforated me-1"></i> Voucher</button></li>
-            <li class="nav-item"><button class="nav-link rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#chitiet" type="button"><i class="bi bi-list-columns-reverse me-1"></i> Chi Tiết Bảng</button></li>
+        <ul class="nav nav-pills nav-pills-premium gap-1 shadow-sm" id="dashboardTabs" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tongquan" type="button"><i class="bi bi-grid-1x2-fill me-1"></i> Tổng Quan Tài Chính</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#phim" type="button"><i class="bi bi-film me-1"></i> Theo Phim</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#suatchieu" type="button"><i class="bi bi-calendar2-week-fill me-1"></i> Suất Chiếu</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#raproom" type="button"><i class="bi bi-building-fill me-1"></i> Hiệu Suất Rạp & Phòng</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#giovang" type="button"><i class="bi bi-clock-history me-1"></i> Giờ & Ngày Vàng</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#combo" type="button"><i class="bi bi-cup-straw me-1"></i> Thống kê Combo</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#voucher" type="button"><i class="bi bi-ticket-perforated-fill me-1"></i> Voucher</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#vip" type="button"><i class="bi bi-gem me-1"></i> Top Khách Hàng VIP</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#chitiet" type="button"><i class="bi bi-table me-1"></i> Chi Tiết Bảng</button></li>
         </ul>
     </div>
 
+    <!-- NỘI DUNG CHI TIẾT TỪNG TABS -->
     <div class="tab-content" id="dashboardTabsContent">
-        <!-- Tab Tổng Quan -->
+        <!-- 1. Tab Tổng Quan Tài Chính -->
         <div class="tab-pane fade show active" id="tongquan">
+            <!-- KPIs Lớn Tài Chính -->
             <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 border-bottom border-4 border-info">
-                        <div class="text-muted text-uppercase fw-bold small mb-2"><i class="bi bi-calendar-day me-1"></i> Doanh thu hôm nay</div>
-                        <div class="text-dark fw-bold fs-3 mb-1">@Model.TodayRevenue.ToString("N0") ₫</div>
-                        <span class="badge bg-info-subtle text-info rounded-pill px-3">@Model.TodayTickets vé bán ra</span>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 gradient-success glass-card h-100">
+                        <div class="text-white-50 text-uppercase fw-bold small mb-2"><i class="bi bi-wallet2 me-1"></i> Doanh thu thuần (Net)</div>
+                        <div class="text-white fw-bold fs-2 mb-1">@Model.NetRevenue.ToString("N0") ₫</div>
+                        <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3">Doanh thu thực nhận</span>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 border-bottom border-4 border-primary">
-                        <div class="text-muted text-uppercase fw-bold small mb-2"><i class="bi bi-calendar-month me-1"></i> Doanh thu tháng này</div>
-                        <div class="text-dark fw-bold fs-3 mb-1">@Model.MonthRevenue.ToString("N0") ₫</div>
-                        <span class="badge bg-primary-subtle text-primary rounded-pill px-3">@Model.MonthTickets vé bán ra</span>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 gradient-primary glass-card h-100">
+                        <div class="text-white-50 text-uppercase fw-bold small mb-2"><i class="bi bi-ticket-detailed me-1"></i> Doanh thu vé gộp</div>
+                        <div class="text-white fw-bold fs-2 mb-1">@Model.TicketRevenue.ToString("N0") ₫</div>
+                        <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3">@Model.TotalTickets vé bán ra</span>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 border-bottom border-4 border-success">
-                        <div class="text-muted text-uppercase fw-bold small mb-2"><i class="bi bi-cash-stack me-1"></i> Tổng doanh thu</div>
-                        <div class="text-success fw-bold fs-3 mb-1">@Model.TotalRevenue.ToString("N0") ₫</div>
-                        <span class="badge bg-success-subtle text-success rounded-pill px-3">@Model.TotalTickets vé bán ra</span>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 gradient-warning glass-card h-100">
+                        <div class="text-white-50 text-uppercase fw-bold small mb-2"><i class="bi bi-cup-straw me-1"></i> Doanh thu combo gộp</div>
+                        <div class="text-white fw-bold fs-2 mb-1">@Model.GrossComboRevenue.ToString("N0") ₫</div>
+                        <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3">@Model.ComboSold Combo đã bán</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 gradient-danger glass-card h-100">
+                        <div class="text-white-50 text-uppercase fw-bold small mb-2"><i class="bi bi-tags-fill me-1"></i> Chiết khấu voucher</div>
+                        <div class="text-white fw-bold fs-2 mb-1">@Model.TotalDiscount.ToString("N0") ₫</div>
+                        <span class="badge bg-white bg-opacity-25 text-white rounded-pill px-3">@Model.VoucherUsageRate% đơn dùng voucher</span>
                     </div>
                 </div>
             </div>
 
-            <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white d-flex flex-row align-items-center">
-                        <div class="bg-success-subtle text-success rounded-circle d-flex justify-content-center align-items-center me-3" style="width:50px;height:50px;"><i class="bi bi-check-lg fs-4"></i></div>
-                        <div>
-                            <div class="text-muted small fw-bold text-uppercase">Đã thanh toán</div>
-                            <div class="fw-bold fs-5 text-dark">@Model.PaidOrders đơn</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white d-flex flex-row align-items-center">
-                        <div class="bg-warning-subtle text-warning rounded-circle d-flex justify-content-center align-items-center me-3" style="width:50px;height:50px;"><i class="bi bi-hourglass-split fs-4"></i></div>
-                        <div>
-                            <div class="text-muted small fw-bold text-uppercase">Đang chờ</div>
-                            <div class="fw-bold fs-5 text-dark">@Model.PendingOrders đơn</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white d-flex flex-row align-items-center">
-                        <div class="bg-danger-subtle text-danger rounded-circle d-flex justify-content-center align-items-center me-3" style="width:50px;height:50px;"><i class="bi bi-x-lg fs-4"></i></div>
-                        <div>
-                            <div class="text-muted small fw-bold text-uppercase">Đã hủy</div>
-                            <div class="fw-bold fs-5 text-dark">@Model.CancelledOrders đơn</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row g-4">
+            <!-- Phân tích Đơn hàng & Lập doanh thu ngày -->
+            <div class="row g-4 mb-4">
                 <div class="col-lg-8">
                     <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-                        <h6 class="fw-bold text-dark mb-4">📅 Doanh thu & Số vé theo ngày</h6>
-                        <div class="chart-container" style="position: relative; height:300px;"><canvas id="revenueByDateChart"></canvas></div>
+                        <h6 class="fw-bold text-dark mb-4">📈 Xu hướng Doanh thu & Lượt Vé theo ngày</h6>
+                        <div class="chart-container" style="position: relative; height:320px;"><canvas id="revenueByDateChart"></canvas></div>
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-                        <h6 class="fw-bold text-dark mb-4">🎬 Tỷ trọng doanh thu phim</h6>
-                        <div class="chart-container" style="position: relative; height:300px;"><canvas id="revenueByMovieChart"></canvas></div>
+                        <h6 class="fw-bold text-dark mb-3">💳 Phương thức thanh toán</h6>
+                        <div class="chart-container mb-3" style="position: relative; height:180px;"><canvas id="paymentMethodChart"></canvas></div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-borderless align-middle mb-0">
+                                <tbody>
+                                    @foreach (var pm in Model.PaymentMethodStats)
+                                    {
+                                        <tr>
+                                            <td><span class="fw-semibold"><i class="bi bi-credit-card me-2 text-primary"></i>@pm.PaymentMethod</span></td>
+                                            <td class="text-center text-muted">@pm.OrderCount đơn</td>
+                                            <td class="text-end fw-bold text-success">@pm.TotalRevenue.ToString("N0") ₫</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Doanh thu theo tháng & năm -->
+            <div class="row g-4">
                 <div class="col-md-6">
                     <div class="card border-0 shadow-sm rounded-4 p-4">
-                        <h6 class="fw-bold text-dark mb-4">📆 Theo tháng</h6>
+                        <h6 class="fw-bold text-dark mb-4">📆 Doanh thu theo tháng</h6>
                         <div class="chart-container" style="position: relative; height:250px;"><canvas id="revenueByMonthChart"></canvas></div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="card border-0 shadow-sm rounded-4 p-4">
-                        <h6 class="fw-bold text-dark mb-4">📊 Theo năm</h6>
+                        <h6 class="fw-bold text-dark mb-4">📊 Doanh thu theo năm</h6>
                         <div class="chart-container" style="position: relative; height:250px;"><canvas id="revenueByYearChart"></canvas></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tab Phim -->
+        <!-- 2. Tab Theo Phim -->
         <div class="tab-pane fade" id="phim">
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
-                        <div class="text-muted small fw-bold text-uppercase mb-1">Đang/Sắp chiếu</div>
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-4 border-info">
+                        <div class="text-muted small fw-bold text-uppercase mb-1">Đang / Sắp chiếu</div>
                         <div class="text-info fw-bold fs-4">@Model.NowShowingCount / @Model.ComingSoonCount</div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-4 border-primary">
                         <div class="text-muted small fw-bold text-uppercase mb-1">Phim bán chạy nhất</div>
                         <div class="text-primary fw-bold text-truncate" title="@Model.TopSellingMovie">@Model.TopSellingMovie</div>
                         <small class="text-muted">@Model.TopSellingTickets vé</small>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-4 border-danger">
                         <div class="text-muted small fw-bold text-uppercase mb-1">Phim bán chậm nhất</div>
                         <div class="text-danger fw-bold text-truncate" title="@Model.LeastSellingMovie">@Model.LeastSellingMovie</div>
                         <small class="text-muted">@Model.LeastSellingTickets vé</small>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
-                        <div class="text-muted small fw-bold text-uppercase mb-1">Top Doanh thu</div>
+                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-4 border-success">
+                        <div class="text-muted small fw-bold text-uppercase mb-1">Top doanh thu phim</div>
                         <div class="text-success fw-bold text-truncate" title="@Model.TopRevenueMovie">@Model.TopRevenueMovie</div>
                         <small class="text-muted">@Model.TopRevenueAmount.ToString("N0") ₫</small>
                     </div>
                 </div>
             </div>
 
-            <div class="card shadow-sm border-0 rounded-4 mb-4">
-                <div class="card-header bg-white border-bottom-0 pt-4 px-4"><h6 class="fw-bold text-dark mb-0">💰 Giá trị trung bình đơn hàng (AOV)</h6></div>
-                <div class="card-body px-4 pb-4">
-                    <div class="row text-center g-3">
-                        <div class="col-md-3">
-                            <div class="p-3 bg-light rounded-3 border">
-                                <small class="text-muted fw-bold d-block mb-1 text-uppercase">Hôm nay</small>
-                                <span class="fw-bold text-dark fs-5">@Model.AvgOrderValueToday.ToString("N0") ₫</span>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="p-3 bg-light rounded-3 border">
-                                <small class="text-muted fw-bold d-block mb-1 text-uppercase">Tháng này</small>
-                                <span class="fw-bold text-dark fs-5">@Model.AvgOrderValueMonth.ToString("N0") ₫</span>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="p-3 bg-light rounded-3 border">
-                                <small class="text-muted fw-bold d-block mb-1 text-uppercase">Quý này</small>
-                                <span class="fw-bold text-dark fs-5">@Model.AvgOrderValueQuarter.ToString("N0") ₫</span>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="p-3 bg-light rounded-3 border">
-                                <small class="text-muted fw-bold d-block mb-1 text-uppercase">Năm nay</small>
-                                <span class="fw-bold text-dark fs-5">@Model.AvgOrderValueYear.ToString("N0") ₫</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row g-4">
+            <!-- Khối biểu đồ phân tích phim & AOV -->
+            <div class="row g-4 mb-4">
                 <div class="col-md-6">
                     <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-                        <h6 class="fw-bold text-dark mb-4">📊 Doanh thu theo Phim</h6>
+                        <h6 class="fw-bold text-dark mb-4">📊 Doanh thu chi tiết theo Phim</h6>
                         <div class="chart-container" style="position: relative; height:300px;"><canvas id="movieRevenueChart"></canvas></div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-                        <h6 class="fw-bold text-dark mb-4">🎟️ Số lượng vé đã bán</h6>
+                        <h6 class="fw-bold text-dark mb-4">🎟️ Tỷ trọng Số lượng vé đã bán</h6>
                         <div class="chart-container" style="position: relative; height:300px;"><canvas id="ticketComparisonChart"></canvas></div>
                     </div>
                 </div>
+            </div>
+
+            <!-- So sánh AOV và tháng gần nhất -->
+            <div class="row g-4">
                 <div class="col-md-6">
-                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-                        <h6 class="fw-bold text-dark mb-4">💰 Biểu đồ Giá trị đơn (AOV)</h6>
-                        <div class="chart-container" style="position: relative; height:300px;"><canvas id="aovChart"></canvas></div>
+                    <div class="card border-0 shadow-sm rounded-4 p-4">
+                        <h6 class="fw-bold text-dark mb-4">💰 Giá trị đơn hàng trung bình (AOV)</h6>
+                        <div class="chart-container" style="position: relative; height:250px;"><canvas id="aovChart"></canvas></div>
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-                        <h6 class="fw-bold text-dark mb-4">📊 So sánh doanh thu 2 tháng gần nhất</h6>
-                        <div class="chart-container" style="position: relative; height:300px;"><canvas id="monthCompareChart"></canvas></div>
+                    <div class="card border-0 shadow-sm rounded-4 p-4">
+                        <h6 class="fw-bold text-dark mb-4">⚖️ So sánh doanh thu 2 tháng gần nhất</h6>
+                        <div class="chart-container" style="position: relative; height:250px;"><canvas id="monthCompareChart"></canvas></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tab Suất chiếu -->
+        <!-- 3. Tab Suất Chiếu -->
         <div class="tab-pane fade" id="suatchieu">
             <div class="card shadow-sm border-0 rounded-4 mb-4 p-4">
-                <h6 class="fw-bold text-dark mb-4">🎬 Doanh thu theo suất chiếu</h6>
+                <h6 class="fw-bold text-dark mb-4">🎬 Hiệu suất Doanh thu theo khung giờ chiếu chi tiết</h6>
                 <div class="chart-container" style="position: relative; height:350px;"><canvas id="showtimeRevenueChart"></canvas></div>
             </div>
 
             <div class="card shadow-sm border-0 rounded-4">
                 <div class="card-header bg-white pt-4 px-4 border-0">
-                    <h6 class="fw-bold text-dark mb-0">📋 Bảng thống kê suất chiếu</h6>
+                    <h6 class="fw-bold text-dark mb-0">📋 Bảng thống kê doanh thu theo suất chiếu</h6>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover custom-table align-middle mb-0">
-                            <thead class="table-light text-secondary">
+                        <table class="table table-hover table-premium align-middle mb-0">
+                            <thead>
                                 <tr>
                                     <th class="ps-4">Mã SC</th>
                                     <th>Phim</th>
-                                    <th class="text-center">Thời gian</th>
-                                    <th class="text-center">Vé bán</th>
-                                    <th class="text-end pe-4">Doanh thu</th>
+                                    <th class="text-center">Thời gian chiếu</th>
+                                    <th class="text-center">Phòng chiếu</th>
+                                    <th class="text-center">Vé bán ra</th>
+                                    <th class="text-end pe-4">Doanh thu vé</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -297,9 +389,10 @@
                                 {
                                     <tr>
                                         <td class="ps-4 fw-bold text-primary">#@item.ShowtimeId</td>
-                                        <td class="fw-medium">@item.MovieName</td>
+                                        <td class="fw-semibold">@item.MovieName</td>
                                         <td class="text-center text-muted small"><i class="bi bi-clock me-1"></i> @item.StartTime.ToString("dd/MM/yyyy HH:mm")</td>
-                                        <td class="text-center"><span class="badge bg-light text-dark border px-3">@item.TicketCount</span></td>
+                                        <td class="text-center fw-medium">@item.AuditoriumName</td>
+                                        <td class="text-center"><span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-2">@item.TicketCount</span></td>
                                         <td class="text-end pe-4 fw-bold text-success">@item.Revenue.ToString("N0") ₫</td>
                                     </tr>
                                 }
@@ -310,12 +403,120 @@
             </div>
         </div>
 
-        <!-- Tab Combo -->
+        <!-- 4. Tab Rạp & Phòng Chiếu -->
+        <div class="tab-pane fade" id="raproom">
+            <div class="row g-4 mb-4">
+                <!-- Bảng xếp hạng doanh số Rạp -->
+                <div class="col-lg-7">
+                    <div class="card shadow-sm border-0 rounded-4 h-100">
+                        <div class="card-header bg-white pt-4 px-4 border-0">
+                            <h6 class="fw-bold text-dark mb-0">🏢 Thống kê doanh số theo Rạp chiếu</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-premium align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="ps-4">Rạp</th>
+                                            <th class="text-center">Vé bán</th>
+                                            <th class="text-end">Doanh thu vé</th>
+                                            <th class="text-end">Doanh thu Combo</th>
+                                            <th class="text-end">Tổng doanh số</th>
+                                            <th class="text-center pe-4">Tỷ lệ lấp đầy</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var th in Model.TheaterRevenues)
+                                        {
+                                            <tr>
+                                                <td class="ps-4 fw-semibold"><i class="bi bi-building text-primary me-2"></i>@th.TheaterName</td>
+                                                <td class="text-center fw-medium">@th.TicketsSold</td>
+                                                <td class="text-end">@th.TicketRevenue.ToString("N0") ₫</td>
+                                                <td class="text-end text-muted">@th.ComboRevenue.ToString("N0") ₫</td>
+                                                <td class="text-end fw-bold text-success">@th.TotalRevenue.ToString("N0") ₫</td>
+                                                <td class="text-center pe-4 fw-bold text-primary">@th.OccupancyRate%</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- So sánh rạp bằng biểu đồ -->
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                        <h6 class="fw-bold text-dark mb-4">📊 Doanh thu các Rạp chi nhánh</h6>
+                        <div class="chart-container" style="position: relative; height:300px;"><canvas id="theaterComparisonChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bảng xếp hạng Top 10 Phòng Chiếu -->
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white pt-4 px-4 border-0">
+                    <h6 class="fw-bold text-dark mb-0">📋 Top 10 Phòng chiếu có Doanh thu cao nhất</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-premium align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Thứ tự</th>
+                                    <th>Tên Phòng</th>
+                                    <th>Thuộc Rạp</th>
+                                    <th class="text-center">Số vé đã bán</th>
+                                    <th class="text-end pe-4">Tổng doanh thu vé</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{ int roomIndex = 1; }
+                                @foreach (var room in Model.RoomRevenues)
+                                {
+                                    <tr>
+                                        <td class="ps-4 text-muted fw-bold">#@roomIndex</td>
+                                        <td class="fw-semibold text-primary">@room.RoomName</td>
+                                        <td>@room.TheaterName</td>
+                                        <td class="text-center fw-medium">@room.TicketsSold</td>
+                                        <td class="text-end pe-4 fw-bold text-success">@room.Revenue.ToString("N0") ₫</td>
+                                    </tr>
+                                    roomIndex++;
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Tab Giờ & Ngày Vàng -->
+        <div class="tab-pane fade" id="giovang">
+            <div class="row g-4 mb-4">
+                <!-- Biểu đồ Khung Giờ Vàng -->
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                        <h6 class="fw-bold text-dark mb-2">⏰ Phân tích Khung Giờ chiếu đặt vé (Peak Hours)</h6>
+                        <p class="text-muted small mb-4">Biểu diễn lượng vé và doanh số bán ra theo 4 khung giờ vàng trong ngày</p>
+                        <div class="chart-container" style="position: relative; height:320px;"><canvas id="peakHoursChart"></canvas></div>
+                    </div>
+                </div>
+                <!-- Biểu đồ Ngày Vàng Trong Tuần -->
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                        <h6 class="fw-bold text-dark mb-2">📅 Phân tích Ngày chiếu đặt vé (Peak Days)</h6>
+                        <p class="text-muted small mb-4">Xác định các ngày có lượng đặt vé đột biến trong tuần để tối ưu chi phí</p>
+                        <div class="chart-container" style="position: relative; height:320px;"><canvas id="peakDaysChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Tab Combo -->
         <div class="tab-pane fade" id="combo">
             <div class="alert alert-danger border-0 shadow-sm rounded-4 d-flex justify-content-between align-items-center p-4 mb-4">
                 <div>
-                    <h5 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i> Combo cần cải thiện: @Model.WorstSellingCombo</h5>
-                    <p class="mb-0 text-danger opacity-75">Sản phẩm này có lượt bán thấp nhất trong kỳ báo cáo.</p>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i> Combo cần cải thiện hiệu suất bán: @Model.WorstSellingCombo</h5>
+                    <p class="mb-0 text-danger opacity-75">Sản phẩm này có lượt bán thấp nhất trong toàn bộ danh sách combo.</p>
                 </div>
                 <div class="bg-white text-danger rounded-3 px-4 py-2 fw-bold shadow-sm fs-5">
                     @Model.WorstSellingQuantity <small class="text-muted fw-normal fs-6">lượt bán</small>
@@ -331,13 +532,13 @@
                 </div>
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-primary-subtle">
-                        <div class="text-primary text-uppercase fw-bold small mb-2"><i class="bi bi-box-seam me-1"></i> Đã bán ra</div>
-                        <div class="text-primary fw-bold fs-3">@Model.ComboSold <small class="fs-6 fw-normal">lượt</small></div>
+                        <div class="text-primary text-uppercase fw-bold small mb-2"><i class="bi bi-box-seam me-1"></i> Tổng số lượt Combo đã bán</div>
+                        <div class="text-primary fw-bold fs-3">@Model.ComboSold <small class="fs-6 fw-normal text-muted">lượt</small></div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-warning-subtle">
-                        <div class="text-warning-emphasis text-uppercase fw-bold small mb-2"><i class="bi bi-fire me-1"></i> Bán chạy nhất</div>
+                    <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-warning-subtle text-warning-emphasis">
+                        <div class="text-warning-emphasis text-uppercase fw-bold small mb-2"><i class="bi bi-fire me-1"></i> Combo bán chạy nhất</div>
                         <div class="text-warning-emphasis fw-bold fs-4 text-truncate" title="@Model.BestSellingCombo">@Model.BestSellingCombo</div>
                         <small class="text-warning-emphasis">@Model.BestSellingQuantity lượt bán</small>
                     </div>
@@ -347,19 +548,19 @@
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm rounded-4 p-3 border-start border-4 border-info h-100">
-                        <small class="text-muted fw-bold text-uppercase mb-1">Tỷ lệ đơn có Combo</small>
+                        <small class="text-muted fw-bold text-uppercase mb-1">Tỷ lệ đơn hàng kèm Combo</small>
                         <h4 class="fw-bold text-dark mb-0">@Model.ComboAttachRate %</h4>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm rounded-4 p-3 border-start border-4 border-success h-100">
-                        <small class="text-muted fw-bold text-uppercase mb-1">Tỷ trọng doanh thu</small>
+                        <small class="text-muted fw-bold text-uppercase mb-1">Tỷ trọng doanh thu Combo</small>
                         <h4 class="fw-bold text-dark mb-0">@Model.ComboRevenueRate %</h4>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm rounded-4 p-3 border-start border-4 border-warning h-100">
-                        <small class="text-muted fw-bold text-uppercase mb-1">Chi tiêu trung bình/Đơn</small>
+                        <small class="text-muted fw-bold text-uppercase mb-1">Chi tiêu Combo bình quân/Đơn</small>
                         <h4 class="fw-bold text-dark mb-0">@Model.AverageComboPerOrder.ToString("N0") ₫</h4>
                     </div>
                 </div>
@@ -374,25 +575,25 @@
                 </div>
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-                        <h6 class="fw-bold text-dark mb-4">💰 Top 5 combo doanh thu</h6>
+                        <h6 class="fw-bold text-dark mb-4">💰 Top 5 combo doanh thu cao</h6>
                         <div class="chart-container" style="position: relative; height:250px;"><canvas id="topRevenueComboChart"></canvas></div>
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-                        <h6 class="fw-bold text-dark mb-4">🥧 Cơ cấu doanh thu</h6>
+                        <h6 class="fw-bold text-dark mb-4">🥧 Cơ cấu đóng góp lượt bán</h6>
                         <div class="chart-container" style="position: relative; height:250px;"><canvas id="comboPieChart"></canvas></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tab Voucher -->
+        <!-- 7. Tab Voucher -->
         <div class="tab-pane fade" id="voucher">
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm rounded-4 p-4 h-100 text-center">
-                        <div class="text-muted text-uppercase fw-bold small mb-2">Tổng giảm giá</div>
+                        <div class="text-muted text-uppercase fw-bold small mb-2">Tổng tiền chiết khấu voucher</div>
                         <div class="text-danger fw-bold fs-3">@Model.TotalDiscountAmount.ToString("N0") ₫</div>
                     </div>
                 </div>
@@ -404,7 +605,7 @@
                 </div>
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm rounded-4 p-4 h-100 text-center">
-                        <div class="text-muted text-uppercase fw-bold small mb-2">Lượt sử dụng tối đa</div>
+                        <div class="text-muted text-uppercase fw-bold small mb-2">Số lượt sử dụng tối đa</div>
                         <div class="text-success fw-bold fs-3">@Model.BestVoucherUsage <small class="fs-6 fw-normal text-muted">lượt</small></div>
                     </div>
                 </div>
@@ -413,21 +614,21 @@
             <div class="row g-4">
                 <div class="col-lg-7">
                     <div class="card shadow-sm border-0 rounded-4 p-4 h-100">
-                        <h6 class="fw-bold text-dark mb-4">🎟 Top Voucher được sử dụng</h6>
+                        <h6 class="fw-bold text-dark mb-4">🎟 Top Voucher có lượt dùng cao nhất</h6>
                         <div class="chart-container" style="position: relative; height:350px;"><canvas id="voucherChart"></canvas></div>
                     </div>
                 </div>
                 <div class="col-lg-5">
                     <div class="card shadow-sm border-0 rounded-4 h-100">
                         <div class="card-header bg-white pt-4 px-4 border-0">
-                            <h6 class="fw-bold text-dark mb-0">📋 Chi tiết Voucher</h6>
+                            <h6 class="fw-bold text-dark mb-0">📋 Chi tiết hiệu quả Voucher</h6>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive" style="max-height: 350px;">
-                                <table class="table table-hover custom-table align-middle mb-0">
-                                    <thead class="table-light text-secondary sticky-top">
+                                <table class="table table-hover table-premium align-middle mb-0">
+                                    <thead class="sticky-top bg-light">
                                         <tr>
-                                            <th class="ps-4">Mã Code</th>
+                                            <th class="ps-4">Mã Voucher</th>
                                             <th class="text-center">Đã dùng</th>
                                             <th class="text-end pe-4">Tổng giảm</th>
                                         </tr>
@@ -436,8 +637,8 @@
                                         @foreach (var item in Model.VoucherStatistics)
                                         {
                                             <tr>
-                                                <td class="ps-4"><span class="badge bg-light text-dark border py-2 px-3 fw-bold">@item.VoucherCode</span></td>
-                                                <td class="text-center fw-medium">@item.UsedCount</td>
+                                                <td class="ps-4"><span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 py-2 px-3 fw-bold">@item.VoucherCode</span></td>
+                                                <td class="text-center fw-semibold text-dark">@item.UsedCount</td>
                                                 <td class="text-end pe-4 text-danger fw-bold">@item.TotalDiscount.ToString("N0") ₫</td>
                                             </tr>
                                         }
@@ -450,29 +651,91 @@
             </div>
         </div>
 
-        <!-- Tab Chi tiết bảng -->
-        <div class="tab-pane fade" id="chitiet">
+        <!-- 8. Tab Bảng Vàng Khách Hàng VIP -->
+        <div class="tab-pane fade" id="vip">
             <div class="card shadow-sm border-0 rounded-4">
-                <div class="card-header bg-white pt-4 px-4 border-0">
-                    <h6 class="fw-bold text-dark mb-0">📋 Thống kê chi tiết Combo</h6>
+                <div class="card-header bg-white pt-4 px-4 border-0 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-1">👑 Top 5 Khách hàng thân thiết có Chi tiêu lớn nhất</h6>
+                        <p class="text-muted small mb-0">Bảng vàng vinh danh những khách hàng có đóng góp doanh số cao nhất trong kỳ báo cáo</p>
+                    </div>
+                    <span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning border-opacity-25 px-3 py-2 fw-semibold">VIP MEMBER</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover custom-table align-middle mb-0">
-                            <thead class="table-light text-secondary">
+                        <table class="table table-hover table-premium align-middle mb-0">
+                            <thead>
                                 <tr>
-                                    <th class="ps-4">Tên Combo</th>
-                                    <th class="text-center">Số lượng bán</th>
-                                    <th class="text-center">Tỷ lệ</th>
-                                    <th class="text-end pe-4">Doanh thu</th>
+                                    <th class="ps-4">Vị trí</th>
+                                    <th>Khách hàng</th>
+                                    <th>Email</th>
+                                    <th>Số điện thoại</th>
+                                    <th class="text-center">Hạng thành viên</th>
+                                    <th class="text-center">Vé đã mua</th>
+                                    <th class="text-end pe-4">Tổng chi tiêu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{ int vipRank = 1; }
+                                @foreach (var customer in Model.TopCustomers)
+                                {
+                                    <tr>
+                                        <td class="ps-4 fw-bold fs-5 text-muted">
+                                            @if (vipRank == 1) { <span class="text-warning">🥇</span> }
+                                            else if (vipRank == 2) { <span class="text-secondary">🥈</span> }
+                                            else if (vipRank == 3) { <span class="text-bronze">🥉</span> }
+                                            else { <span>#@vipRank</span> }
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold me-2" style="width:35px; height:35px; font-size:0.9rem;">
+                                                    @customer.FullName.Substring(0, 1).ToUpper()
+                                                </div>
+                                                <span class="fw-semibold">@customer.FullName</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-muted">@customer.Email</td>
+                                        <td>@customer.Phone</td>
+                                        <td class="text-center">
+                                            <span class="badge badge-vip rounded-pill px-3 py-2">
+                                                <i class="bi bi-gem me-1"></i>@customer.MembershipLevel
+                                            </span>
+                                        </td>
+                                        <td class="text-center fw-medium">@customer.TicketsBooked vé</td>
+                                        <td class="text-end pe-4 fw-bold text-success fs-6">@customer.TotalSpent.ToString("N0") ₫</td>
+                                    </tr>
+                                    vipRank++;
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. Tab Chi Tiết Bảng (Combo statistics) -->
+        <div class="tab-pane fade" id="chitiet">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white pt-4 px-4 border-0">
+                    <h6 class="fw-bold text-dark mb-0">📋 Chi tiết số lượng bán và cơ cấu doanh số Combo</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-premium align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Tên sản phẩm Combo</th>
+                                    <th class="text-center">Số lượng bán ra</th>
+                                    <th class="text-center">Tỷ lệ cơ cấu</th>
+                                    <th class="text-end pe-4">Doanh thu Combo</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var combo in Model.ComboStatistics)
                                 {
                                     <tr>
-                                        <td class="ps-4 fw-bold text-dark">@combo.ComboName</td>
-                                        <td class="text-center"><span class="badge bg-light text-dark border px-3">@combo.QuantitySold</span></td>
+                                        <td class="ps-4 fw-semibold text-dark">@combo.ComboName</td>
+                                        <td class="text-center fw-medium"><span class="badge bg-light text-dark border px-3 py-2">@combo.QuantitySold</span></td>
                                         <td class="text-center text-muted">@combo.Percentage %</td>
                                         <td class="text-end pe-4 fw-bold text-success">@combo.Revenue.ToString("N0") ₫</td>
                                     </tr>
@@ -489,39 +752,30 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Xử lý tự động tính toán Ngày khi chọn lọc nhanh theo Tháng -->
+    <!-- Đồng bộ hóa bộ lọc nhanh theo tháng và hai date input -->
     <script>
         document.getElementById('quickMonthFilter').addEventListener('change', function() {
             const selectedMonthValue = this.value; // Dạng "YYYY-MM"
             if (!selectedMonthValue) return;
 
             const [year, month] = selectedMonthValue.split('-').map(Number);
-
-            // Ngày bắt đầu: Ngày 1 của tháng đã chọn
             const fromDate = `${year}-${String(month).padStart(2, '0')}-01`;
-
-            // Ngày kết thúc: Ngày cuối cùng của tháng đã chọn
             const lastDay = new Date(year, month, 0).getDate();
             const toDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-            // Gán dữ liệu vào 2 ô input date
             document.getElementById('inputFrom').value = fromDate;
             document.getElementById('inputTo').value = toDate;
-
-            // Tự động submit gửi dữ liệu lên Controller xử lý
             document.getElementById('filterForm').submit();
         });
 
-        // Giữ trạng thái hiển thị cho dropdown tháng nếu đang lọc trúng tháng đó
         window.addEventListener('DOMContentLoaded', () => {
             const fromVal = document.getElementById('inputFrom').value;
             const toVal = document.getElementById('inputTo').value;
 
             if (fromVal && toVal) {
-                const fromPrefix = fromVal.substring(0, 7); // Lấy "YYYY-MM"
+                const fromPrefix = fromVal.substring(0, 7);
                 const toPrefix = toVal.substring(0, 7);
 
-                // Nếu cùng thuộc một tháng và từ ngày 1 đến ngày cuối tháng
                 if (fromPrefix === toPrefix && fromVal.endsWith('-01')) {
                     const selectElement = document.getElementById('quickMonthFilter');
                     const option = selectElement.querySelector(`option[value="${fromPrefix}"]`);
@@ -531,10 +785,19 @@
                 }
             }
         });
+
+        // Tự động submit form khi chọn rạp hoặc phim từ dropdown
+        const selectFilters = document.querySelectorAll('#filterForm select[name="theaterId"], #filterForm select[name="movieId"]');
+        selectFilters.forEach(sel => {
+            sel.addEventListener('change', () => {
+                document.getElementById('filterForm').submit();
+            });
+        });
     </script>
 
-    <!-- Thống kê Charts Logic (Giữ nguyên gốc từ View cũ của bạn) -->
+    <!-- KHỞI TẠO BIỂU ĐỒ CHART.JS -->
     <script>
+        // Lấy dữ liệu serialize từ Model C#
         const labelsByDate = @Html.Raw(Json.Serialize(Model.LabelsByDate));
         const revenueByDate = @Html.Raw(Json.Serialize(Model.RevenueByDate));
         const ticketCountByDate = @Html.Raw(Json.Serialize(Model.TicketCountByDate));
@@ -557,66 +820,146 @@
         const comboPieLabels = @Html.Raw(Json.Serialize(Model.ComboPieLabels));
         const comboPieValues = @Html.Raw(Json.Serialize(Model.ComboPieValues));
 
+        // Dữ liệu rạp chiếu
+        const theaterLabels = @Html.Raw(Json.Serialize(Model.TheaterRevenues.Select(t => t.TheaterName)));
+        const theaterRevenueData = @Html.Raw(Json.Serialize(Model.TheaterRevenues.Select(t => t.TotalRevenue)));
+
+        // Dữ liệu khung giờ & ngày vàng
+        const peakHoursLabels = @Html.Raw(Json.Serialize(Model.PeakHours.Select(p => p.TimeSlot)));
+        const peakHoursTickets = @Html.Raw(Json.Serialize(Model.PeakHours.Select(p => p.TicketCount)));
+        const peakHoursRevenue = @Html.Raw(Json.Serialize(Model.PeakHours.Select(p => p.Revenue)));
+
+        const peakDaysLabels = @Html.Raw(Json.Serialize(Model.PeakDays.Select(p => p.DayOfWeek)));
+        const peakDaysTickets = @Html.Raw(Json.Serialize(Model.PeakDays.Select(p => p.TicketCount)));
+        const peakDaysRevenue = @Html.Raw(Json.Serialize(Model.PeakDays.Select(p => p.Revenue)));
+
+        // Dữ liệu thanh toán
+        const paymentMethodLabels = @Html.Raw(Json.Serialize(Model.PaymentMethodStats.Select(p => p.PaymentMethod)));
+        const paymentMethodValues = @Html.Raw(Json.Serialize(Model.PaymentMethodStats.Select(p => p.TotalRevenue)));
+
+        // Helper tạo biểu đồ doanh số kết hợp đường và cột
         function createMixedChart(id, labels, data1, data2) {
             new Chart(document.getElementById(id), {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'Doanh thu', data: data1, yAxisID: 'y', backgroundColor: 'rgba(13, 110, 253, 0.8)', borderRadius: 4, maxBarThickness: 50 },
-                        { label: 'Số vé', data: data2, type: 'line', yAxisID: 'y1', borderColor: '#ffc107', borderWidth: 2, tension: 0.3 }
+                        { 
+                            label: 'Doanh thu (₫)', 
+                            data: data1, 
+                            yAxisID: 'y', 
+                            backgroundColor: 'rgba(13, 110, 253, 0.85)', 
+                            borderRadius: 6, 
+                            maxBarThickness: 45 
+                        },
+                        { 
+                            label: 'Số vé bán', 
+                            data: data2, 
+                            type: 'line', 
+                            yAxisID: 'y1', 
+                            borderColor: '#ff8c00', 
+                            backgroundColor: 'rgba(255, 140, 0, 0.1)',
+                            borderWidth: 3, 
+                            tension: 0.3,
+                            fill: false
+                        }
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 15, font: { weight: 600 } } }
+                    },
+                    scales: {
+                        y: { position: 'left', grid: { drawOnChartArea: true } },
+                        y1: { position: 'right', grid: { drawOnChartArea: false } }
+                    }
+                }
             });
         }
 
+        // Khởi tạo các biểu đồ chính
         createMixedChart("revenueByDateChart", labelsByDate, revenueByDate, ticketCountByDate);
         createMixedChart("revenueByMonthChart", labelsByMonth, revenueByMonth, ticketCountByMonth);
         createMixedChart("revenueByYearChart", labelsByYear, revenueByYear, ticketCountByYear);
 
-        new Chart(document.getElementById("revenueByMovieChart"), {
+        // Biểu đồ hình tròn tỷ trọng phương thức thanh toán
+        new Chart(document.getElementById("paymentMethodChart"), {
             type: 'doughnut',
             data: {
-                labels: movieLabels,
-                datasets: [{ data: revenueByMovie, hoverOffset: 4 }]
+                labels: paymentMethodLabels,
+                datasets: [{
+                    data: paymentMethodValues,
+                    backgroundColor: ['#20c997', '#0d6efd', '#fd7e14', '#6c757d'],
+                    borderWidth: 2
+                }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { boxWidth: 12 } }
+                },
+                cutout: '65%'
+            }
         });
 
+        // Biểu đồ phim doanh thu
         new Chart(document.getElementById("movieRevenueChart"), {
             type: 'bar',
             data: {
                 labels: movieLabels,
-                datasets: [{ label: 'Doanh thu (₫)', data: revenueByMovie, backgroundColor: '#198754', borderRadius: 4, maxBarThickness: 50 }]
+                datasets: [{ 
+                    label: 'Doanh thu phim (₫)', 
+                    data: revenueByMovie, 
+                    backgroundColor: 'rgba(25, 135, 84, 0.85)', 
+                    borderRadius: 6, 
+                    maxBarThickness: 45 
+                }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
         });
 
+        // Biểu đồ so sánh lượng vé phim
         new Chart(document.getElementById("ticketComparisonChart"), {
-            type: 'bar',
+            type: 'doughnut',
             data: {
                 labels: movieLabels,
-                datasets: [{ label: 'Số lượng vé', data: ticketData, backgroundColor: '#0dcaf0', borderRadius: 4, maxBarThickness: 50 }]
+                datasets: [{ 
+                    data: ticketData, 
+                    backgroundColor: ['#0dcaf0', '#6f42c1', '#fd7e14', '#20c997', '#ffc107'],
+                    hoverOffset: 6 
+                }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { position: 'bottom' } } 
+            }
         });
 
+        // Biểu đồ cột so sánh AOV
         new Chart(document.getElementById("aovChart"), {
             type: 'bar',
             data: {
                 labels: ['Hôm nay', 'Tháng này', 'Quý này', 'Năm nay'],
                 datasets: [{
-                    label: 'Giá trị trung bình (VND)',
+                    label: 'AOV (VND)',
                     data: [@Model.AvgOrderValueToday, @Model.AvgOrderValueMonth, @Model.AvgOrderValueQuarter, @Model.AvgOrderValueYear],
-                    backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)'],
-                    borderRadius: 4,
-                    maxBarThickness: 50
+                    backgroundColor: ['#f06292', '#4fc3f7', '#fff176', '#4db6ac'],
+                    borderRadius: 6,
+                    maxBarThickness: 45
                 }]
             },
             options: { responsive: true, maintainAspectRatio: false }
         });
 
+        // So sánh 2 tháng
         new Chart(document.getElementById("monthCompareChart"), {
             type: 'bar',
             data: {
@@ -624,28 +967,116 @@
                 datasets: [{
                     label: 'Doanh thu (VND)',
                     data: [@Model.RevenueLastMonth, @Model.RevenueCurrentMonth],
-                    backgroundColor: ['rgba(108, 117, 125, 0.8)', 'rgba(25, 135, 84, 0.8)'],
-                    borderRadius: 4,
+                    backgroundColor: ['#adb5bd', '#198754'],
+                    borderRadius: 6,
                     maxBarThickness: 50
                 }]
             },
             options: { responsive: true, maintainAspectRatio: false }
         });
 
+        // Doanh thu theo suất chiếu
         new Chart(document.getElementById("showtimeRevenueChart"), {
             type: 'bar',
             data: {
                 labels: showtimeLabels,
-                datasets: [{ label: 'Doanh thu (₫)', data: revenueByShowtime, backgroundColor: '#6f42c1', borderRadius: 4, maxBarThickness: 50 }]
+                datasets: [{ 
+                    label: 'Doanh thu vé (₫)', 
+                    data: revenueByShowtime, 
+                    backgroundColor: 'rgba(111, 66, 193, 0.85)', 
+                    borderRadius: 6, 
+                    maxBarThickness: 45 
+                }]
             },
             options: { responsive: true, maintainAspectRatio: false }
         });
 
+        // Biểu đồ so sánh Rạp chiếu
+        new Chart(document.getElementById("theaterComparisonChart"), {
+            type: 'bar',
+            data: {
+                labels: theaterLabels,
+                datasets: [{ 
+                    label: 'Tổng doanh thu (₫)', 
+                    data: theaterRevenueData, 
+                    backgroundColor: 'rgba(239, 68, 68, 0.85)', 
+                    borderRadius: 6, 
+                    maxBarThickness: 45 
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // Biểu đồ Khung Giờ Vàng
+        new Chart(document.getElementById("peakHoursChart"), {
+            type: 'bar',
+            data: {
+                labels: peakHoursLabels,
+                datasets: [
+                    { 
+                        label: 'Số lượng vé đặt', 
+                        data: peakHoursTickets, 
+                        yAxisID: 'y', 
+                        backgroundColor: '#0dcaf0', 
+                        borderRadius: 4 
+                    },
+                    { 
+                        label: 'Doanh thu (₫)', 
+                        data: peakHoursRevenue, 
+                        type: 'line', 
+                        yAxisID: 'y1', 
+                        borderColor: '#6f42c1', 
+                        borderWidth: 2, 
+                        tension: 0.3,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { position: 'left' },
+                    y1: { position: 'right', grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+
+        // Biểu đồ Ngày Vàng trong tuần
+        new Chart(document.getElementById("peakDaysChart"), {
+            type: 'line',
+            data: {
+                labels: peakDaysLabels,
+                datasets: [
+                    { 
+                        label: 'Doanh thu bán vé (₫)', 
+                        data: peakDaysRevenue, 
+                        borderColor: '#198754', 
+                        backgroundColor: 'rgba(25, 135, 84, 0.05)',
+                        borderWidth: 3, 
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Biểu đồ Combo bán chạy & doanh thu
         new Chart(document.getElementById('topComboChart'), {
             type: 'bar',
             data: {
                 labels: @Html.Raw(Json.Serialize(Model.TopComboLabels)),
-                datasets: [{ label: 'Số lượng bán', data: @Html.Raw(Json.Serialize(Model.TopComboValues)), backgroundColor: '#0d6efd', borderRadius: 4, maxBarThickness: 50 }]
+                datasets: [{ 
+                    label: 'Số lượng bán', 
+                    data: @Html.Raw(Json.Serialize(Model.TopComboValues)), 
+                    backgroundColor: '#0d6efd', 
+                    borderRadius: 6, 
+                    maxBarThickness: 45 
+                }]
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
@@ -654,7 +1085,13 @@
             type: 'bar',
             data: {
                 labels: @Html.Raw(Json.Serialize(Model.TopRevenueComboLabels)),
-                datasets: [{ label: 'Doanh thu (₫)', data: @Html.Raw(Json.Serialize(Model.TopRevenueComboValues)), backgroundColor: '#198754', borderRadius: 4, maxBarThickness: 50 }]
+                datasets: [{ 
+                    label: 'Doanh thu (₫)', 
+                    data: @Html.Raw(Json.Serialize(Model.TopRevenueComboValues)), 
+                    backgroundColor: '#56ab2f', 
+                    borderRadius: 6, 
+                    maxBarThickness: 45 
+                }]
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
@@ -663,21 +1100,90 @@
             type: 'pie',
             data: {
                 labels: comboPieLabels,
-                datasets: [{ data: comboPieValues, hoverOffset: 4 }]
+                datasets: [{ data: comboPieValues, backgroundColor: ['#0d6efd', '#20c997', '#fd7e14', '#e91e63', '#adb5bd'], hoverOffset: 4 }]
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
 
+        // Voucher chart
         const voucherCtx = document.getElementById('voucherChart');
         if (voucherCtx) {
             new Chart(voucherCtx, {
                 type: 'bar',
                 data: {
                     labels: @Html.Raw(Json.Serialize(Model.VoucherLabels)),
-                    datasets: [{ label: 'Lượt sử dụng', data: @Html.Raw(Json.Serialize(Model.VoucherValues)), backgroundColor: '#dc3545', borderRadius: 4, maxBarThickness: 50 }]
+                    datasets: [{ 
+                        label: 'Lượt sử dụng', 
+                        data: @Html.Raw(Json.Serialize(Model.VoucherValues)), 
+                        backgroundColor: '#e91e63', 
+                        borderRadius: 6, 
+                        maxBarThickness: 45 
+                    }]
                 },
                 options: { responsive: true, maintainAspectRatio: false }
             });
+        }
+    </script>
+
+    <!-- SCRIPT XUẤT CSV TIẾNG VIỆT CHUẨN UTF-8 BOM -->
+    <script>
+        function exportToCSV() {
+            let csvContent = "\uFEFF"; // Thêm Byte Order Mark (BOM) để Excel đọc đúng tiếng Việt
+            
+            // Header báo cáo
+            csvContent += "BÁO CÁO THỐNG KÊ DOANH THU CINEZONE\r\n";
+            csvContent += "Thời gian:," + (document.getElementById('inputFrom').value || "Toàn thời gian") + " - " + (document.getElementById('inputTo').value || "Toàn thời gian") + "\r\n\r\n";
+
+            // Phần 1: Các chỉ số tài chính cơ bản
+            csvContent += "1. TỔNG QUAN CHỈ SỐ TÀI CHÍNH\r\n";
+            csvContent += "Chỉ số,Giá trị\r\n";
+            csvContent += "Doanh thu thuần (Thực nhận)," + @Model.NetRevenue + " ₫\r\n";
+            csvContent += "Doanh thu bán Vé gộp," + @Model.TicketRevenue + " ₫\r\n";
+            csvContent += "Doanh thu bán Combo gộp," + @Model.GrossComboRevenue + " ₫\r\n";
+            csvContent += "Khấu hao giảm giá Voucher," + @Model.TotalDiscount + " ₫\r\n";
+            csvContent += "Tổng số vé bán ra," + @Model.TotalTickets + "\r\n";
+            csvContent += "Tổng số combo bán ra," + @Model.ComboSold + "\r\n\r\n";
+
+            // Phần 2: Hiệu suất rạp chi nhánh
+            csvContent += "2. HIỆU SUẤT THEO RẠP CHIẾU\r\n";
+            csvContent += "Tên rạp,Số vé đã bán,Doanh thu vé,Doanh thu Combo,Tổng doanh số,Tỷ lệ lấp đầy\r\n";
+            @foreach (var r in Model.TheaterRevenues)
+            {
+                <text>
+                csvContent += "\"@r.TheaterName\",@r.TicketsSold,@r.TicketRevenue,@r.ComboRevenue,@r.TotalRevenue,@r.OccupancyRate%\r\n";
+                </text>
+            }
+            csvContent += "\r\n";
+
+            // Phần 3: Phân tích theo phim
+            csvContent += "3. DOANH THU THEO PHIM\r\n";
+            csvContent += "Tên phim,Doanh thu gộp,Số vé bán ra\r\n";
+            for(let i = 0; i < movieLabels.length; i++) {
+                csvContent += "\"" + movieLabels[i] + "\"," + revenueByMovie[i] + "," + ticketData[i] + "\r\n";
+            }
+            csvContent += "\r\n";
+
+            // Phần 4: VIP Customers
+            csvContent += "4. TOP KHÁCH HÀNG THÂN THIẾT\r\n";
+            csvContent += "Họ tên,Email,Số điện thoại,Hạng thành viên,Số vé đã đặt,Tổng chi tiêu thực nhận\r\n";
+            @foreach (var c in Model.TopCustomers)
+            {
+                <text>
+                csvContent += "\"@c.FullName\",\"@c.Email\",\"@c.Phone\",\"@c.MembershipLevel\",@c.TicketsBooked,@c.TotalSpent\r\n";
+                </text>
+            }
+            csvContent += "\r\n";
+
+            // Tạo download link
+            let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            let link = document.createElement("a");
+            let url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "CineZone_BaoCaoDoanhThu_" + new Date().toISOString().slice(0, 10) + ".csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     </script>
 }

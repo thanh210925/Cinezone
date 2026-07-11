@@ -93,52 +93,128 @@ Nhiệm vụ của bạn:
 Chỉ trả về mảng JSON, không giải thích gì thêm.";
 
                 var fallbackList = new List<Movie>();
-                try
+                var isAIRecommended = false;
+                var reason = "";
+
+                // Chỉ gọi Gemini API khi API Key hợp lệ và không phải là keyAPI
+                bool hasValidKey = _geminiService.HasValidKey;
+
+                if (hasValidKey)
                 {
-                    var rawResponse = await _geminiService.Ask(prompt);
-                    
-                    var cleanJson = "";
-                    int startIdx = rawResponse.IndexOf('[');
-                    int endIdx = rawResponse.LastIndexOf(']');
-                    if (startIdx >= 0 && endIdx > startIdx)
+                    try
                     {
-                        cleanJson = rawResponse.Substring(startIdx, endIdx - startIdx + 1);
+                        var rawResponse = await _geminiService.Ask(prompt);
+                        
+                        var cleanJson = "";
+                        int startIdx = rawResponse.IndexOf('[');
+                        int endIdx = rawResponse.LastIndexOf(']');
+                        if (startIdx >= 0 && endIdx > startIdx)
+                        {
+                            cleanJson = rawResponse.Substring(startIdx, endIdx - startIdx + 1);
+                        }
+                        else
+                        {
+                            // Thử parse candidates
+                            dynamic jsonObj = Newtonsoft.Json.JsonConvert.DeserializeObject(rawResponse);
+                            string text = jsonObj.candidates[0].content.parts[0].text;
+                            text = text.Trim();
+                            int s = text.IndexOf('[');
+                            int e = text.LastIndexOf(']');
+                            if (s >= 0 && e > s) cleanJson = text.Substring(s, e - s + 1);
+                        }
+
+                        if (!string.IsNullOrEmpty(cleanJson))
+                        {
+                            var ids = Newtonsoft.Json.JsonConvert.DeserializeObject<List<int>>(cleanJson);
+                            if (ids != null && ids.Any())
+                            {
+                                fallbackList = activeMovies.Where(m => ids.Contains(m.MovieId)).ToList();
+                                if (fallbackList.Any())
+                                {
+                                    isAIRecommended = true;
+                                    reason = $"Hệ thống phân tích thông minh đề xuất các phim có thể bạn quan tâm dựa trên từ khóa '{keyword}'.";
+                                }
+                            }
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        // Thử parse candidates
-                        dynamic jsonObj = Newtonsoft.Json.JsonConvert.DeserializeObject(rawResponse);
-                        string text = jsonObj.candidates[0].content.parts[0].text;
-                        text = text.Trim();
-                        int s = text.IndexOf('[');
-                        int e = text.LastIndexOf(']');
-                        if (s >= 0 && e > s) cleanJson = text.Substring(s, e - s + 1);
+                        System.Diagnostics.Debug.WriteLine("Lỗi gọi Gemini AI trong Search: " + ex.Message);
+                    }
+                }
+
+                // Nếu Gemini API không khả dụng hoặc không có gợi ý phù hợp, thực hiện Thuật toán Gợi ý thể loại cục bộ (Local Rule-based Matching)
+                if (!fallbackList.Any())
+                {
+                    var dbGenres = _context.Genres.ToList();
+                    var matchedGenres = new List<Genre>();
+
+                    // 1. So khớp trực tiếp tên thể loại
+                    foreach (var genre in dbGenres)
+                    {
+                        var genreNorm = RemoveDiacritics(genre.Name ?? "").ToLower();
+                        if (genreNorm.Contains(keywordNoSign) || keywordNoSign.Contains(genreNorm))
+                        {
+                            matchedGenres.Add(genre);
+                        }
                     }
 
-                    if (!string.IsNullOrEmpty(cleanJson))
+                    // 2. So khớp qua từ đồng nghĩa thông dụng
+                    var synonymMapping = new Dictionary<string, string[]>
                     {
-                        var ids = Newtonsoft.Json.JsonConvert.DeserializeObject<List<int>>(cleanJson);
-                        if (ids != null && ids.Any())
+                        { "Kinh dị", new[] { "ma", "quy", "kinh hoang", "dang so", "giat gan", "u am", "horror", "kinh di" } },
+                        { "Tình cảm", new[] { "yeu", "tinh cam", "lang man", "hen ho", "dam my", "ngon tinh", "romance", "tinh yeu" } },
+                        { "Hành động", new[] { "danh nhau", "vo thuat", "ban sung", "dua xe", "nghet tho", "chien tranh", "action", "kich tinh" } },
+                        { "Hài", new[] { "hai", "cuoi", "vui ve", "hai huoc", "comedy" } },
+                        { "Hoạt hình", new[] { "hoat hinh", "anime", "tre em", "thieu nhi", "cartoon", "animation" } },
+                        { "Viễn tưởng", new[] { "vien tuong", "robot", "quai vat", "khong gian", "sieu anh hung", "sieu nhan", "sci-fi" } },
+                        { "Tâm lý", new[] { "tam ly", "kich tinh", "drama", "cuoc song" } },
+                        { "Phiêu lưu", new[] { "phieu luu", "kham pha", "du ngoan", "adventure" } }
+                    };
+
+                    foreach (var kvp in synonymMapping)
+                    {
+                        if (kvp.Value.Any(syn => keywordNoSign.Contains(syn)))
                         {
-                            fallbackList = activeMovies.Where(m => ids.Contains(m.MovieId)).ToList();
+                            var matchedGenre = dbGenres.FirstOrDefault(g => 
+                                RemoveDiacritics(g.Name ?? "").ToLower().Contains(RemoveDiacritics(kvp.Key).ToLower())
+                            );
+                            if (matchedGenre != null && !matchedGenres.Contains(matchedGenre))
+                            {
+                                matchedGenres.Add(matchedGenre);
+                            }
+                        }
+                    }
+
+                    if (matchedGenres.Any())
+                    {
+                        var matchedIds = matchedGenres.Select(g => g.GenreId).ToList();
+                        fallbackList = activeMovies
+                            .Where(m => m.Genres.Any(g => matchedIds.Contains(g.GenreId)))
+                            .Take(4)
+                            .ToList();
+
+                        if (fallbackList.Any())
+                        {
+                            isAIRecommended = true;
+                            reason = $"Không tìm thấy phim phù hợp với từ khóa '{keyword}'. Chúng tôi gợi ý các phim thuộc thể loại {string.Join(", ", matchedGenres.Select(g => g.Name))} có tính chất tương đồng:";
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine("Lỗi gọi Gemini AI trong Search: " + ex.Message);
-                }
 
-                // Nếu gọi AI lỗi hoặc không có gợi ý phù hợp nào, mặc định gợi ý các phim mới nhất
+                // Nếu vẫn chưa tìm thấy phim gợi ý nào, mặc định hiển thị phim mới nhất
                 if (!fallbackList.Any())
                 {
                     fallbackList = activeMovies
                         .OrderByDescending(m => m.ReleaseDate)
                         .Take(4)
                         .ToList();
+                    reason = $"Không tìm thấy phim phù hợp với từ khóa '{keyword}'. Dưới đây là một số bộ phim đang chiếu nổi bật:";
                 }
 
                 ViewBag.SuggestMovies = fallbackList;
+                ViewBag.AIRecommendationReason = reason;
+                ViewBag.IsAIRecommended = isAIRecommended;
             }
 
             ViewBag.Keyword = keyword;

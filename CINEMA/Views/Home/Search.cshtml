@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CINEMA.Models.Movie>
+@model IEnumerable<CINEMA.Models.Movie>
 
 @{
     ViewData["Title"] = "Kết quả tìm kiếm";
@@ -142,9 +142,19 @@
 
         @if (suggestions != null && suggestions.Any())
         {
-            <h3 class="suggest-title">
-                🔥 Có thể bạn sẽ thích
-            </h3>
+            <div class="d-flex align-items-center mb-3">
+                <h3 class="suggest-title mb-0 d-flex align-items-center">
+                    <i class="bi bi-robot fs-4 me-2 text-warning"></i> Gợi ý thông minh từ AI
+                </h3>
+            </div>
+
+            @if (ViewBag.AIRecommendationReason != null)
+            {
+                <div class="alert alert-info border-0 shadow-sm rounded-4 p-3 mb-4 d-flex align-items-center" style="background: rgba(13, 110, 253, 0.05); border-left: 4px solid #0d6efd !important;">
+                    <i class="bi bi-lightbulb-fill text-warning fs-5 me-3"></i>
+                    <span class="fw-medium text-dark">@ViewBag.AIRecommendationReason</span>
+                </div>
+            }
 
             <div class="row">
                 @foreach (var movie in suggestions)

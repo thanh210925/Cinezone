@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CINEMA.ViewModels
@@ -142,6 +142,21 @@ namespace CINEMA.ViewModels
         public double GlobalOccupancyRate { get; set; }
         public int? SelectedTheaterId { get; set; }
         public List<CINEMA.Models.Ticket> Tickets { get; set; } = new();
+
+        // ==========================================
+        // 6. THÀNH PHẦN THỐNG KÊ CHI TIẾT NÂNG CAO
+        // ==========================================
+        public decimal TicketRevenue { get; set; } // Doanh thu bán vé thực tế
+        public decimal GrossComboRevenue { get; set; } // Doanh thu bán combo gộp
+        public decimal TotalDiscount { get; set; } // Tổng giá trị giảm giá voucher
+        public decimal NetRevenue { get; set; } // Doanh thu ròng sau voucher
+
+        public List<TheaterRevenueViewModel> TheaterRevenues { get; set; } = new();
+        public List<PeakHourViewModel> PeakHours { get; set; } = new();
+        public List<PeakDayViewModel> PeakDays { get; set; } = new();
+        public List<PaymentMethodStatViewModel> PaymentMethodStats { get; set; } = new();
+        public List<CustomerSpendViewModel> TopCustomers { get; set; } = new();
+        public List<RoomRevenueViewModel> RoomRevenues { get; set; } = new();
     }
 
     // =====================================================
@@ -154,4 +169,64 @@ namespace CINEMA.ViewModels
         public double Percentage { get; set; }
     }
 
+    // =====================================================
+    // 🔹 CLASS PHỤ PHÂN TÍCH RẠP & PHÒNG CHIẾU
+    // =====================================================
+    public class TheaterRevenueViewModel
+    {
+        public string TheaterName { get; set; } = string.Empty;
+        public int TicketsSold { get; set; }
+        public decimal TicketRevenue { get; set; }
+        public decimal ComboRevenue { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public double OccupancyRate { get; set; }
+    }
+
+    public class RoomRevenueViewModel
+    {
+        public string RoomName { get; set; } = string.Empty;
+        public string TheaterName { get; set; } = string.Empty;
+        public int TicketsSold { get; set; }
+        public decimal Revenue { get; set; }
+    }
+
+    // =====================================================
+    // 🔹 CLASS PHỤ PHÂN TÍCH KHUNG GIỜ VÀ NGÀY VÀNG
+    // =====================================================
+    public class PeakHourViewModel
+    {
+        public string TimeSlot { get; set; } = string.Empty;
+        public int TicketCount { get; set; }
+        public decimal Revenue { get; set; }
+    }
+
+    public class PeakDayViewModel
+    {
+        public string DayOfWeek { get; set; } = string.Empty;
+        public int TicketCount { get; set; }
+        public decimal Revenue { get; set; }
+    }
+
+    // =====================================================
+    // 🔹 CLASS PHỤ PHƯƠNG THỨC THANH TOÁN
+    // =====================================================
+    public class PaymentMethodStatViewModel
+    {
+        public string PaymentMethod { get; set; } = string.Empty;
+        public int OrderCount { get; set; }
+        public decimal TotalRevenue { get; set; }
+    }
+
+    // =====================================================
+    // 🔹 CLASS PHỤ THỐNG KÊ KHÁCH HÀNG VIP
+    // =====================================================
+    public class CustomerSpendViewModel
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string MembershipLevel { get; set; } = string.Empty;
+        public int TicketsBooked { get; set; }
+        public decimal TotalSpent { get; set; }
+    }
 }
