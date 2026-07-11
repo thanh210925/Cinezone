@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using CINEMA.Models;
+using Newtonsoft.Json;
 
 namespace CINEMA.Services
 {
@@ -29,14 +30,21 @@ namespace CINEMA.Services
     public class RecommendationEngine
     {
         private readonly CinemaContext _context;
+        private readonly GeminiService _geminiService;
         
         private static List<AssociationRule> _cachedRules = new List<AssociationRule>();
         private static DateTime _lastRun = DateTime.MinValue;
         private static readonly object _lock = new object();
 
-        public RecommendationEngine(CinemaContext context)
+        // Bộ nhớ đệm cho Hộp đen Gemini AI (lưu trong 5 phút để tránh gọi API liên tục làm chậm trang)
+        private static readonly Dictionary<string, (List<int> MovieIds, DateTime CachedAt)> _geminiCache = 
+            new Dictionary<string, (List<int> MovieIds, DateTime CachedAt)>();
+        private static readonly object _cacheLock = new object();
+
+        public RecommendationEngine(CinemaContext context, GeminiService geminiService)
         {
             _context = context;
+            _geminiService = geminiService;
         }
 
         public List<AssociationRule> GetRules(bool forceRefresh = false)
@@ -220,8 +228,10 @@ namespace CINEMA.Services
                     var lhs = new HashSet<string>(lhsList);
                     var rhs = new HashSet<string>(itemset.Except(lhs));
 
-                    // Chỉ sinh luật nếu vế phải (RHS) chứa các mục Combo để phục vụ gợi ý Combo bắp nước
-                    if (!rhs.All(x => x.StartsWith("Combo_")))
+                    // Chỉ sinh luật nếu vế phải (RHS) chứa toàn bộ các mục Combo hoặc toàn bộ các mục Phim để phục vụ gợi ý
+                    bool isAllCombo = rhs.All(x => x.StartsWith("Combo_"));
+                    bool isAllMovie = rhs.All(x => x.StartsWith("Movie_"));
+                    if (!isAllCombo && !isAllMovie)
                         continue;
 
                     if (allFrequentItemsets.TryGetValue(lhs, out int countLhs))
@@ -423,6 +433,293 @@ namespace CINEMA.Services
 
             // Sắp xếp giảm dần theo điểm ưu tiên
             return result.OrderByDescending(r => r.PriorityScore).ToList();
+        }
+
+        public async Task<List<Movie>> GetRecommendedMovies(int? customerId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var thirtyDaysAgo = today.AddDays(-30);
+
+            // 1. Lấy danh sách phim đã xem/đã mua của khách hàng này để loại trừ
+            var viewedMovieIds = new HashSet<int>();
+            var watchedMovieTitles = new List<string>();
+            if (customerId.HasValue)
+            {
+                var views = _context.UserMovieViews
+                    .Where(v => v.CustomerId == customerId.Value)
+                    .Select(v => new { v.MovieId, v.Movie.Title })
+                    .ToList();
+                foreach (var v in views)
+                {
+                    viewedMovieIds.Add(v.MovieId);
+                    if (!watchedMovieTitles.Contains(v.Title))
+                    {
+                        watchedMovieTitles.Add(v.Title);
+                    }
+                }
+
+                // Thêm các phim khách hàng đã tương tác gần đây (từ UserActivityLogs)
+                var interactedTitles = _context.UserActivityLogs
+                    .Where(l => l.CustomerId == customerId.Value && l.MovieId != null)
+                    .Select(l => l.Movie.Title)
+                    .Distinct()
+                    .ToList();
+
+                foreach (var title in interactedTitles)
+                {
+                    if (!watchedMovieTitles.Contains(title))
+                    {
+                        watchedMovieTitles.Add(title);
+                    }
+                }
+            }
+
+            // 2. Lấy danh sách thể loại yêu thích (Top 3) dựa trên lịch sử hoạt động
+            var targetGenreIds = new List<int>();
+            var userInteractedItems = new HashSet<string>(); // Lưu cả các phim/thể loại người dùng đã tương tác để khớp vế LHS của Apriori
+
+            if (customerId.HasValue)
+            {
+                // Lấy hoạt động của khách hàng này
+                var activityLogs = _context.UserActivityLogs
+                    .Where(l => l.CustomerId == customerId.Value)
+                    .Include(l => l.Movie)
+                        .ThenInclude(m => m.Genres)
+                    .Include(l => l.Genre)
+                    .ToList();
+
+                foreach (var log in activityLogs)
+                {
+                    if (log.MovieId.HasValue)
+                    {
+                        userInteractedItems.Add($"Movie_{log.MovieId.Value}");
+                        if (log.Movie.Genres != null)
+                        {
+                            foreach (var g in log.Movie.Genres)
+                            {
+                                userInteractedItems.Add($"Genre_{g.GenreId}");
+                            }
+                        }
+                    }
+                    if (log.GenreId.HasValue)
+                    {
+                        userInteractedItems.Add($"Genre_{log.GenreId.Value}");
+                    }
+                }
+
+                // Top 3 thể loại của riêng khách hàng
+                targetGenreIds = activityLogs
+                    .SelectMany(l => {
+                        var list = new List<Genre>();
+                        if (l.Genre != null) list.Add(l.Genre);
+                        if (l.Movie?.Genres != null) list.AddRange(l.Movie.Genres);
+                        return list;
+                    })
+                    .GroupBy(g => g.GenreId)
+                    .OrderByDescending(group => group.Count())
+                    .Select(group => group.Key)
+                    .Take(3)
+                    .ToList();
+            }
+
+            // Nếu không đăng nhập hoặc chưa có lịch sử, lấy xu hướng chung
+            if (!targetGenreIds.Any())
+            {
+                var generalLogs = _context.UserActivityLogs
+                    .Where(l => l.MovieId != null || l.GenreId != null)
+                    .Include(l => l.Movie)
+                        .ThenInclude(m => m.Genres)
+                    .Include(l => l.Genre)
+                    .ToList();
+
+                targetGenreIds = generalLogs
+                    .SelectMany(l => {
+                        var list = new List<Genre>();
+                        if (l.Genre != null) list.Add(l.Genre);
+                        if (l.Movie?.Genres != null) list.AddRange(l.Movie.Genres);
+                        return list;
+                    })
+                    .GroupBy(g => g.GenreId)
+                    .OrderByDescending(group => group.Count())
+                    .Select(group => group.Key)
+                    .Take(3)
+                    .ToList();
+            }
+
+            // Nếu khách hàng chưa đăng nhập hoặc không có tương tác cá nhân, sử dụng xu hướng chung để khớp Apriori
+            if (userInteractedItems.Count == 0)
+            {
+                foreach (var gId in targetGenreIds)
+                {
+                    userInteractedItems.Add($"Genre_{gId}");
+                }
+            }
+
+            // Lấy tất cả phim đang chiếu/sắp chiếu và chưa xem để chấm điểm
+            var allMovies = _context.Movies
+                .Include(m => m.Genres)
+                .Where(m => m.IsActive == true && m.ReleaseDate.HasValue && m.ReleaseDate <= today && !viewedMovieIds.Contains(m.MovieId))
+                .ToList();
+
+            // -----------------------------------------------------------------
+            // HỘP ĐEN (BLACK BOX - GEMINI AI) GỢI Ý
+            // -----------------------------------------------------------------
+            var geminiRecommendedIds = new List<int>();
+            if (customerId.HasValue && watchedMovieTitles.Any() && allMovies.Any())
+            {
+                string cacheKey = $"user_{customerId.Value}";
+                bool gotCache = false;
+
+                lock (_cacheLock)
+                {
+                    if (_geminiCache.TryGetValue(cacheKey, out var cacheEntry) && DateTime.Now - cacheEntry.CachedAt < TimeSpan.FromMinutes(5))
+                    {
+                        geminiRecommendedIds = cacheEntry.MovieIds;
+                        gotCache = true;
+                    }
+                }
+
+                if (!gotCache)
+                {
+                    var moviesContext = string.Join("\n", allMovies.Select(m => $"{m.MovieId} - {m.Title} ({string.Join(", ", m.Genres.Select(g => g.Name))})"));
+                    var historyContext = string.Join(", ", watchedMovieTitles);
+
+                    string prompt = $@"
+Bạn là hệ thống gợi ý phim AI (hộp đen) cho rạp phim CineZone.
+Dưới đây là danh sách các phim đang chiếu tại rạp của chúng tôi:
+{moviesContext}
+
+Dưới đây là danh sách các bộ phim khách hàng này đã từng xem hoặc quan tâm:
+{historyContext}
+
+Hãy phân tích sở thích ẩn, chiều sâu nội dung phim họ thích để chọn ra tối đa 4 bộ phim phù hợp nhất trong danh sách đang chiếu.
+Trả về duy nhất một mảng JSON chứa các MovieId được chọn, ví dụ: [3037, 3039]
+Chỉ trả về JSON, không giải thích gì thêm.";
+
+                    try
+                    {
+                        var rawResponse = await _geminiService.Ask(prompt);
+                        var cleanJson = ExtractJsonArray(rawResponse);
+                        if (!string.IsNullOrEmpty(cleanJson))
+                        {
+                            var ids = JsonConvert.DeserializeObject<List<int>>(cleanJson);
+                            if (ids != null)
+                            {
+                                geminiRecommendedIds = ids;
+                                lock (_cacheLock)
+                                {
+                                    _geminiCache[cacheKey] = (geminiRecommendedIds, DateTime.Now);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Lỗi gọi Gemini AI gợi ý phim: " + ex.Message);
+                    }
+                }
+            }
+
+            // 3. Khớp luật Apriori cho phim (Hộp trắng)
+            var rules = GetRules();
+            var aprioriMovieScores = new Dictionary<int, double>(); // MovieId -> Max Confidence
+
+            if (userInteractedItems.Any())
+            {
+                foreach (var rule in rules)
+                {
+                    // Nếu LHS chứa các phần tử khách hàng đã tương tác (như xem phim hay quan tâm thể loại đó)
+                    if (rule.LHS.Any(item => userInteractedItems.Contains(item)))
+                    {
+                        foreach (var rhsItem in rule.RHS)
+                        {
+                            if (rhsItem.StartsWith("Movie_") && int.TryParse(rhsItem.Substring(6), out int mId))
+                            {
+                                if (!aprioriMovieScores.ContainsKey(mId) || aprioriMovieScores[mId] < rule.Confidence)
+                                {
+                                    aprioriMovieScores[mId] = rule.Confidence;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            var scoredMovies = new List<(Movie Movie, double Score)>();
+
+            foreach (var movie in allMovies)
+            {
+                double score = 0;
+
+                // A. Điểm từ luật Apriori (Hộp trắng)
+                if (aprioriMovieScores.TryGetValue(movie.MovieId, out double aprioriConf))
+                {
+                    score += aprioriConf * 10.0;
+                }
+
+                // B. Điểm từ Hộp đen (Gemini AI)
+                if (geminiRecommendedIds.Contains(movie.MovieId))
+                {
+                    score += 8.0;
+                }
+
+                // C. Điểm cá nhân hóa cho Phim mới (nếu được phát hành trong vòng 30 ngày qua)
+                bool isNewMovie = movie.ReleaseDate.HasValue && movie.ReleaseDate.Value >= thirtyDaysAgo;
+                if (isNewMovie)
+                {
+                    // Đếm số lượng thể loại của phim mới trùng khớp với các thể loại yêu thích (Top 3)
+                    int matchingGenresCount = movie.Genres.Count(g => targetGenreIds.Contains(g.GenreId));
+                    if (matchingGenresCount > 0)
+                    {
+                        // Phim mới và có thể loại yêu thích của người dùng -> tăng độ ưu tiên mạnh mẽ
+                        score += matchingGenresCount * 5.0; 
+                    }
+                }
+
+                if (score > 0)
+                {
+                    scoredMovies.Add((movie, score));
+                }
+            }
+
+            // Sắp xếp các phim được chấm điểm giảm dần theo Score, sau đó đến ngày phát hành mới nhất
+            var recommended = scoredMovies
+                .OrderByDescending(x => x.Score)
+                .ThenByDescending(x => x.Movie.ReleaseDate)
+                .Select(x => x.Movie)
+                .Take(8)
+                .ToList();
+
+            return recommended;
+        }
+
+        private string ExtractJsonArray(string rawResponse)
+        {
+            if (string.IsNullOrEmpty(rawResponse)) return "";
+            try
+            {
+                dynamic jsonObj = JsonConvert.DeserializeObject(rawResponse);
+                string text = jsonObj.candidates[0].content.parts[0].text;
+                text = text.Trim();
+                
+                int startIdx = text.IndexOf('[');
+                int endIdx = text.LastIndexOf(']');
+                
+                if (startIdx >= 0 && endIdx > startIdx)
+                {
+                    return text.Substring(startIdx, endIdx - startIdx + 1);
+                }
+            }
+            catch
+            {
+                int startIdx = rawResponse.IndexOf('[');
+                int endIdx = rawResponse.LastIndexOf(']');
+                if (startIdx >= 0 && endIdx > startIdx)
+                {
+                    return rawResponse.Substring(startIdx, endIdx - startIdx + 1);
+                }
+            }
+            return "";
         }
 
         // Dùng để so sánh 2 HashSet trong Dictionary

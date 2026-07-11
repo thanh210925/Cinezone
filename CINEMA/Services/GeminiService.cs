@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Newtonsoft.Json;
 
 namespace CINEMA.Services // Đổi namespace cho khớp với dự án của bạn nếu cần
@@ -16,35 +16,61 @@ namespace CINEMA.Services // Đổi namespace cho khớp với dự án của b�
 
         public async Task<string> Ask(string message)
         {
-            try
+            var apiKey = _config["GeminiApiKey"];
+            if (string.IsNullOrEmpty("keyAPI") || apiKey == "apiKey")
             {
-                var apiKey = _config["GeminiApiKey"];
+                apiKey = "keyAPI";
+            }
 
-                // Dùng model gemini-1.5-flash cho tốc độ phản hồi nhanh nhất
-                var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={"apiKey"}";
-                // Tạo cấu trúc dữ liệu JSON đúng chuẩn mà Google yêu cầu
-                var requestBody = new
+            var modelsToTry = new[] { "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.0-flash" };
+            string lastResponse = "";
+
+            foreach (var model in modelsToTry)
+            {
+                try
                 {
-                    contents = new[]
+                    var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={"keyAPI"}";
+                    var requestBody = new
                     {
-                        new { parts = new[] { new { text = message } } }
+                        contents = new[]
+                        {
+                            new { parts = new[] { new { text = message } } }
+                        }
+                    };
+
+                    var jsonContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+                    var response = await _httpClient.PostAsync(url, jsonContent);
+                    var rawJson = await response.Content.ReadAsStringAsync();
+
+                    // Ghi log ra file để chẩn đoán
+                    try
+                    {
+                        System.IO.File.AppendAllText(@"c:\Users\LENOVO\source\repos\Cinezone\CINEMA\gemini_log.txt", 
+                            $"--------------------------------------------------\n" +
+                            $"[Time: {DateTime.Now}]\n" +
+                            $"Model tried: {model}\n" +
+                            $"API Key: {apiKey}\n" +
+                            $"Response: {rawJson}\n" +
+                            $"--------------------------------------------------\n\n");
                     }
-                };
+                    catch {}
 
-                var jsonContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-
-                // Gửi request lên Google
-                var response = await _httpClient.PostAsync(url, jsonContent);
-                var rawJson = await response.Content.ReadAsStringAsync();
-
-                return rawJson;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return rawJson;
+                    }
+                    else
+                    {
+                        lastResponse = rawJson;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lastResponse = "{\"error\": {\"message\": \"" + ex.Message + "\"}}";
+                }
             }
-            catch (Exception ex)
-            {
-                // In ra lỗi trên console để dễ debug
-                Console.WriteLine($"Lỗi gọi Gemini API: {ex.Message}");
-                return "{}"; // Trả về chuỗi rỗng để controller tự bắt lỗi
-            }
+
+            return lastResponse;
         }
     }
 }

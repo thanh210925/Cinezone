@@ -13,19 +13,22 @@ namespace CINEMA.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly CinemaContext _context;
         private readonly RecommendationEngine _recommendationEngine;
+        private readonly Services.GeminiService _geminiService;
 
-        public HomeController(ILogger<HomeController> logger, CinemaContext context, RecommendationEngine recommendationEngine)
+        public HomeController(ILogger<HomeController> logger, CinemaContext context, RecommendationEngine recommendationEngine, Services.GeminiService geminiService)
         {
             _logger = logger;
             _context = context;
             _recommendationEngine = recommendationEngine;
+            _geminiService = geminiService;
         }
 
         // =====================================================
         // ====================== TRANG CHỦ ====================
         // =====================================================
         [HttpGet]
-        public IActionResult Search(string keyword)
+        [HttpGet]
+        public async Task<IActionResult> Search(string keyword)
         {
             if (string.IsNullOrWhiteSpace(keyword))
                 return RedirectToAction("Index");
@@ -38,8 +41,10 @@ namespace CINEMA.Controllers
                 .Include(m => m.Genres)
                 .AsEnumerable()
                 .Where(m =>
+                    m.IsActive == true &&
                     m.ReleaseDate.HasValue &&
                     m.ReleaseDate.Value <= today &&
+                    (!m.EndDate.HasValue || m.EndDate >= today) &&
                     RemoveDiacritics(m.Title ?? "")
                         .Contains(keywordNoSign))
                 .ToList();
@@ -65,11 +70,75 @@ namespace CINEMA.Controllers
 
             if (!movies.Any())
             {
-                ViewBag.SuggestMovies = _context.Movies
-                    .Where(m => m.IsActive == true)
-                    .OrderByDescending(m => m.ReleaseDate)
-                    .Take(4)
+                // Lấy toàn bộ danh sách phim đang chiếu (đang hoạt động, đã phát hành và chưa kết thúc) để làm ngữ cảnh cho AI
+                var activeMovies = _context.Movies
+                    .Include(m => m.Genres)
+                    .Where(m => m.IsActive == true && 
+                                m.ReleaseDate.HasValue && 
+                                m.ReleaseDate <= today &&
+                                (!m.EndDate.HasValue || m.EndDate >= today))
                     .ToList();
+
+                var moviesStr = string.Join("\n", activeMovies.Select(m => $"{m.MovieId} - {m.Title} ({string.Join(", ", m.Genres.Select(g => g.Name))})"));
+
+                string prompt = $@"
+Khách hàng đang tìm kiếm phim bằng từ khóa: '{keyword}' nhưng hệ thống rạp phim của chúng tôi không có kết quả chính xác nào.
+Dưới đây là danh sách các phim hiện đang hoạt động tại rạp của chúng tôi:
+{moviesStr}
+
+Nhiệm vụ của bạn:
+1. Hãy xác định thể loại phim (Genre) mà từ khóa '{keyword}' hướng tới (Ví dụ: 'ghost' hướng tới phim Kinh dị/Bí ẩn; 'sieu nhan' hướng tới phim Hành động/Viễn tưởng; 'tình yêu' hướng tới phim Tình cảm/Lãng mạn, v.v.).
+2. Chọn ra tối đa 4 bộ phim từ danh sách hoạt động ở trên có **CÙNG THỂ LOẠI hoặc THỂ LOẠI TƯƠNG ĐỒNG NHẤT** với thể loại của từ khóa tìm kiếm đó để đề xuất cho khách hàng.
+3. Trả về kết quả duy nhất dưới dạng một mảng JSON chứa các MovieId được chọn, ví dụ: [3037, 3039]
+Chỉ trả về mảng JSON, không giải thích gì thêm.";
+
+                var fallbackList = new List<Movie>();
+                try
+                {
+                    var rawResponse = await _geminiService.Ask(prompt);
+                    
+                    var cleanJson = "";
+                    int startIdx = rawResponse.IndexOf('[');
+                    int endIdx = rawResponse.LastIndexOf(']');
+                    if (startIdx >= 0 && endIdx > startIdx)
+                    {
+                        cleanJson = rawResponse.Substring(startIdx, endIdx - startIdx + 1);
+                    }
+                    else
+                    {
+                        // Thử parse candidates
+                        dynamic jsonObj = Newtonsoft.Json.JsonConvert.DeserializeObject(rawResponse);
+                        string text = jsonObj.candidates[0].content.parts[0].text;
+                        text = text.Trim();
+                        int s = text.IndexOf('[');
+                        int e = text.LastIndexOf(']');
+                        if (s >= 0 && e > s) cleanJson = text.Substring(s, e - s + 1);
+                    }
+
+                    if (!string.IsNullOrEmpty(cleanJson))
+                    {
+                        var ids = Newtonsoft.Json.JsonConvert.DeserializeObject<List<int>>(cleanJson);
+                        if (ids != null && ids.Any())
+                        {
+                            fallbackList = activeMovies.Where(m => ids.Contains(m.MovieId)).ToList();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Lỗi gọi Gemini AI trong Search: " + ex.Message);
+                }
+
+                // Nếu gọi AI lỗi hoặc không có gợi ý phù hợp nào, mặc định gợi ý các phim mới nhất
+                if (!fallbackList.Any())
+                {
+                    fallbackList = activeMovies
+                        .OrderByDescending(m => m.ReleaseDate)
+                        .Take(4)
+                        .ToList();
+                }
+
+                ViewBag.SuggestMovies = fallbackList;
             }
 
             ViewBag.Keyword = keyword;
@@ -298,7 +367,7 @@ namespace CINEMA.Controllers
         // =====================================================
 
         [HttpGet]
-        public IActionResult BookTicket(int id, int? showtimeId)
+        public IActionResult BookTicket(int id, int? showtimeId, bool isRecommend = false)
         {
             var movie = _context.Movies
                 .Include(m => m.Genres)
@@ -307,8 +376,15 @@ namespace CINEMA.Controllers
             if (movie == null)
                 return NotFound("Không tìm thấy phim.");
 
-            // 📌 GHI LOG XEM PHIM
-            LogActivity("VIEW_MOVIE", movieId: id);
+            // 📌 GHI LOG XEM PHIM (LƯU VẾT CLICK GỢI Ý NẾU CÓ)
+            if (isRecommend)
+            {
+                LogActivity("CLICK_RECOMMEND", movieId: id);
+            }
+            else
+            {
+                LogActivity("VIEW_MOVIE", movieId: id);
+            }
             TrackMovieView(id);
 
             // 📌 LƯU TƯƠNG TÁC CLICK PHIM VÀO SESSION ĐỂ GỢI Ý PHIM CÙNG THỂ LOẠI
@@ -696,67 +772,13 @@ namespace CINEMA.Controllers
         // =====================================================
 
         [HttpGet]
-        public IActionResult Recommend()
+        public async Task<IActionResult> Recommend()
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
-            var customerId = HttpContext.Session.GetInt32("CustomerId");
+            var customerId = GetCurrentCustomerId();
 
-            List<int> targetGenreIds = new List<int>();
-
-            // [1] Nếu người dùng đã đăng nhập: Gợi ý cá nhân hóa dựa trên lịch sử hoạt động cá nhân
-            if (customerId.HasValue)
-            {
-                targetGenreIds = _context.UserActivityLogs
-                    .Where(l => l.CustomerId == customerId && (l.MovieId != null || l.GenreId != null))
-                    .Include(l => l.Movie)
-                        .ThenInclude(m => m.Genres)
-                    .Include(l => l.Genre)
-                    .AsSplitQuery()
-                    .ToList()
-                    .SelectMany(l => {
-                        var list = new List<Genre>();
-                        if (l.Genre != null) list.Add(l.Genre);
-                        if (l.Movie?.Genres != null) list.AddRange(l.Movie.Genres);
-                        return list;
-                    })
-                    .GroupBy(g => g.GenreId)
-                    .Select(group => new {
-                        GenreId = group.Key,
-                        Count = group.Count()
-                    })
-                    .OrderByDescending(x => x.Count)
-                    .Select(x => x.GenreId)
-                    .Take(3)
-                    .ToList();
-            }
-
-            // [2] Nếu là khách chưa đăng nhập HOẶC khách đã đăng nhập nhưng chưa có lịch sử hoạt động:
-            // Gợi ý dựa trên lịch sử hoạt động tổng của tất cả người dùng (xu hướng chung)
-            if (!targetGenreIds.Any())
-            {
-                targetGenreIds = _context.UserActivityLogs
-                    .Where(l => l.MovieId != null || l.GenreId != null)
-                    .Include(l => l.Movie)
-                        .ThenInclude(m => m.Genres)
-                    .Include(l => l.Genre)
-                    .AsSplitQuery()
-                    .ToList()
-                    .SelectMany(l => {
-                        var list = new List<Genre>();
-                        if (l.Genre != null) list.Add(l.Genre);
-                        if (l.Movie?.Genres != null) list.AddRange(l.Movie.Genres);
-                        return list;
-                    })
-                    .GroupBy(g => g.GenreId)
-                    .Select(group => new {
-                        GenreId = group.Key,
-                        Count = group.Count()
-                    })
-                    .OrderByDescending(x => x.Count)
-                    .Select(x => x.GenreId)
-                    .Take(3)
-                    .ToList();
-            }
+            // 1. Gợi ý phim từ RecommendationEngine (sử dụng Apriori + Cá nhân hóa phim mới + Gemini AI)
+            var recommendedMovies = await _recommendationEngine.GetRecommendedMovies(customerId);
 
             // Lấy danh sách phim Khách hàng đã xem/đã mua để loại trừ (nếu đã đăng nhập)
             var viewedMovieIds = customerId.HasValue 
@@ -765,22 +787,6 @@ namespace CINEMA.Controllers
                     .Select(v => v.MovieId)
                     .ToList()
                 : new List<int>();
-
-            List<Movie> recommendedMovies = new List<Movie>();
-
-            if (targetGenreIds.Any())
-            {
-                recommendedMovies = _context.Movies
-                    .Include(m => m.Genres)
-                    .Where(m => m.IsActive == true 
-                             && m.Genres.Any(g => targetGenreIds.Contains(g.GenreId))
-                             && !viewedMovieIds.Contains(m.MovieId)
-                             && m.ReleaseDate.HasValue
-                             && m.ReleaseDate <= today)
-                    .OrderByDescending(m => m.ReleaseDate)
-                    .Take(8)
-                    .ToList();
-            }
 
             // Fallback: nếu danh sách gợi ý < 4 phim, bổ sung thêm các phim mới nhất đang chiếu
             if (recommendedMovies.Count < 4)
