@@ -350,6 +350,52 @@
         .payment-sticky { position: static; }
         .checkout-marquee { flex-direction: column; align-items: flex-start; text-align: left; }
     }
+
+
+
+    /* ---------- Payment Methods ---------- */
+    .payment-method-box {
+        border: 1.5px solid var(--color-line);
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--color-paper);
+    }
+    .payment-method-box:hover {
+        border-color: var(--color-gold);
+        background: #fffdf5;
+    }
+    .payment-method-box.active {
+        border-color: var(--color-gold);
+        background: #fffdf5;
+        box-shadow: 0 0 0 1px var(--color-gold);
+    }
+    .payment-method-box input[type="radio"] {
+        accent-color: var(--color-crimson);
+        transform: scale(1.15);
+        cursor: pointer;
+    }
+    .payment-method-icon {
+        font-size: 1.6rem;
+    }
+    .payment-method-details {
+        display: flex;
+        flex-direction: column;
+    }
+    .payment-method-name {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--color-ink);
+    }
+    .payment-method-desc {
+        font-size: 0.75rem;
+        color: #55555f;
+    }
 </style>
 
 <div class="container checkout-container">
@@ -576,11 +622,45 @@
                                 }
                             }
 
-                            <input type="hidden" name="method" value="Chuyển khoản" />
 
-                            <div class="gateway-info">
+
+
+
+                            @* //NEWWWWWWW *@
+                            <div class="mb-3 mt-2">
+                                <p class="section-label mb-2" style="font-size: 0.85rem;"><i class="bi bi-wallet2"></i> Chọn phương thức thanh toán</p>
+
+                                <label class="payment-method-box active" onclick="selectPaymentBox(this)">
+                                    <input type="radio" name="method" value="Chuyển khoản" checked onchange="updatePaymentUI()" />
+                                    <i class="bi bi-qr-code-scan payment-method-icon text-primary"></i>
+                                    <div class="payment-method-details">
+                                        <span class="payment-method-name">Ví VNPAY / App Ngân hàng</span>
+                                        <span class="payment-method-desc">Quét mã QR tiện lợi, nhanh chóng</span>
+                                    </div>
+                                </label>
+
+                                <label class="payment-method-box" onclick="selectPaymentBox(this)">
+                                    <input type="radio" name="method" value="Online" onchange="updatePaymentUI()" />
+                                    <i class="bi bi-credit-card-2-front-fill payment-method-icon text-warning"></i>
+                                    <div class="payment-method-details">
+                                        <span class="payment-method-name">Thẻ quốc tế (Stripe)</span>
+                                        <span class="payment-method-desc">Thanh toán bằng thẻ Visa, Mastercard...</span>
+                                    </div>
+                                </label>
+
+                                <label class="payment-method-box" onclick="selectPaymentBox(this)">
+                                    <input type="radio" name="method" value="Tại quầy" onchange="updatePaymentUI()" />
+                                    <i class="bi bi-shop payment-method-icon text-success"></i>
+                                    <div class="payment-method-details">
+                                        <span class="payment-method-name">Thanh toán tại quầy</span>
+                                        <span class="payment-method-desc">Giữ ghế và thanh toán khi đến rạp</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                           <div class="gateway-info">
                                 <i class="bi bi-info-circle-fill"></i>
-                                <span>Bạn sẽ được chuyển hướng an toàn sang cổng thanh toán trực tuyến <strong>VNPAY</strong> để xác thực thẻ/tài khoản ngân hàng của bạn.</span>
+                                <span id="gateway-info-text">Bạn sẽ được chuyển hướng an toàn sang cổng thanh toán trực tuyến <strong>VNPAY</strong> để xác thực thẻ/tài khoản ngân hàng của bạn.</span>
                             </div>
 
                             <div class="custom-check-box" onclick="var chk = this.querySelector('input'); chk.checked = !chk.checked;">
@@ -597,9 +677,10 @@
                                 </label>
                             </div>
 
-                            <button type="submit" class="btn btn-pay-vnpay">
+                            <button type="submit" id="btn-submit-payment" class="btn btn-pay-vnpay mt-3">
                                 <i class="bi bi-credit-card-fill me-2"></i>Xác nhận & Thanh toán VNPAY
                             </button>
+
                         </form>
                     </div>
                 </div>
@@ -608,3 +689,44 @@
     </div>
 
 </div>
+
+
+
+
+
+
+@* //NEWWWWWWW *@
+@section Scripts {
+    <script>
+        function selectPaymentBox(selectedLabel) {
+            // Xóa class active của tất cả các hộp
+            document.querySelectorAll('.payment-method-box').forEach(box => {
+                box.classList.remove('active');
+            });
+            // Thêm class active cho hộp được chọn
+            selectedLabel.classList.add('active');
+        }
+
+        function updatePaymentUI() {
+            const method = document.querySelector('input[name="method"]:checked').value;
+            const gatewayInfo = document.getElementById('gateway-info-text');
+            const submitBtn = document.getElementById('btn-submit-payment');
+
+            if (method === 'Chuyển khoản') {
+                gatewayInfo.innerHTML = 'Bạn sẽ được chuyển hướng an toàn sang cổng thanh toán trực tuyến <strong>VNPAY</strong> để xác thực tài khoản.';
+                submitBtn.innerHTML = '<i class="bi bi-qr-code-scan me-2"></i>Thanh toán VNPAY';
+                submitBtn.style.backgroundColor = 'var(--color-crimson)';
+            } 
+            else if (method === 'Online') {
+                gatewayInfo.innerHTML = 'Bạn sẽ được chuyển hướng sang cổng thanh toán <strong>Stripe</strong>. Hỗ trợ thẻ tín dụng và ghi nợ quốc tế an toàn.';
+                submitBtn.innerHTML = '<i class="bi bi-credit-card-fill me-2"></i>Thanh toán Stripe';
+                submitBtn.style.backgroundColor = '#635BFF'; // Màu tím đặc trưng của Stripe
+            } 
+            else {
+                gatewayInfo.innerHTML = 'Bạn đã chọn giữ chỗ. Vui lòng đến rạp trước <strong>15 phút</strong> so với giờ chiếu để thanh toán tiền mặt hoặc quẹt thẻ.';
+                submitBtn.innerHTML = '<i class="bi bi-shop me-2"></i>Xác nhận giữ vé';
+                submitBtn.style.backgroundColor = '#198754'; // Màu xanh lá
+            }
+        }
+    </script>
+}
