@@ -1,0 +1,419 @@
+@{
+    ViewData["Title"] = "Điều khoản & Chính sách";
+}
+
+<!-- Custom styles for terms and policies page -->
+<style>
+    .policy-header-banner {
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #581c87 100%);
+        border-radius: 24px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
+    }
+    
+    .policy-header-banner::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 65%);
+        pointer-events: none;
+    }
+
+    .policy-sidebar-menu {
+        position: sticky;
+        top: 100px;
+        z-index: 10;
+    }
+
+    .policy-menu-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 20px;
+        border-radius: 12px;
+        color: #475569;
+        font-weight: 600;
+        font-size: 0.92rem;
+        text-decoration: none;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid transparent;
+        background-color: transparent;
+    }
+
+    .policy-menu-link:hover {
+        background-color: #f1f5f9;
+        color: #0f172a;
+        transform: translateX(4px);
+    }
+
+    .policy-menu-link.active {
+        background-color: #ffffff;
+        color: #0d6efd;
+        border-color: #e2e8f0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .policy-card {
+        border-radius: 24px;
+        border: 1px solid #e2e8f0;
+        background-color: #ffffff;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
+        transition: all 0.3s ease;
+    }
+    
+    .policy-card:hover {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .icon-box-primary {
+        background-color: #eff6ff;
+        color: #1d4ed8;
+        border-radius: 16px;
+    }
+    
+    .icon-box-danger {
+        background-color: #fef2f2;
+        color: #b91c1c;
+        border-radius: 16px;
+    }
+
+    .icon-box-warning {
+        background-color: #fffbef;
+        color: #ca8a04;
+        border-radius: 16px;
+    }
+
+    .leading-relaxed {
+        line-height: 1.8;
+    }
+
+    .section-title-underline {
+        width: 50px;
+        height: 4px;
+        background-color: #0d6efd;
+        border-radius: 2px;
+        margin-top: 8px;
+    }
+    
+    .section-title-underline-danger {
+        width: 50px;
+        height: 4px;
+        background-color: #dc3545;
+        border-radius: 2px;
+        margin-top: 8px;
+    }
+
+    .policy-list-item {
+        position: relative;
+        padding-left: 24px;
+        margin-bottom: 12px;
+    }
+
+    .policy-list-item::before {
+        content: "•";
+        color: #0d6efd;
+        font-weight: bold;
+        font-size: 1.2rem;
+        position: absolute;
+        left: 6px;
+        top: -2px;
+    }
+
+    .policy-list-item-danger::before {
+        content: "•";
+        color: #dc3545;
+        font-weight: bold;
+        font-size: 1.2rem;
+        position: absolute;
+        left: 6px;
+        top: -2px;
+    }
+</style>
+
+<div class="container my-5">
+    
+    <!-- BANNER TIÊU ĐỀ -->
+    <div class="policy-header-banner p-5 text-white mb-5">
+        <div class="row align-items-center py-3">
+            <div class="col-md-9 text-center text-md-start">
+                <span class="badge bg-danger mb-3 px-3 py-2 rounded-pill tracking-wider text-uppercase small fw-bold">Thông tin chính thức</span>
+                <h1 class="display-4 fw-extrabold mb-3">Điều khoản & Chính sách</h1>
+                <p class="text-white-50 lead mb-0">Hệ thống quy chuẩn pháp lý, chính sách giao dịch vé xem phim trực tuyến và cam kết tuyệt đối về bảo vệ dữ liệu cá nhân khách hàng tại Cinezone.</p>
+            </div>
+            <div class="col-md-3 text-center d-none d-md-block">
+                <i class="bi bi-shield-lock-fill text-white-50" style="font-size: 7rem; opacity: 0.12;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- NỘI DUNG CHÍNH HAI CỘT -->
+    <div class="row g-4">
+        
+        <!-- CỘT TRÁI: MENU ĐIỀU HƯỚNG NHANH -->
+        <div class="col-lg-4 col-xl-3 d-none d-lg-block">
+            <div class="policy-sidebar-menu d-flex flex-column gap-2 p-3 bg-light rounded-4 border border-light-subtle">
+                <div class="px-3 py-2 small fw-bold text-muted text-uppercase tracking-wider">Mục lục chính sách</div>
+                <a href="#refund-policy" class="policy-menu-link active" onclick="activateLink(this)">
+                    <i class="bi bi-ticket-detailed fs-5"></i> Chính sách Hoàn đổi vé
+                </a>
+                <a href="#age-policy" class="policy-menu-link" onclick="activateLink(this)">
+                    <i class="bi bi-person-badge fs-5"></i> Phân loại & Quy định tuổi
+                </a>
+                <a href="#privacy-policy" class="policy-menu-link" onclick="activateLink(this)">
+                    <i class="bi bi-shield-check fs-5"></i> Điều khoản Bảo mật
+                </a>
+                <a href="#security" class="policy-menu-link" onclick="activateLink(this)">
+                    <i class="bi bi-lock-fill fs-5"></i> Bảo mật giao dịch
+                </a>
+                <a href="#contact" class="policy-menu-link" onclick="activateLink(this)">
+                    <i class="bi bi-envelope-paper-fill fs-5"></i> Liên hệ & Hỗ trợ
+                </a>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: NỘI DUNG CHI TIẾT -->
+        <div class="col-lg-8 col-xl-9">
+            
+            <!-- SECTION 1: CHÍNH SÁCH HOÀN ĐỔI VÉ -->
+            <section id="refund-policy" class="scroll-mt mb-5">
+                <div class="policy-card p-4 p-md-5">
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="d-flex align-items-center justify-content-center rounded-3 p-3 icon-box-danger" style="width: 54px; height: 54px;">
+                            <i class="bi bi-ticket-detailed fs-3"></i>
+                        </div>
+                        <div>
+                            <h3 class="fw-bold text-dark mb-0">Chính sách Hoàn đổi vé</h3>
+                            <div class="section-title-underline-danger"></div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-danger border-0 bg-danger-subtle text-danger-emphasis d-flex align-items-start gap-3 p-4 rounded-4 mb-4">
+                        <i class="bi bi-exclamation-octagon-fill fs-3 mt-1 flex-shrink-0"></i>
+                        <div>
+                            <h6 class="fw-bold mb-2 text-uppercase tracking-wider">⚠️ QUY ĐỊNH CỦA NHÀ PHÁT HÀNH: VÉ KHÔNG HOÀN ĐỔI</h6>
+                            <p class="mb-0 small leading-relaxed">
+                                Nhằm tuân thủ tuyệt đối quy trình vận hành phân phối phim bản quyền và chống giữ chỗ ảo gây ảnh hưởng đến khách hàng khác, **tất cả giao dịch vé xem phim trực tuyến (Online) hoặc trực tiếp tại quầy sau khi thanh toán thành công đều KHÔNG THỂ HOÀN TIỀN, HỦY BỎ, THAY ĐỔI THỜI GIAN CHIẾU hoặc THAY ĐỔI LOẠI GHẾ/SỐ GHẾ**. Kính mong quý khách thông cảm và kiểm tra kỹ thông tin.
+                            </p>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-3">1. Trách nhiệm kiểm tra trước khi thanh toán</h5>
+                    <p class="text-muted leading-relaxed mb-4">
+                        Khách hàng có trách nhiệm tự kiểm tra thông tin đặt vé trước khi tiến hành thanh toán trực tuyến:
+                    </p>
+                    <div class="ps-2 mb-4">
+                        <div class="policy-list-item-danger text-muted small"><strong>Phim và định dạng chiếu:</strong> Định dạng 2D, 3D, IMAX, phụ đề hoặc lồng tiếng.</div>
+                        <div class="policy-list-item-danger text-muted small"><strong>Suất chiếu & Phòng chiếu:</strong> Khung giờ chiếu, ngày chiếu và cụm rạp lựa chọn.</div>
+                        <div class="policy-list-item-danger text-muted small"><strong>Sơ đồ ghế:</strong> Vị trí ghế ngồi thực tế (Ghế Standard, VIP, Couple).</div>
+                        <div class="policy-list-item-danger text-muted small"><strong>Tổng tiền thanh toán:</strong> Đã bao gồm phụ thu loại ghế, dịch vụ combo bắp nước đi kèm và giảm giá từ Voucher (nếu có).</div>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-3">2. Bảo mật thông tin mã số nhận vé trực tuyến</h5>
+                    <p class="text-muted leading-relaxed mb-4">
+                        Sau khi hoàn tất thanh toán trực tuyến, hệ thống sẽ gửi một mã số vé kèm QR Code qua địa chỉ Email và số điện thoại đăng ký tài khoản của bạn:
+                    </p>
+                    <div class="ps-2 mb-4">
+                        <div class="policy-list-item-danger text-muted small">Mã số vé trực tuyến chỉ có giá trị quy đổi sang vé giấy một lần duy nhất tại máy in vé tự động (Kiosk) hoặc quầy vé của rạp.</div>
+                        <div class="policy-list-item-danger text-muted small">Cinezone hoàn toàn không chịu trách nhiệm giải quyết bồi thường trong trường hợp khách hàng chia sẻ, vô tình làm lộ mã số vé trực tuyến dẫn đến việc mã vé bị người khác sử dụng tại rạp.</div>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-3">3. Quy trình giải quyết lỗi trừ tiền ngân hàng nhưng lỗi xuất vé</h5>
+                    <p class="text-muted leading-relaxed mb-4">
+                        Trong một số trường hợp nghẽn mạng Internet hoặc lỗi cổng thanh toán trung gian, tài khoản của quý khách đã bị trừ tiền nhưng không nhận được mã vé:
+                    </p>
+                    <div class="ps-2 mb-4">
+                        <div class="policy-list-item-danger text-muted small">Quý khách vui lòng liên hệ ngay với Hotline <strong>1900 1234</strong> hoặc đến trực tiếp quầy vé của rạp Cinezone nơi đăng ký suất chiếu để được hỗ trợ.</div>
+                        <div class="policy-list-item-danger text-muted small">Quy trình tra soát giao dịch ngân hàng sẽ được hoàn thành trong vòng từ 24 đến 48 giờ làm việc. Nếu xác định lỗi do hệ thống của rạp, chúng tôi sẽ cấp lại vé hoặc thực hiện hoàn trả tiền về tài khoản ngân hàng của bạn.</div>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-3">4. Các trường hợp hủy suất chiếu đặc biệt từ phía rạp</h5>
+                    <p class="text-muted leading-relaxed mb-0">
+                        Cinezone chỉ chấp nhận hoàn tiền hoặc đổi suất chiếu sang phim khác đối với các trường hợp khách quan bất khả kháng bao gồm: Sự cố kỹ thuật phòng máy chiếu đột xuất, cúp điện diện rộng toàn rạp, hoặc theo lệnh tạm dừng hoạt động rạp chiếu phim để phục vụ công tác an toàn, thiên tai, dịch bệnh theo văn bản chỉ đạo của Cơ quan quản lý Nhà nước.
+                    </p>
+                </div>
+            </section>
+
+            <!-- SECTION 2: QUY ĐỊNH PHÂN LOẠI TUỔI XEM PHIM -->
+            <section id="age-policy" class="scroll-mt mb-5">
+                <div class="policy-card p-4 p-md-5">
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="d-flex align-items-center justify-content-center rounded-3 p-3 icon-box-warning" style="width: 54px; height: 54px;">
+                            <i class="bi bi-person-badge fs-3"></i>
+                        </div>
+                        <div>
+                            <h3 class="fw-bold text-dark mb-0">Phân loại & Quy định độ tuổi</h3>
+                            <div class="section-title-underline" style="background-color: #ca8a04;"></div>
+                        </div>
+                    </div>
+
+                    <p class="text-muted leading-relaxed mb-4">
+                        Theo Quy chế phân loại phim mới nhất của Cục Điện ảnh Việt Nam, khách hàng mua vé xem phim phải tuân thủ nghiêm ngặt quy định về nhãn phân loại độ tuổi của phim:
+                    </p>
+
+                    <div class="table-responsive rounded-4 border border-light-subtle mb-4">
+                        <table class="table table-hover align-middle mb-0 text-muted small">
+                            <thead class="table-light text-dark fw-bold">
+                                <tr>
+                                    <th style="width: 120px;">Nhãn phim</th>
+                                    <th>Độ tuổi tối thiểu được phép xem</th>
+                                    <th>Quy định chi tiết kiểm soát giấy tờ chứng minh</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge bg-success rounded-pill px-3 py-1">P</span></td>
+                                    <td><strong>Mọi lứa tuổi</strong></td>
+                                    <td>Phim phổ biến rộng rãi cho mọi đối tượng khán giả.</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-primary rounded-pill px-3 py-1">K</span></td>
+                                    <td><strong>Dưới 13 tuổi với người giám hộ</strong></td>
+                                    <td>Khán giả dưới 13 tuổi được xem phim nếu đi cùng cha, mẹ hoặc người giám hộ hợp pháp.</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-warning text-dark rounded-pill px-3 py-1">T13</span></td>
+                                    <td><strong>Từ đủ 13 tuổi trở lên</strong></td>
+                                    <td>Yêu cầu xuất trình Thẻ học sinh (có ảnh), CCCD hoặc Giấy khai sinh khi kiểm soát vé tại cửa.</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-orange rounded-pill px-3 py-1 text-white" style="background-color: #f97316;">T16</span></td>
+                                    <td><strong>Từ đủ 16 tuổi trở lên</strong></td>
+                                    <td>Yêu cầu xuất trình Thẻ học sinh cấp 3, CCCD hoặc thẻ cư trú tại cửa rạp.</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-danger rounded-pill px-3 py-1">T18</span></td>
+                                    <td><strong>Từ đủ 18 tuổi trở lên</strong></td>
+                                    <td>Bắt buộc xuất trình CCCD gốc hoặc bằng lái xe chứng minh ngày sinh hợp pháp khi vào phòng chiếu.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-info border-0 bg-info-subtle text-info-emphasis d-flex align-items-start gap-3 p-3 rounded-4 mb-0">
+                        <i class="bi bi-info-circle-fill fs-4 mt-1 flex-shrink-0"></i>
+                        <p class="mb-0 small leading-relaxed">
+                            <strong>Lưu ý quan trọng:</strong> Nhân viên kiểm soát vé của rạp Cinezone có quyền từ chối cho khách hàng vào phòng chiếu và **không thực hiện hoàn tiền vé** nếu khách hàng mua vé không đúng độ tuổi quy định hoặc không xuất trình được giấy tờ tùy thân hợp lệ chứng minh độ tuổi khi được yêu cầu.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: ĐIỀU KHOẢN BẢO MẬT THÔNG TIN -->
+            <section id="privacy-policy" class="scroll-mt mb-5">
+                <div class="policy-card p-4 p-md-5">
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="d-flex align-items-center justify-content-center rounded-3 p-3 icon-box-primary" style="width: 54px; height: 54px;">
+                            <i class="bi bi-shield-check fs-3"></i>
+                        </div>
+                        <div>
+                            <h3 class="fw-bold text-dark mb-0">Điều khoản Bảo mật</h3>
+                            <div class="section-title-underline"></div>
+                        </div>
+                    </div>
+
+                    <p class="text-muted leading-relaxed mb-4">
+                        Chính sách bảo mật này thiết lập cách thức rạp chiếu phim Cinezone quản lý dữ liệu cá nhân của thành viên đăng ký tài khoản trên hệ thống:
+                    </p>
+
+                    <h5 class="fw-bold text-dark mb-3">1. Mục đích thu thập dữ liệu cá nhân</h5>
+                    <p class="text-muted leading-relaxed mb-4">
+                        Cinezone chỉ thực hiện thu thập dữ liệu cá nhân khách hàng khi được sự đồng ý tự nguyện của quý khách nhằm phục vụ các hoạt động cụ thể:
+                    </p>
+                    <div class="ps-2 mb-4">
+                        <div class="policy-list-item text-muted small">Xử lý thanh toán giao dịch đặt vé trực tuyến và gửi mã nhận vé qua SMS/Email.</div>
+                        <div class="policy-list-item text-muted small">Cấp phát thẻ thành viên, tích lũy điểm thưởng chi tiêu để nâng hạng thành viên (Vàng, Kim cương) và tặng quà sinh nhật.</div>
+                        <div class="policy-list-item text-muted small">Phân tích lịch sử xem phim thông qua công nghệ trí tuệ nhân tạo (AI Recommendation) nhằm đề xuất các bộ phim mới phù hợp nhất với sở thích riêng của bạn khi truy cập trang chủ.</div>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-3">2. Danh mục thông tin thu thập</h5>
+                    <p class="text-muted leading-relaxed mb-4">
+                        Hệ thống sẽ ghi nhận các trường thông tin bao gồm: Họ tên đầy đủ, địa chỉ Email cá nhân, số điện thoại liên lạc, giới tính, ngày sinh và nhật ký giao dịch mua vé/bắp nước.
+                    </p>
+
+                    <h5 class="fw-bold text-dark mb-3">3. Cam kết không chia sẻ dữ liệu cho bên thứ ba</h5>
+                    <p class="text-muted leading-relaxed mb-4">
+                        Cinezone cam kết bảo vệ dữ liệu cá nhân an toàn tuyệt đối. Chúng tôi không bao giờ bán, chuyển nhượng hoặc tiết lộ dữ liệu của quý khách cho bất kỳ doanh nghiệp tiếp thị hoặc bên thứ ba nào, ngoại trừ:
+                    </p>
+                    <div class="ps-2 mb-4">
+                        <div class="policy-list-item text-muted small">Các đối tác cung cấp cổng thanh toán trực tuyến (như VNPay, Ngân hàng đối tác) phục vụ trực tiếp việc kiểm soát giao dịch thanh toán của chính khách hàng đó.</div>
+                        <div class="policy-list-item text-muted small">Cơ quan chức năng Nhà nước có thẩm quyền trong trường hợp có yêu cầu bằng văn bản pháp lý chính thức để phục vụ điều tra theo luật định.</div>
+                    </div>
+
+                    <h5 class="fw-bold text-dark mb-3">4. Quyền chỉnh sửa và xóa dữ liệu của khách hàng</h5>
+                    <p class="text-muted leading-relaxed mb-0">
+                        Khách hàng hoàn toàn có quyền đăng nhập vào mục thông tin cá nhân trên trang web để tự điều chỉnh thông tin hoặc liên hệ trực tiếp với bộ phận kỹ thuật bảo mật của Cinezone qua email để yêu cầu khóa hoặc xóa bỏ vĩnh viễn dữ liệu tài khoản của mình khỏi hệ thống lưu trữ.
+                    </p>
+                </div>
+            </section>
+
+            <!-- SECTION 4: BẢO MẬT GIAO DỊCH -->
+            <section id="security" class="scroll-mt mb-5">
+                <div class="policy-card p-4 p-md-5">
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="d-flex align-items-center justify-content-center rounded-3 p-3 icon-box-warning" style="width: 54px; height: 54px;">
+                            <i class="bi bi-lock-fill fs-3"></i>
+                        </div>
+                        <div>
+                            <h3 class="fw-bold text-dark mb-0">Bảo mật giao dịch thanh toán</h3>
+                            <div class="section-title-underline" style="background-color: #ca8a04;"></div>
+                        </div>
+                    </div>
+
+                    <p class="text-muted leading-relaxed mb-4">
+                        Để đảm bảo an toàn tuyệt đối cho tài chính của khách hàng, Cinezone tuân thủ quy tắc bảo mật giao dịch nghiêm ngặt:
+                    </p>
+                    <div class="ps-2">
+                        <div class="policy-list-item text-muted small"><strong>Mã hóa SSL/TLS:</strong> Toàn bộ dữ liệu truyền gửi giữa thiết bị của khách hàng và máy chủ Cinezone trong quá trình đặt vé đều được mã hóa bằng chứng chỉ SSL/TLS 256-bit chuẩn quốc tế.</div>
+                        <div class="policy-list-item text-muted small"><strong>Không lưu giữ thông tin thẻ ngân hàng:</strong> Hệ thống máy chủ của rạp Cinezone hoàn toàn không lưu trữ bất kỳ thông tin nào liên quan đến số thẻ tín dụng, số tài khoản ngân hàng hoặc mã OTP bảo mật của khách hàng. Tất cả quy trình thanh toán đều được chuyển tiếp xử lý tại cổng thanh toán bảo mật trung gian.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 5: THÔNG TIN LIÊN HỆ -->
+            <section id="contact" class="scroll-mt mb-5">
+                <div class="policy-card p-4 p-md-5 bg-dark text-white border-0">
+                    <h3 class="fw-bold mb-3 text-white"><i class="bi bi-chat-left-text-fill text-danger me-2"></i>Trung tâm Hỗ trợ Khách hàng Cinezone</h3>
+                    <p class="text-white-50 leading-relaxed mb-4">
+                        Nếu quý khách có bất kỳ thắc mắc nào liên quan đến các chính sách giao dịch trực tuyến, bảo mật thông tin cá nhân hoặc gặp sự cố trong quá trình thanh toán nhận vé, vui lòng liên hệ ngay với chúng tôi để được giải quyết nhanh nhất:
+                    </p>
+                    
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center gap-3 p-3 bg-white bg-opacity-10 rounded-3">
+                                <i class="bi bi-telephone-fill fs-4 text-danger"></i>
+                                <div>
+                                    <div class="small text-white-50">Đường dây nóng</div>
+                                    <div class="fw-bold">1900 1234 (8:00 - 22:00)</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="d-flex align-items-center gap-3 p-3 bg-white bg-opacity-10 rounded-3">
+                                <i class="bi bi-envelope-fill fs-4 text-danger"></i>
+                                <div>
+                                    <div class="small text-white-50">Hỗ trợ qua Email</div>
+                                    <div class="fw-bold">support@cinezone.com</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+        </div>
+    </div>
+</div>
+
+<script>
+    // JS to activate active state of menu links based on navigation
+    function activateLink(element) {
+        document.querySelectorAll(".policy-menu-link").forEach(link => {
+            link.classList.remove("active");
+        });
+        element.classList.add("active");
+    }
+</script>

@@ -384,13 +384,21 @@ async function autoGen() {
     try {
       const r = await fetch('/Showtime/GetScheduleByDate?date=' + W.date);
       const ex = await r.json();
-      busy = ex.map(e => ({s:toMin(e.startTime), e:toMin(e.endTime)}));
+      busy = ex.map(e => ({auditoriumId:e.auditoriumId, s:toMin(e.startTime), e:toMin(e.endTime)}));
     } catch(e){}
   }
   const gen = []; let cur = sMin;
   while (cur + W.movieDur <= eMin + 30) {
     const endSlot = cur + tot;
-    if (!busy.some(b => cur < b.e && endSlot > b.s)) gen.push(minToT(cur));
+    // Một khung giờ sinh tự động là hợp lệ nếu có ít nhất 1 phòng trong số các phòng đã chọn không bị trùng lịch
+    const isFreeInAnySelectedRoom = W.rooms.some(room => {
+      const hasOverlap = busy.some(b => b.auditoriumId === room.id && cur < b.e && endSlot > b.s);
+      return !hasOverlap;
+    });
+
+    if (isFreeInAnySelectedRoom) {
+      gen.push(minToT(cur));
+    }
     cur += tot;
   }
   document.getElementById('autoChips').innerHTML = gen.map(t=>'<span class="auto-chip">' + t + '</span>').join('');

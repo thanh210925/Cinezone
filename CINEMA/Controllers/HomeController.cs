@@ -222,6 +222,11 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
             return View(movies);
         }
 
+        public IActionResult TermsAndPolicies()
+        {
+            return View();
+        }
+
         public IActionResult Index()
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
@@ -789,7 +794,30 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
 
             var seatList = selectedSeats.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
-            decimal ticketTotal = seatList.Length * (showtime.BasePrice ?? 0);
+            decimal seatSurchargeTotal = 0m;
+            foreach (var seatStr in seatList)
+            {
+                if (seatStr.Length >= 2)
+                {
+                    string row = seatStr.Substring(0, 1);
+                    if (int.TryParse(seatStr.Substring(1), out int number))
+                    {
+                        var seatObj = _context.Seats.FirstOrDefault(s =>
+                            s.RowLabel == row &&
+                            s.SeatNumber == number &&
+                            s.AuditoriumId == showtime.AuditoriumId);
+                        if (seatObj != null)
+                        {
+                            if (seatObj.SeatType == "VIP")
+                                seatSurchargeTotal += 30000m;
+                            else if (seatObj.SeatType == "Couple")
+                                seatSurchargeTotal += 100000m;
+                        }
+                    }
+                }
+            }
+
+            decimal ticketTotal = seatList.Length * (showtime.BasePrice ?? 0) + seatSurchargeTotal;
             decimal comboPrice = combo?.Price ?? 0;
             decimal totalAmount = ticketTotal + comboPrice;
 
@@ -818,12 +846,18 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
 
                 if (seatObj != null)
                 {
+                    decimal seatSurcharge = 0m;
+                    if (seatObj.SeatType == "VIP")
+                        seatSurcharge = 30000m;
+                    else if (seatObj.SeatType == "Couple")
+                        seatSurcharge = 100000m;
+
                     _context.Tickets.Add(new Ticket
                     {
                         ShowtimeId = showtimeId,
                         SeatId = seatObj.SeatId,
                         OrderId = order.OrderId,
-                        Price = showtime.BasePrice
+                        Price = (showtime.BasePrice ?? 0) + seatSurcharge
                     });
                 }
             }

@@ -1,0 +1,391 @@
+@model CINEMA.Models.Auditorium
+@{
+    ViewData["Title"] = "Thiết kế sơ đồ ghế - " + Model.Name;
+    Layout = "_AdminLayout";
+    var existingSeats = ViewBag.Seats as List<CINEMA.Models.Seat> ?? new List<CINEMA.Models.Seat>();
+}
+
+<style>
+    .screen-shape {
+        width: 70%;
+        height: 18px;
+        background: linear-gradient(180deg, #64748b 0%, #cbd5e1 100%);
+        border-radius: 0 0 30px 30px;
+        box-shadow: 0 8px 20px rgba(100, 116, 139, 0.2);
+    }
+    .grid-container {
+        overflow-x: auto;
+        padding: 20px;
+        background-color: #f8fafc;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+    }
+    .seat-grid {
+        display: inline-grid;
+        gap: 6px;
+        margin: 0 auto;
+        user-select: none;
+    }
+    .seat-cell {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px 8px 3px 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.72rem;
+        color: white;
+        cursor: pointer;
+        transition: all 0.15s ease-in-out;
+        border: 1px solid transparent;
+        position: relative;
+    }
+    .seat-cell:hover {
+        transform: scale(1.08);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Colors per SeatType */
+    .seat-Standard {
+        background-color: #94a3b8; /* Slate */
+        border-color: #64748b;
+    }
+    .seat-VIP {
+        background-color: #eab308; /* Yellow */
+        color: #1e293b;
+        border-color: #ca8a04;
+    }
+    .seat-Couple {
+        background-color: #ec4899; /* Pink */
+        border-color: #db2777;
+    }
+    .seat-Disabled {
+        background-color: #3b82f6; /* Blue */
+        border-color: #2563eb;
+    }
+    .seat-Empty {
+        background-color: transparent;
+        border: 1px dashed #cbd5e1;
+        color: #94a3b8;
+    }
+    
+    .row-header-label {
+        width: 32px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        color: #475569;
+        font-size: 0.9rem;
+    }
+    
+    /* Toolbar tools styling */
+    .tool-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        background-color: #fff;
+        font-weight: 600;
+        font-size: 0.88rem;
+        color: #475569;
+        text-align: left;
+        transition: all 0.2s ease;
+    }
+    .tool-btn:hover {
+        border-color: #cbd5e1;
+        background-color: #f8fafc;
+    }
+    .tool-btn.active {
+        border-color: #4361ee;
+        background-color: rgba(67, 97, 238, 0.05);
+        color: #4361ee;
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.1);
+    }
+    .tool-color-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        flex-shrink: 0;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-primary mb-1">
+                <i class="bi bi-grid-3x3-gap me-2"></i>Thiết kế sơ đồ ghế: @Model.Name
+            </h4>
+            <p class="text-muted small mb-0">Rạp: @(Model.Theater?.Name ?? "CineZone") &bull; Kiểu màn hình: @Model.ScreenType</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại
+            </a>
+            <button class="btn btn-success rounded-pill px-4 shadow-sm" onclick="saveLayout()">
+                <i class="bi bi-floppy me-1"></i> Lưu sơ đồ
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- 🛠️ CỘT TRÁI: BỘ CÔNG CỤ -->
+        <div class="col-xl-3 col-lg-4">
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-tools text-primary me-2"></i>Công cụ vẽ ghế</h6>
+                </div>
+                <div class="card-body p-4 d-flex flex-column gap-2">
+                    <button class="tool-btn active" data-type="Standard" onclick="selectTool('Standard')">
+                        <span class="tool-color-dot" style="background-color: #94a3b8; border: 1px solid #64748b;"></span>
+                        Ghế Thường (Standard)
+                    </button>
+                    <button class="tool-btn" data-type="VIP" onclick="selectTool('VIP')">
+                        <span class="tool-color-dot" style="background-color: #eab308; border: 1px solid #ca8a04;"></span>
+                        Ghế VIP (+30.000đ)
+                    </button>
+                    <button class="tool-btn" data-type="Couple" onclick="selectTool('Couple')">
+                        <span class="tool-color-dot" style="background-color: #ec4899; border: 1px solid #db2777;"></span>
+                        Ghế Đôi (Couple +100.000đ)
+                    </button>
+                    <button class="tool-btn" data-type="Disabled" onclick="selectTool('Disabled')">
+                        <span class="tool-color-dot" style="background-color: #3b82f6; border: 1px solid #2563eb;"></span>
+                        Ghế Khuyết Tật
+                    </button>
+                    <button class="tool-btn" data-type="Empty" onclick="selectTool('Empty')">
+                        <span class="tool-color-dot" style="background-color: transparent; border: 2px dashed #cbd5e1;"></span>
+                        Eraser (Xóa / Lối đi trống)
+                    </button>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-sliders text-primary me-2"></i>Kích thước lưới vẽ</h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small text-muted fw-bold mb-1">Số hàng (A-Z)</label>
+                            <input type="number" id="gridRows" class="form-control rounded-3" value="@(Model.SeatRows ?? 10)" min="1" max="26" />
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-muted fw-bold mb-1">Số cột</label>
+                            <input type="number" id="gridCols" class="form-control rounded-3" value="@(Model.SeatCols ?? 15)" min="1" max="30" />
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-sm w-100 rounded-pill mb-2" onclick="resizeGrid()">
+                        <i class="bi bi-arrow-repeat me-1"></i> Cập nhật kích thước lưới
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🖥️ CỘT PHẢI: BẢN VẼ CANVAS -->
+        <div class="col-xl-9 col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <!-- 🎬 Màn hình chiếu giả lập -->
+                    <div class="d-flex flex-column align-items-center mb-5">
+                        <div class="screen-shape mb-2"></div>
+                        <span class="small text-muted fw-bold tracking-wider">MÀN HÌNH CHIẾU</span>
+                    </div>
+
+                    <!-- 🪑 Lưới ghế tương tác -->
+                    <div class="grid-container text-center">
+                        <div id="seatGrid" class="seat-grid"></div>
+                    </div>
+
+                    <!-- Hướng dẫn sử dụng nhanh -->
+                    <div class="alert alert-info mt-4 rounded-3 small mb-0">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>Mẹo vẽ nhanh:</strong> Click chọn công cụ vẽ ở bên trái, sau đó **nhấp chuột và di kéo (drag)** qua các ô trên lưới để tô nhanh sơ đồ mà không cần nhấp từng ô!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // ── STATE ──
+    let activeTool = "Standard";
+    let isDrawing = false;
+    let gridRows = @(Model.SeatRows ?? 10);
+    let gridCols = @(Model.SeatCols ?? 15);
+    
+    // Lưu các ghế đã có từ Database
+    // Cấu trúc: "A_5": { type: "Standard", active: true }
+    let seatsData = {};
+    
+    // Load dữ liệu cũ vào state
+    @if (existingSeats.Any())
+    {
+        foreach (var s in existingSeats)
+        {
+            <text>
+            seatsData["@(s.RowLabel)_@(s.SeatNumber)"] = {
+                type: "@s.SeatType",
+                active: @(s.IsActive == true ? "true" : "false")
+            };
+            </text>
+        }
+    }
+
+    // Khởi tạo lưới khi tải trang
+    document.addEventListener("DOMContentLoaded", () => {
+        buildGrid();
+        
+        // Bắt sự kiện thả chuột để ngưng vẽ trên toàn màn hình
+        window.addEventListener("mouseup", () => {
+            isDrawing = false;
+        });
+    });
+
+    // Chọn công cụ vẽ
+    function selectTool(type) {
+        activeTool = type;
+        document.querySelectorAll(".tool-btn").forEach(btn => {
+            if (btn.getAttribute("data-type") === type) {
+                btn.classList.add("active");
+            } else {
+                btn.classList.remove("active");
+            }
+        });
+    }
+
+    // Xây dựng lưới HTML
+    function buildGrid() {
+        const grid = document.getElementById("seatGrid");
+        grid.innerHTML = "";
+        
+        // Thiết lập css grid columns cho phù hợp
+        // Thêm 1 cột bên trái để hiển thị nhãn chữ hàng (A, B, C...)
+        grid.style.gridTemplateColumns = `40px repeat(${gridCols}, 42px)`;
+        
+        // Vòng lặp vẽ lưới
+        for (let r = 1; r <= gridRows; r++) {
+            const rowLabel = String.fromCharCode(64 + r); // A, B, C...
+            
+            // 1. Vẽ nhãn hàng đầu dòng
+            const rowHeader = document.createElement("div");
+            rowHeader.className = "row-header-label";
+            rowHeader.textContent = rowLabel;
+            grid.appendChild(rowHeader);
+            
+            // 2. Vẽ các ô ghế
+            for (let c = 1; c <= gridCols; c++) {
+                const key = `${rowLabel}_${c}`;
+                const cellData = seatsData[key] || { type: "Empty", active: true };
+                
+                const cell = document.createElement("div");
+                cell.className = `seat-cell seat-${cellData.type}`;
+                cell.dataset.row = rowLabel;
+                cell.dataset.col = c;
+                
+                // Hiển thị số ghế nếu không phải ô trống
+                cell.textContent = cellData.type !== "Empty" ? c : "";
+                
+                // Gắn sự kiện tương tác chuột
+                cell.addEventListener("mousedown", (e) => {
+                    e.preventDefault();
+                    isDrawing = true;
+                    applyTool(cell);
+                });
+                
+                cell.addEventListener("mouseenter", () => {
+                    if (isDrawing) {
+                        applyTool(cell);
+                    }
+                });
+                
+                grid.appendChild(cell);
+            }
+        }
+    }
+
+    // Áp dụng công cụ vẽ lên cell
+    function applyTool(cell) {
+        const row = cell.dataset.row;
+        const col = cell.dataset.col;
+        const key = `${row}_${col}`;
+        
+        // Cập nhật giao diện
+        cell.className = `seat-cell seat-${activeTool}`;
+        cell.textContent = activeTool !== "Empty" ? col : "";
+        
+        // Cập nhật State
+        if (activeTool === "Empty") {
+            delete seatsData[key];
+        } else {
+            seatsData[key] = {
+                type: activeTool,
+                active: true
+            };
+        }
+    }
+
+    // Thay đổi kích thước lưới vẽ
+    function resizeGrid() {
+        const rInput = parseInt(document.getElementById("gridRows").value) || 10;
+        const cInput = parseInt(document.getElementById("gridCols").value) || 15;
+        
+        if (rInput < 1 || rInput > 26 || cInput < 1 || cInput > 30) {
+            alert("Kích thước lưới không hợp lệ (Hàng: 1-26, Cột: 1-30)");
+            return;
+        }
+        
+        gridRows = rInput;
+        gridCols = cInput;
+        buildGrid();
+    }
+
+    // Lưu sơ đồ ghế lên server
+    async function saveLayout() {
+        const seatsList = [];
+        
+        // Chuyển seatsData từ map sang list
+        for (const [key, seat] of Object.entries(seatsData)) {
+            const [row, col] = key.split("_");
+            seatsList.push({
+                rowLabel: row,
+                seatNumber: parseInt(col),
+                seatType: seat.type,
+                isActive: seat.active
+            });
+        }
+        
+        if (seatsList.length === 0) {
+            if (!confirm("Cảnh báo: Bạn đang lưu sơ đồ rỗng (không có ghế nào). Xác nhận lưu?")) {
+                return;
+            }
+        }
+        
+        try {
+            const res = await fetch(`/Auditorium/SaveLayout/@Model.AuditoriumId`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(seatsList)
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                alert("✅ " + data.message);
+                window.location.reload();
+            } else {
+                alert("❌ Lỗi: " + data.message);
+            }
+        } catch (err) {
+            alert("❌ Lỗi hệ thống khi gửi dữ liệu!");
+        }
+    }
+</script>
+}

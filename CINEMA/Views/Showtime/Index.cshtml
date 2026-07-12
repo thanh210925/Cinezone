@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CINEMA.Models.Showtime>
+@model IEnumerable<CINEMA.Models.Showtime>
 @{
     ViewData["Title"] = "Quản lý lịch chiếu";
     Layout = "_AdminLayout";
@@ -8,6 +8,26 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/showtime-management.css" />
+    <style>
+        .nav-tabs .nav-link {
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #64748b;
+            padding: 12px 20px;
+            font-size: 0.9rem;
+            transition: all 0.25s ease;
+        }
+        .nav-tabs .nav-link:hover {
+            border-color: transparent;
+            color: #4361ee;
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+        .nav-tabs .nav-link.active {
+            border-bottom: 3px solid #4361ee;
+            color: #4361ee !important;
+            background-color: transparent !important;
+        }
+    </style>
 }
 
 <div class="container-fluid py-4">
@@ -25,31 +45,147 @@
         </a>
     </div>
 
-    <div class="card shadow-sm border-0 rounded-4">
-        <div class="card-header bg-white border-bottom-0 pt-4 px-4">
-            <ul class="nav nav-pills" id="showtimeTabs" role="tablist">
-                <li class="nav-item">
-                    <button class="nav-link active rounded-pill px-4 me-2" data-bs-toggle="pill" data-bs-target="#active-content" type="button">
-                        <i class="bi bi-play-circle me-1"></i> Đang hoạt động (@(active?.Count ?? 0))
+    <!-- 📅 BỘ LỌC NGÀY - THÁNG - NĂM -->
+    <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card-body p-3">
+            <form method="get" asp-action="Index" id="filterForm" class="row g-2 align-items-center">
+                <div class="col-auto">
+                    <span class="fw-bold text-secondary me-2"><i class="bi bi-funnel-fill text-primary"></i> Lọc thời gian:</span>
+                </div>
+                
+                <!-- Chọn Ngày -->
+                <div class="col-md-2 col-sm-4">
+                    <select name="day" id="filterDay" class="form-select form-select-sm rounded-pill px-3" onchange="submitFilterForm()">
+                        <option value="">-- Tất cả các ngày --</option>
+                        @for (int i = 1; i <= ViewBag.MaxDays; i++)
+                        {
+                            if (ViewBag.SelectedDay == i)
+                            {
+                                <option value="@i" selected>Ngày @i</option>
+                            }
+                            else
+                            {
+                                <option value="@i">Ngày @i</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <!-- Chọn Tháng -->
+                <div class="col-md-2 col-sm-4">
+                    <select name="month" id="filterMonth" class="form-select form-select-sm rounded-pill px-3" onchange="submitFilterForm()">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            if (ViewBag.SelectedMonth == m)
+                            {
+                                <option value="@m" selected>Tháng @m</option>
+                            }
+                            else
+                            {
+                                <option value="@m">Tháng @m</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <!-- Chọn Năm -->
+                <div class="col-md-2 col-sm-4">
+                    <select name="year" id="filterYear" class="form-select form-select-sm rounded-pill px-3" onchange="submitFilterForm()">
+                        @{
+                            int currentYear = DateTime.Today.Year;
+                            for (int y = currentYear - 2; y <= currentYear + 3; y++)
+                            {
+                                if (ViewBag.SelectedYear == y)
+                                {
+                                    <option value="@y" selected>Năm @y</option>
+                                }
+                                else
+                                {
+                                    <option value="@y">Năm @y</option>
+                                }
+                            }
+                        }
+                    </select>
+                </div>
+
+                <!-- Reset Button -->
+                <div class="col-auto ms-auto">
+                    <a asp-action="Index" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                        <i class="bi bi-x-circle me-1"></i> Tất cả lịch
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- PRIMARY TABS: LIST VIEW OR MATRIX VIEW -->
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-bottom pt-3 px-4">
+            <ul class="nav nav-tabs card-header-tabs" id="viewModeTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold" id="listViewTab" data-bs-toggle="tab" data-bs-target="#listViewContent" type="button" role="tab" aria-controls="listViewContent" aria-selected="true">
+                        <i class="bi bi-list-task me-1"></i> Dạng Danh Sách
                     </button>
                 </li>
-                <li class="nav-item">
-                    <button class="nav-link rounded-pill px-4" data-bs-toggle="pill" data-bs-target="#ended-content" type="button">
-                        <i class="bi bi-stop-circle me-1"></i> Đã ngưng (@(ended?.Count ?? 0))
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="matrixViewTab" data-bs-toggle="tab" data-bs-target="#matrixViewContent" type="button" role="tab" aria-controls="matrixViewContent" aria-selected="false">
+                        <i class="bi bi-grid-3x3-gap me-1"></i> Dạng Ma Trận (Grid)
                     </button>
                 </li>
             </ul>
         </div>
 
-        <div class="card-body p-0">
-            <div class="tab-content" id="showtimeTabsContent">
-                <div class="tab-pane fade show active" id="active-content">
-                    @await Html.PartialAsync("_ShowtimeTable", active)
+        <div class="card-body p-4">
+            <div class="tab-content" id="viewModeTabsContent">
+                
+                <!-- 📋 DẠNG DANH SÁCH CONTENT -->
+                <div class="tab-pane fade show active" id="listViewContent" role="tabpanel" aria-labelledby="listViewTab">
+                    <!-- Status Pills inside List View -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <ul class="nav nav-pills" id="statusPills" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active rounded-pill px-4 me-2 btn-sm" data-bs-toggle="pill" data-bs-target="#active-content" type="button" role="tab" aria-controls="active-content" aria-selected="true">
+                                    <i class="bi bi-play-circle me-1"></i> Đang hoạt động (@(active?.Count ?? 0))
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link rounded-pill px-4 btn-sm" data-bs-toggle="pill" data-bs-target="#ended-content" type="button" role="tab" aria-controls="ended-content" aria-selected="false">
+                                    <i class="bi bi-stop-circle me-1"></i> Đã ngưng (@(ended?.Count ?? 0))
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="tab-content" id="statusTabsContent">
+                        <div class="tab-pane fade show active" id="active-content" role="tabpanel">
+                            @await Html.PartialAsync("_ShowtimeTableList", active)
+                        </div>
+                        <div class="tab-pane fade" id="ended-content" role="tabpanel">
+                            @await Html.PartialAsync("_ShowtimeTableList", ended)
+                        </div>
+                    </div>
                 </div>
-                <div class="tab-pane fade" id="ended-content">
-                    @await Html.PartialAsync("_ShowtimeTable", ended)
+
+                <!-- 📊 DẠNG MA TRẬN CONTENT -->
+                <div class="tab-pane fade" id="matrixViewContent" role="tabpanel" aria-labelledby="matrixViewTab">
+                    @{
+                        var allShowtimes = new List<CINEMA.Models.Showtime>();
+                        if (active != null) allShowtimes.AddRange(active);
+                        if (ended != null) allShowtimes.AddRange(ended);
+                        allShowtimes = allShowtimes.OrderBy(s => s.StartTime).ToList();
+                    }
+                    @await Html.PartialAsync("_ShowtimeTableMatrix", allShowtimes)
                 </div>
+
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function submitFilterForm() {
+            document.getElementById('filterForm').submit();
+        }
+    </script>
+}

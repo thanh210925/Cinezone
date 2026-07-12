@@ -154,5 +154,130 @@ namespace CINEMA.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
+        // 🎨 Thiết kế sơ đồ ghế (GET)
+        public IActionResult DesignLayout(int id)
+        {
+            var auditorium = _context.Auditoriums
+                .Include(a => a.Theater)
+                .FirstOrDefault(a => a.AuditoriumId == id);
+            if (auditorium == null) return NotFound();
+
+            var seats = _context.Seats
+                .Where(s => s.AuditoriumId == id)
+                .OrderBy(s => s.RowLabel)
+                .ThenBy(s => s.SeatNumber)
+                .ToList();
+
+            ViewBag.Seats = seats;
+            return View(auditorium);
+        }
+
+        // 🎨 Lưu sơ đồ ghế từ JSON (POST)
+        [HttpPost]
+        public IActionResult SaveLayout(int id, [FromBody] List<SeatLayoutDto> seats)
+        {
+            var auditorium = _context.Auditoriums.Find(id);
+            if (auditorium == null) 
+                return Json(new { success = false, message = "Không tìm thấy phòng chiếu." });
+
+            if (seats == null)
+                return Json(new { success = false, message = "Dữ liệu sơ đồ ghế trống." });
+
+            using (var transaction = _context.Database.BeginTransaction())
+            {
+                try
+                {
+                    // 1. Lấy danh sách ghế hiện tại trong DB
+                    var existingDbSeats = _context.Seats.Where(s => s.AuditoriumId == id).ToList();
+
+                    // 2. Tạo tập hợp các ghế mới để đối chiếu nhanh
+                    var newSeatsMap = seats.ToDictionary(s => $"{s.RowLabel}_{s.SeatNumber}");
+
+                    // 3. Cập nhật hoặc vô hiệu hóa các ghế cũ
+                    foreach (var dbSeat in existingDbSeats)
+                    {
+                        var key = $"{dbSeat.RowLabel}_{dbSeat.SeatNumber}";
+                        if (newSeatsMap.TryGetValue(key, out var newSeatDto))
+                        {
+                            // Ghế vẫn tồn tại trong sơ đồ mới -> Cập nhật thông tin
+                            dbSeat.SeatType = newSeatDto.SeatType;
+                            dbSeat.IsActive = newSeatDto.IsActive;
+                            _context.Seats.Update(dbSeat);
+                        }
+                        else
+                        {
+                            // Ghế không còn trong sơ đồ mới (bị chuyển thành ô trống)
+                            // Kiểm tra xem ghế đã có vé nào chưa
+                            bool hasTickets = _context.Tickets.Any(t => t.SeatId == dbSeat.SeatId);
+                            if (hasTickets)
+                            {
+                                // Nếu đã có vé, không thể xóa -> Chỉ ẩn đi (IsActive = false)
+                                dbSeat.IsActive = false;
+                                _context.Seats.Update(dbSeat);
+                            }
+                            else
+                            {
+                                // Nếu chưa có vé, xóa hẳn khỏi DB
+                                _context.Seats.Remove(dbSeat);
+                            }
+                        }
+                    }
+
+                    // 4. Thêm các ghế mới hoàn toàn
+                    var existingDbSeatsKeys = existingDbSeats.Select(s => $"{s.RowLabel}_{s.SeatNumber}").ToHashSet();
+                    int maxRowIdx = 0;
+                    int maxColIdx = 0;
+
+                    foreach (var s in seats)
+                    {
+                        var key = $"{s.RowLabel}_{s.SeatNumber}";
+                        if (!existingDbSeatsKeys.Contains(key))
+                        {
+                            var seat = new Seat
+                            {
+                                AuditoriumId = id,
+                                RowLabel = s.RowLabel,
+                                SeatNumber = s.SeatNumber,
+                                SeatType = s.SeatType,
+                                IsActive = s.IsActive
+                            };
+                            _context.Seats.Add(seat);
+                        }
+
+                        // Tính kích thước grid lớn nhất
+                        if (!string.IsNullOrEmpty(s.RowLabel))
+                        {
+                            int curRowIdx = s.RowLabel[0] - 'A' + 1;
+                            if (curRowIdx > maxRowIdx) maxRowIdx = curRowIdx;
+                        }
+                        if (s.SeatNumber > maxColIdx) maxColIdx = s.SeatNumber;
+                    }
+                    _context.SaveChanges();
+
+                    // 5. Cập nhật số hàng & số cột phòng chiếu
+                    auditorium.SeatRows = maxRowIdx;
+                    auditorium.SeatCols = maxColIdx;
+                    _context.Auditoriums.Update(auditorium);
+                    _context.SaveChanges();
+
+                    transaction.Commit();
+                    return Json(new { success = true, message = "Lưu sơ đồ ghế thành công!" });
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    return Json(new { success = false, message = "Lỗi khi lưu sơ đồ: " + ex.Message });
+                }
+            }
+        }
+    }
+
+    public class SeatLayoutDto
+    {
+        public string RowLabel { get; set; }
+        public int SeatNumber { get; set; }
+        public string SeatType { get; set; }
+        public bool IsActive { get; set; }
     }
 }

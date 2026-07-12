@@ -19,7 +19,7 @@ namespace CINEMA.Controllers
         // ========================
         // 🔥 DANH SÁCH LỊCH CHIẾU
         // ========================
-        public IActionResult Index()
+        public IActionResult Index(int? day, int? month, int? year)
         {
             // Tự động chuyển các suất đã qua giờ chiếu thành đã ngưng
             var now = DateTime.Now;
@@ -35,9 +35,41 @@ namespace CINEMA.Controllers
                 _context.SaveChanges();
             }
 
-            var showtimes = _context.Showtimes
+            var today = DateTime.Today;
+            int targetMonth = month ?? today.Month;
+            int targetYear = year ?? today.Year;
+
+            // Xử lý bảo vệ số ngày hợp lệ của tháng
+            int maxDays = DateTime.DaysInMonth(targetYear, targetMonth);
+            if (day.HasValue && day.Value > maxDays)
+            {
+                day = maxDays;
+            }
+
+            ViewBag.SelectedDay = day;
+            ViewBag.SelectedMonth = targetMonth;
+            ViewBag.SelectedYear = targetYear;
+            ViewBag.MaxDays = maxDays;
+
+            IQueryable<Showtime> query = _context.Showtimes
                 .Include(s => s.Movie)
                 .Include(s => s.Auditorium)
+                    .ThenInclude(a => a.Theater);
+
+            if (day.HasValue)
+            {
+                var targetDate = new DateTime(targetYear, targetMonth, day.Value);
+                var nextDate = targetDate.AddDays(1);
+                query = query.Where(s => s.StartTime >= targetDate && s.StartTime < nextDate);
+            }
+            else
+            {
+                var startDate = new DateTime(targetYear, targetMonth, 1);
+                var endDate = startDate.AddMonths(1);
+                query = query.Where(s => s.StartTime >= startDate && s.StartTime < endDate);
+            }
+
+            var showtimes = query
                 .OrderByDescending(s => s.StartTime)
                 .ToList();
 
@@ -443,6 +475,108 @@ namespace CINEMA.Controllers
 
             return Json(showtimes);
         }
-    }
 
+        // ========================
+        // 🔥 BỘ THAO TÁC HÀNG LOẠT (BULK ACTIONS)
+        // ========================
+
+        [HttpPost]
+        public IActionResult BulkDelete([FromBody] List<int> ids)
+        {
+            if (ids == null || !ids.Any())
+                return Json(new { success = false, message = "Chưa chọn suất chiếu nào." });
+
+            try
+            {
+                var showtimes = _context.Showtimes.Where(s => ids.Contains(s.ShowtimeId)).ToList();
+                foreach (var s in showtimes)
+                {
+                    // Xóa ticket combos & tickets liên quan trước để tránh lỗi khóa ngoại
+                    var tickets = _context.Tickets.Where(t => t.ShowtimeId == s.ShowtimeId).Include(t => t.TicketCombos).ToList();
+                    foreach (var t in tickets)
+                    {
+                        if (t.TicketCombos != null && t.TicketCombos.Any())
+                        {
+                            _context.TicketCombos.RemoveRange(t.TicketCombos);
+                        }
+                    }
+                    if (tickets.Any())
+                    {
+                        _context.Tickets.RemoveRange(tickets);
+                    }
+                }
+                _context.SaveChanges();
+
+                _context.Showtimes.RemoveRange(showtimes);
+                _context.SaveChanges();
+
+                foreach (var s in showtimes)
+                {
+                    LogHelper.Write(_context, _httpContextAccessor, "DELETED_BULK", "Showtime", s.ShowtimeId);
+                }
+
+                return Json(new { success = true, message = $"Đã xóa thành công {showtimes.Count} suất chiếu!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi xóa: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public IActionResult BulkDeactivate([FromBody] List<int> ids)
+        {
+            if (ids == null || !ids.Any())
+                return Json(new { success = false, message = "Chưa chọn suất chiếu nào." });
+
+            try
+            {
+                var showtimes = _context.Showtimes.Where(s => ids.Contains(s.ShowtimeId)).ToList();
+                foreach (var s in showtimes)
+                {
+                    s.IsActive = false;
+                }
+                _context.SaveChanges();
+
+                foreach (var s in showtimes)
+                {
+                    LogHelper.Write(_context, _httpContextAccessor, "DEACTIVATED_BULK", "Showtime", s.ShowtimeId);
+                }
+
+                return Json(new { success = true, message = $"Đã tạm ngưng hoạt động {showtimes.Count} suất chiếu!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi tạm ngưng: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public IActionResult BulkActivate([FromBody] List<int> ids)
+        {
+            if (ids == null || !ids.Any())
+                return Json(new { success = false, message = "Chưa chọn suất chiếu nào." });
+
+            try
+            {
+                var showtimes = _context.Showtimes.Where(s => ids.Contains(s.ShowtimeId)).ToList();
+                foreach (var s in showtimes)
+                {
+                    s.IsActive = true;
+                }
+                _context.SaveChanges();
+
+                foreach (var s in showtimes)
+                {
+                    LogHelper.Write(_context, _httpContextAccessor, "ACTIVATED_BULK", "Showtime", s.ShowtimeId);
+                }
+
+                return Json(new { success = true, message = $"Đã kích hoạt hoạt động {showtimes.Count} suất chiếu!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi kích hoạt: " + ex.Message });
+            }
+        }
+    }
 }

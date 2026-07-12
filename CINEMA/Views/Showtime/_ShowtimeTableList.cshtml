@@ -1,0 +1,182 @@
+@model IEnumerable<CINEMA.Models.Showtime>
+
+<style>
+    .showtime-row {
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+    .showtime-row:hover {
+        background-color: rgba(67, 97, 238, 0.03) !important;
+    }
+    .bulk-action-bar {
+        border-color: #ffc107 !important;
+        animation: slideUpList 0.3s ease;
+    }
+    @@keyframes slideUpList {
+        from { transform: translate(-50%, 100%); opacity: 0; }
+        to { transform: translate(-50%, 0); opacity: 1; }
+    }
+</style>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle custom-table mb-0">
+        <thead class="table-light text-secondary">
+            <tr>
+                <th class="ps-4 text-center" style="width: 40px;">
+                    <input type="checkbox" class="form-check-input select-all-list-cb" onclick="toggleAllList(this)" />
+                </th>
+                <th>Phim</th>
+                <th>Rạp</th>
+                <th>Thời gian</th>
+                <th>Giá vé</th>
+                <th class="text-center">Ngôn ngữ</th>
+                <th class="text-center pe-4">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                foreach (var s in Model)
+                {
+                    <tr class="showtime-row" data-id="@s.ShowtimeId" onclick="toggleRowSelect(event, this)">
+                        <td class="text-center ps-4">
+                            <input type="checkbox" class="form-check-input showtime-select-cb" value="@s.ShowtimeId" onclick="event.stopPropagation(); updateListBulkBar();" />
+                        </td>
+                        <td class="fw-bold text-dark">@s.Movie?.Title</td>
+                        <td class="text-muted">@s.Auditorium?.Name (@(s.Auditorium?.Theater?.Name ?? "CineZone"))</td>
+                        <td>
+                            <div class="small fw-medium text-success">@s.StartTime?.ToString("HH:mm dd/MM/yyyy")</div>
+                            <div class="small text-muted">@s.EndTime?.ToString("HH:mm dd/MM/yyyy")</div>
+                        </td>
+                        <td class="text-danger fw-bold">@s.BasePrice?.ToString("N0") đ</td>
+                        <td class="text-center"><span class="badge bg-info-subtle text-info rounded-pill px-3">@s.Language</span></td>
+                        <td class="text-center pe-4">
+                            <div class="d-flex justify-content-center gap-2" onclick="event.stopPropagation();">
+                                @if (s.IsActive == true)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@s.ShowtimeId" class="btn btn-light btn-sm text-warning" title="Sửa"><i class="bi bi-pencil-square"></i></a>
+                                    <form asp-action="Deactivate" asp-route-id="@s.ShowtimeId" method="post" class="d-inline"><button class="btn btn-light btn-sm text-dark" title="Tạm dừng"><i class="bi bi-pause-circle"></i></button></form>
+                                }
+                                else
+                                {
+                                    <form asp-action="Activate" asp-route-id="@s.ShowtimeId" method="post" class="d-inline"><button class="btn btn-light btn-sm text-success" title="Kích hoạt"><i class="bi bi-arrow-repeat"></i></button></form>
+                                }
+                                <a asp-action="Delete" asp-route-id="@s.ShowtimeId" class="btn btn-light btn-sm text-danger" title="Xóa" onclick="return confirm('Bạn có chắc muốn xóa suất chiếu này?');"><i class="bi bi-trash3"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr><td colspan="7" class="text-center py-4 text-muted">Không có dữ liệu</td></tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Floating bulk actions bar for List View -->
+<div id="listBulkBar" class="bulk-action-bar position-fixed bottom-0 start-50 translate-middle-x bg-white border shadow-lg p-3 rounded-4 mb-4 d-none align-items-center gap-3" style="z-index: 1050; min-width: 480px;">
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-warning text-dark fs-6" id="listBulkCount">0</span>
+        <span class="small fw-semibold text-secondary">mục đã chọn</span>
+    </div>
+    <div class="ms-auto d-flex gap-2">
+        <button class="btn btn-sm btn-success rounded-pill px-3" onclick="triggerListBulkAction('BulkActivate')">
+            <i class="bi bi-play-fill me-1"></i> Kích hoạt
+        </button>
+        <button class="btn btn-sm btn-dark rounded-pill px-3" onclick="triggerListBulkAction('BulkDeactivate')">
+            <i class="bi bi-pause-fill me-1"></i> Tạm ngưng
+        </button>
+        <button class="btn btn-sm btn-danger rounded-pill px-3" onclick="triggerListBulkAction('BulkDelete')">
+            <i class="bi bi-trash-fill me-1"></i> Xóa
+        </button>
+    </div>
+</div>
+
+<script>
+    function toggleRowSelect(event, row) {
+        // Nếu click trúng nút bấm, link hoặc input checkbox thì không can thiệp
+        if (event.target.tagName === 'A' || event.target.tagName === 'BUTTON' || event.target.tagName === 'I' || event.target.tagName === 'INPUT' || event.target.closest('form')) {
+            return;
+        }
+        const cb = row.querySelector('.showtime-select-cb');
+        if (cb) {
+            cb.checked = !cb.checked;
+            row.classList.toggle('table-active', cb.checked);
+            updateListBulkBar();
+        }
+    }
+
+    function toggleAllList(masterCb) {
+        const checkboxes = document.querySelectorAll('.showtime-select-cb');
+        checkboxes.forEach(cb => {
+            cb.checked = masterCb.checked;
+            const row = cb.closest('tr');
+            if (row) {
+                row.classList.toggle('table-active', masterCb.checked);
+            }
+        });
+        updateListBulkBar();
+    }
+
+    function updateListBulkBar() {
+        const checkedCbs = document.querySelectorAll('.showtime-select-cb:checked');
+        const bar = document.getElementById('listBulkBar');
+        const countBadge = document.getElementById('listBulkCount');
+        
+        if (checkedCbs.length > 0) {
+            countBadge.textContent = checkedCbs.length;
+            bar.classList.remove('d-none');
+            bar.classList.add('d-flex');
+        } else {
+            bar.classList.add('d-none');
+            bar.classList.remove('d-flex');
+        }
+        
+        // Sync master checkbox
+        const totalCbs = document.querySelectorAll('.showtime-select-cb');
+        const masterCb = document.querySelector('.select-all-list-cb');
+        if (masterCb) {
+            masterCb.checked = totalCbs.length > 0 && checkedCbs.length === totalCbs.length;
+        }
+    }
+
+    function triggerListBulkAction(actionName) {
+        const checkedCbs = document.querySelectorAll('.showtime-select-cb:checked');
+        if (checkedCbs.length === 0) return;
+
+        let confirmMsg = '';
+        if (actionName === 'BulkDelete') {
+            confirmMsg = `Bạn có chắc chắn muốn xóa ${checkedCbs.length} suất chiếu đã chọn? Thao tác này cũng sẽ xóa vé đã đặt liên quan!`;
+        } else if (actionName === 'BulkDeactivate') {
+            confirmMsg = `Tạm ngưng hoạt động ${checkedCbs.length} suất chiếu đã chọn?`;
+        } else {
+            confirmMsg = `Kích hoạt hoạt động ${checkedCbs.length} suất chiếu đã chọn?`;
+        }
+
+        if (!confirm(confirmMsg)) return;
+
+        const ids = Array.from(checkedCbs).map(cb => parseInt(cb.value));
+        
+        fetch(`/Showtime/${actionName}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(ids)
+        })
+        .then(response => response.json())
+        .then(res => {
+            if (res.success) {
+                alert(res.message);
+                window.location.reload();
+            } else {
+                alert(res.message);
+            }
+        })
+        .catch(err => {
+            alert('Lỗi kết nối máy chủ.');
+        });
+    }
+</script>
