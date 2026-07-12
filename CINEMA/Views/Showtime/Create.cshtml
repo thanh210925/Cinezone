@@ -101,10 +101,10 @@
                       </div>
                       <div class="card-body p-2 d-flex flex-column gap-1">
                         @foreach (var r in g) {
-                          <label class="room-chip w-100 justify-content-start border-1 py-2" onclick="toggleRoom(this)">
+                          <div class="room-chip w-100 justify-content-start border-1 py-2" onclick="toggleRoom(this)">
                             <input type="checkbox" value="@r.AuditoriumId" data-name="@r.Name (@tName)" class="d-none" />
                             <i class="bi bi-building me-2 text-muted"></i>@r.Name
-                          </label>
+                          </div>
                         }
                       </div>
                     </div>
@@ -487,7 +487,7 @@ async function doSubmit() {
   
   const btn = document.getElementById('btnSave');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...');
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
 
   const payload = valid.map(item => ({
     movieId: parseInt(W.movieId),
