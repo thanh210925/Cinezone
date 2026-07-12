@@ -1,0 +1,348 @@
+@model IEnumerable<CINEMA.Models.Showtime>
+
+<style>
+    .matrix-date-header {
+        background-color: #f8fafc;
+        border-left: 4px solid #4361ee;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    .showtime-matrix-table th {
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background-color: #f8fafc !important;
+        color: #475569;
+        vertical-align: middle;
+        text-align: center;
+    }
+    .showtime-matrix-table td {
+        vertical-align: middle;
+        padding: 12px 8px;
+    }
+    .time-col {
+        font-weight: 800;
+        color: #0f172a;
+        background-color: #f1f5f9;
+        width: 100px;
+        text-align: center;
+        border-right: 2px solid #cbd5e1;
+        font-size: 1.05rem;
+    }
+    .empty-cell {
+        color: #cbd5e1;
+        font-weight: 400;
+        text-align: center;
+        font-size: 1.1rem;
+    }
+    
+    /* ── STICKY COLUMN FOR ROOM NAMES ── */
+    .sticky-col {
+        position: sticky;
+        left: 0;
+        background-color: #f8fafc !important;
+        z-index: 2;
+        border-right: 2px solid #cbd5e1 !important;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+    }
+    th.sticky-col {
+        z-index: 3;
+        background-color: #f8fafc !important;
+    }
+    
+    /* ── HOVER ACTIONS EFFECT ── */
+    .showtime-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.25s ease-in-out;
+        border-left: 4px solid #198754 !important;
+        background-color: #fff;
+        height: 85px;
+    }
+    .showtime-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.1) !important;
+        border-left-color: #4361ee !important;
+    }
+    .showtime-card.inactive {
+        border-left: 4px solid #6c757d !important;
+        opacity: 0.75;
+    }
+    .showtime-card .card-body-content {
+        transition: opacity 0.2s ease;
+    }
+    .showtime-card:hover .card-body-content {
+        opacity: 0.3; /* Mờ nội dung cũ để hiện hover actions rõ hơn */
+    }
+    
+    .showtime-actions-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.93);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transform: translateY(100%);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+        opacity: 0;
+        z-index: 5;
+    }
+    .showtime-card:hover .showtime-actions-overlay {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    
+    /* Custom button sizes in overlay */
+    .btn-circle-action {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transition: all 0.2s;
+    }
+    .btn-circle-action:hover {
+        transform: scale(1.15);
+    }
+</style>
+
+@if (Model != null && Model.Any())
+{
+    var groupedByDate = Model
+        .Where(s => s.StartTime.HasValue)
+        .GroupBy(s => s.StartTime.Value.Date)
+        .OrderBy(g => g.Key)
+        .ToList();
+
+    <!-- 📅 THANH CHỌN NGÀY (DATE SELECTOR STRIP) -->
+    <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-light rounded-4 flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-2 overflow-auto py-1" id="datePillsContainer" style="max-width: 80%;">
+            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 active matrix-date-pill" data-date="all" onclick="selectMatrixDate('all')">
+                Tất cả ngày
+            </button>
+            @foreach (var dateGroup in groupedByDate)
+            {
+                var dStr = dateGroup.Key.ToString("yyyy-MM-dd");
+                var dName = dateGroup.Key.ToString("dd/MM");
+                var dayOfWeek = dateGroup.Key.ToString("ddd", new System.Globalization.CultureInfo("vi-VN"));
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 matrix-date-pill" data-date="@dStr" onclick="selectMatrixDate('@dStr')">
+                    @dayOfWeek @dName
+                </button>
+            }
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="small text-muted fw-semibold"><i class="bi bi-funnel-fill"></i> Lọc ngày:</span>
+            <input type="date" id="matrixDatePicker" class="form-control form-control-sm rounded-pill px-3" style="width: 145px;" onchange="onMatrixDatePickerChange(this)" />
+        </div>
+    </div>
+
+    <!-- CÁC KHỐI BẢNG MA TRẬN THEO NGÀY -->
+    <div id="matrixContainerWrapper">
+        @foreach (var dateGroup in groupedByDate)
+        {
+            var showDate = dateGroup.Key;
+            var dateStr = showDate.ToString("yyyy-MM-dd");
+            var dateName = showDate.ToString("dd/MM/yyyy");
+            var dayOfWeek = showDate.ToString("dddd", new System.Globalization.CultureInfo("vi-VN"));
+            
+            // Lấy tất cả phòng chiếu có suất chiếu trong ngày này
+            var dateRooms = dateGroup
+                .Select(s => s.Auditorium)
+                .Where(a => a != null)
+                .GroupBy(a => a.AuditoriumId)
+                .Select(gr => gr.First())
+                .OrderBy(a => a.Name)
+                .ToList();
+
+            // Lấy tất cả khung giờ bắt đầu duy nhất trong ngày này
+            var dateTimes = dateGroup
+                .Select(s => s.StartTime.Value.ToString("HH:mm"))
+                .Distinct()
+                .OrderBy(t => t)
+                .ToList();
+
+            <div class="mb-5 matrix-date-container" data-date="@dateStr">
+                <!-- Header Ngày chiếu -->
+                <div class="matrix-date-header p-3 rounded-top-3 border-bottom border-2 d-flex justify-content-between align-items-center">
+                    <span class="text-uppercase fs-6"><i class="bi bi-calendar3 text-primary me-2"></i>@dayOfWeek (@dateName)</span>
+                    <span class="badge bg-primary rounded-pill">@dateGroup.Count() suất chiếu</span>
+                </div>
+
+                <!-- Bảng Ma Trận -->
+                <div class="table-responsive shadow-sm border rounded-bottom-3 bg-white">
+                    <table class="table table-bordered showtime-matrix-table mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th class="sticky-col text-start ps-3" style="min-width: 180px;">Phòng chiếu</th>
+                                @foreach (var time in dateTimes)
+                                {
+                                    <th style="min-width: 140px; text-align: center;">@time</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var room in dateRooms)
+                            {
+                                <tr>
+                                    <!-- Cột Phòng chiếu (Sticky left) -->
+                                    <td class="sticky-col text-start ps-3 fw-bold">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-door-open-fill text-primary fs-5"></i>
+                                            <div>
+                                                <div class="fw-bold">@room.Name</div>
+                                                <small class="text-muted fw-normal" style="font-size: 0.72rem;">@(room.Theater != null ? room.Theater.Name : "CineZone")</small>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- Các cột Khung giờ -->
+                                    @foreach (var time in dateTimes)
+                                    {
+                                        var match = dateGroup
+                                            .Where(s => s.StartTime.Value.ToString("HH:mm") == time && s.AuditoriumId == room.AuditoriumId)
+                                            .ToList();
+
+                                        <td style="min-width: 200px; text-align: center;">
+                                            @if (match.Any())
+                                            {
+                                                <div class="d-flex flex-column gap-2 justify-content-center align-items-center">
+                                                    @foreach (var s in match)
+                                                    {
+                                                        var isAct = s.IsActive == true;
+                                                        <div class="showtime-card card p-2 @(isAct ? "" : "inactive")" style="width: 180px;">
+                                                            
+                                                            <!-- Nội dung chính (Sẽ mờ đi khi Hover) -->
+                                                            <div class="card-body-content">
+                                                                <div class="fw-bold text-dark text-truncate small" title="@s.Movie?.Title">
+                                                                    @s.Movie?.Title
+                                                                </div>
+                                                                <div class="d-flex justify-content-between text-muted mt-1" style="font-size: 0.72rem;">
+                                                                    <span>@s.Language</span>
+                                                                    <span class="fw-medium text-secondary">Hết: @s.EndTime?.ToString("HH:mm")</span>
+                                                                </div>
+                                                                <div class="fw-semibold text-danger mt-1" style="font-size: 0.78rem;">
+                                                                    @s.BasePrice?.ToString("N0")đ
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- 🎛️ THANH THAO TÁC KHI HOVER (SLIDE UP OVERLAY) -->
+                                                            <div class="showtime-actions-overlay">
+                                                                <!-- Nút Xem/Sửa -->
+                                                                <a asp-action="Edit" asp-route-id="@s.ShowtimeId" class="btn btn-warning text-white btn-circle-action" title="Xem/Sửa">
+                                                                    <i class="bi bi-pencil-fill" style="font-size: 0.8rem;"></i>
+                                                                </a>
+                                                                
+                                                                <!-- Nút Tạm dừng / Kích hoạt -->
+                                                                @if (isAct)
+                                                                {
+                                                                    <form asp-action="Deactivate" asp-route-id="@s.ShowtimeId" method="post" class="d-inline">
+                                                                        <button type="submit" class="btn btn-dark text-white btn-circle-action" title="Tạm dừng">
+                                                                            <i class="bi bi-pause-fill" style="font-size: 0.85rem;"></i>
+                                                                        </button>
+                                                                    </form>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <form asp-action="Activate" asp-route-id="@s.ShowtimeId" method="post" class="d-inline">
+                                                                        <button type="submit" class="btn btn-success text-white btn-circle-action" title="Kích hoạt">
+                                                                            <i class="bi bi-play-fill" style="font-size: 0.85rem;"></i>
+                                                                        </button>
+                                                                    </form>
+                                                                }
+
+                                                                <!-- Nút Xóa -->
+                                                                <a asp-action="Delete" asp-route-id="@s.ShowtimeId" class="btn btn-danger text-white btn-circle-action" title="Xóa" onclick="return confirm('Bạn có chắc muốn xóa suất chiếu này?');">
+                                                                    <i class="bi bi-trash-fill" style="font-size: 0.8rem;"></i>
+                                                                </a>
+                                                            </div>
+
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="empty-cell">-</div>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Cảnh báo khi không tìm thấy lịch chiếu -->
+    <div id="matrixEmptyWarning" class="text-center py-5 text-muted bg-white border border-dashed rounded-4 d-none">
+        <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
+        Không có lịch chiếu nào trong ngày đã chọn.
+    </div>
+}
+else
+{
+    <div class="text-center py-5 text-muted bg-white border border-dashed rounded-4">
+        <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
+        Không có lịch chiếu nào.
+    </div>
+}
+
+<script>
+    function selectMatrixDate(dateStr) {
+        // Cập nhật trạng thái active của các nút chọn nhanh (pills)
+        document.querySelectorAll('.matrix-date-pill').forEach(pill => {
+            if (pill.getAttribute('data-date') === dateStr) {
+                pill.classList.add('active');
+            } else {
+                pill.classList.remove('active');
+            }
+        });
+
+        // Đồng bộ giá trị với ô input chọn ngày
+        const picker = document.getElementById('matrixDatePicker');
+        if (picker) {
+            picker.value = dateStr === 'all' ? '' : dateStr;
+        }
+
+        // Ẩn/Hiện các cụm bảng theo ngày đã chọn
+        let foundAny = false;
+        document.querySelectorAll('.matrix-date-container').forEach(container => {
+            const containerDate = container.getAttribute('data-date');
+            if (dateStr === 'all' || containerDate === dateStr) {
+                container.classList.remove('d-none');
+                foundAny = true;
+            } else {
+                container.classList.add('d-none');
+            }
+        });
+
+        // Hiện cảnh báo nếu không có dữ liệu cho ngày chọn
+        const warning = document.getElementById('matrixEmptyWarning');
+        if (warning) {
+            if (foundAny) {
+                warning.classList.add('d-none');
+            } else {
+                warning.classList.remove('d-none');
+            }
+        }
+    }
+
+    function onMatrixDatePickerChange(input) {
+        const val = input.value;
+        if (!val) {
+            selectMatrixDate('all');
+        } else {
+            selectMatrixDate(val);
+        }
+    }
+</script>

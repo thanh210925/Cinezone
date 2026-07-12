@@ -278,9 +278,27 @@ namespace CINEMA.Controllers
                 }
 
                 decimal basePrice = showtime.BasePrice ?? 0m;
+
+                decimal seatSurchargeTotal = 0m;
+                if (model.SelectedSeats != null)
+                {
+                    foreach (var seatStr in model.SelectedSeats)
+                    {
+                        var seat = _context.Seats.FirstOrDefault(s => s.AuditoriumId == showtime.AuditoriumId && (s.RowLabel + s.SeatNumber.ToString()) == seatStr);
+                        if (seat != null)
+                        {
+                            if (seat.SeatType == "VIP")
+                                seatSurchargeTotal += 30000m;
+                            else if (seat.SeatType == "Couple")
+                                seatSurchargeTotal += 100000m;
+                        }
+                    }
+                }
+
                 decimal ticketOnlyOriginal = model.AdultTickets * basePrice
                                            + model.ChildTickets * (basePrice * 0.7m)
-                                           + model.StudentTickets * (basePrice * 0.8m);
+                                           + model.StudentTickets * (basePrice * 0.8m)
+                                           + seatSurchargeTotal;
 
                 decimal comboTotal = model.Combos?.Sum(c => c.Price * c.Quantity) ?? 0;
                 decimal originalPrice = ticketOnlyOriginal + comboTotal;

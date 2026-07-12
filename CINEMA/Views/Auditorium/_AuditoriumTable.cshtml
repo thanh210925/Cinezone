@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CINEMA.Models.Auditorium>
+@model IEnumerable<CINEMA.Models.Auditorium>
 
 <div class="table-responsive">
     <table class="table table-hover align-middle custom-table mb-0">
@@ -34,6 +34,7 @@
                     </td>
                     <td class="text-center pe-4">
                         <div class="d-flex justify-content-center gap-2">
+                            <a asp-action="DesignLayout" asp-route-id="@a.AuditoriumId" class="btn btn-light btn-sm text-primary" title="Thiết kế sơ đồ ghế"><i class="bi bi-grid-3x3-gap"></i></a>
                             <a asp-action="Edit" asp-route-id="@a.AuditoriumId" class="btn btn-light btn-sm text-warning"><i class="bi bi-pencil-square"></i></a>
                             <a asp-action="Delete" asp-route-id="@a.AuditoriumId" class="btn btn-light btn-sm text-danger"><i class="bi bi-trash3"></i></a>
                         </div>
