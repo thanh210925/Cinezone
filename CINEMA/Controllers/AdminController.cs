@@ -156,6 +156,18 @@ namespace CINEMA.Controllers
             ViewBag.TotalCustomers = _context.Customers.Count();
             ViewBag.TotalOrders = _context.Orders.Count();
 
+            // ── THỐNG KÊ ĐÁNH GIÁ ──
+            int totalReviews = 0;
+            int totalReported = 0;
+            try
+            {
+                totalReviews = _context.Reviews.Count();
+                totalReported = _context.Reviews.Count(r => r.HasReport == true);
+            }
+            catch { }
+            ViewBag.TotalReviews = totalReviews;
+            ViewBag.TotalReportedReviews = totalReported;
+
             ViewBag.TopMovies = _context.Tickets
                 .GroupBy(t => t.Showtime.Movie.Title)
                 .Select(g => new

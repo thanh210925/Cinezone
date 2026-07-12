@@ -261,6 +261,16 @@
                 <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
             </a>
         </div>
+        <div class="col-xxl-3 col-xl-4 col-sm-6">
+            <a asp-controller="Reviews" asp-action="Index" class="quick-nav-card">
+                <div class="quick-nav-icon icon-purple"><i class="bi bi-chat-square-text"></i></div>
+                <div class="quick-nav-content">
+                    <h6 class="quick-nav-title">Quản lý Đánh Giá</h6>
+                    <p class="quick-nav-desc">Kiểm duyệt và phản hồi bình luận phim.</p>
+                </div>
+                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+            </a>
+        </div>
     </div>
 
     <!-- PHÂN HỆ: QUẢN TRỊ NHÂN SỰ & CÁ NHÂN -->
@@ -498,7 +508,7 @@
 
     <!-- 4. GENERAL COUNTERS -->
     <div class="row g-3 mt-2">
-        <div class="col-md-4">
+        <div class="col-xl-3 col-md-6">
             <div class="card shadow-sm border-0 rounded-3 h-100">
                 <div class="card-body text-center py-4">
                     <span class="text-muted text-uppercase fw-semibold" style="font-size:0.75rem;">Tổng phim đang chiếu</span>
@@ -507,7 +517,7 @@
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-xl-3 col-md-6">
             <div class="card shadow-sm border-0 rounded-3 h-100">
                 <div class="card-body text-center py-4">
                     <span class="text-muted text-uppercase fw-semibold" style="font-size:0.75rem;">Tổng số khách hàng</span>
@@ -516,11 +526,27 @@
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-xl-3 col-md-6">
             <div class="card shadow-sm border-0 rounded-3 h-100">
                 <div class="card-body text-center py-4">
                     <span class="text-muted text-uppercase fw-semibold" style="font-size:0.75rem;">Tổng số đơn hàng</span>
                     <h2 class="text-danger fw-bold mt-2 mb-0">@ViewBag.TotalOrders</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm border-0 rounded-3 h-100 position-relative">
+                <div class="card-body text-center py-4">
+                    <span class="text-muted text-uppercase fw-semibold" style="font-size:0.75rem;">Tổng số đánh giá</span>
+                    <h2 class="text-purple fw-bold mt-2 mb-0" style="color: #6f42c1;">@ViewBag.TotalReviews</h2>
+                    
+                    @if (ViewBag.TotalReportedReviews > 0)
+                    {
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="margin-left: -20px; margin-top: 15px;">
+                            @ViewBag.TotalReportedReviews báo cáo
+                        </span>
+                    }
                 </div>
             </div>
         </div>

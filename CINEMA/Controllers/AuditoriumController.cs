@@ -122,7 +122,7 @@ namespace CINEMA.Controllers
             return View(auditorium);
         }
 
-        // 🗑️ Xóa
+        // 🗑️ Xóa (Ngừng hoạt động / Tạm dừng)
         public IActionResult Delete(int id)
         {
             var auditorium = _context.Auditoriums
@@ -130,10 +130,6 @@ namespace CINEMA.Controllers
                 .FirstOrDefault(a => a.AuditoriumId == id);
 
             if (auditorium == null) return NotFound();
-
-            // Kiểm tra xem phòng đã có vé lịch sử chưa
-            ViewBag.HasTickets = _context.Tickets.Any(t => t.Showtime!.AuditoriumId == id || t.Seat!.AuditoriumId == id);
-
             return View(auditorium);
         }
 
@@ -143,41 +139,16 @@ namespace CINEMA.Controllers
             var auditorium = _context.Auditoriums.Find(id);
             if (auditorium == null) return NotFound();
 
-            // 1. Kiểm tra xem có vé nào được đặt liên quan đến phòng này không
-            bool hasTickets = _context.Tickets.Any(t => t.Showtime!.AuditoriumId == id || t.Seat!.AuditoriumId == id);
-            if (hasTickets)
-            {
-                // Nếu đã có vé lịch sử, thực hiện SOFT DELETE (chuyển sang Tạm dừng hoạt động) để bảo toàn doanh thu
-                auditorium.IsActive = false;
-                _context.SaveChanges();
-                TempData["SuccessMessage"] = $"Phòng '{auditorium.Name}' chứa dữ liệu vé đã được chuyển sang trạng thái Tạm dừng.";
-                return RedirectToAction(nameof(Index));
-            }
-
             try
             {
-                // 2. Xóa các ghế của phòng
-                var seats = _context.Seats.Where(s => s.AuditoriumId == id).ToList();
-                if (seats.Any())
-                {
-                    _context.Seats.RemoveRange(seats);
-                }
-
-                // 3. Xóa các suất chiếu của phòng
-                var showtimes = _context.Showtimes.Where(s => s.AuditoriumId == id).ToList();
-                if (showtimes.Any())
-                {
-                    _context.Showtimes.RemoveRange(showtimes);
-                }
-
-                // 4. Xóa phòng chiếu
-                _context.Auditoriums.Remove(auditorium);
+                // Thực hiện SOFT DELETE (Tạm dừng hoạt động) để bảo toàn ghế và lịch sử suất chiếu/vé
+                auditorium.IsActive = false;
                 _context.SaveChanges();
-                TempData["SuccessMessage"] = $"Đã xóa thành công phòng '{auditorium.Name}' khỏi hệ thống.";
+                TempData["SuccessMessage"] = $"Đã ngừng hoạt động phòng chiếu '{auditorium.Name}' thành công.";
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "Đã xảy ra lỗi hệ thống khi xóa phòng chiếu: " + ex.InnerException?.Message;
+                TempData["ErrorMessage"] = "Đã xảy ra lỗi hệ thống: " + ex.Message;
                 return RedirectToAction(nameof(Delete), new { id = id });
             }
 

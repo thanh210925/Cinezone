@@ -46,6 +46,7 @@ public partial class CinemaContext : DbContext
 
     public virtual DbSet<TicketCombo> TicketCombos { get; set; }
     public virtual DbSet<Voucher> Vouchers { get; set; }
+    public virtual DbSet<Review> Reviews { get; set; }
     public DbSet<UserActivityLog> UserActivityLogs { get; set; }
     public DbSet<UserMovieView> UserMovieViews { get; set; }
     public DbSet<UserSearchLog> UserSearchLogs { get; set; }

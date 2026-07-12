@@ -670,10 +670,16 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <span class="badge bg-secondary me-2">${ageRating}</span>
                                     <span class="text-white">${duration} phút</span>
                                 </div>
-                                <a href="/Home/BookTicket/${movie.movieId}?isRecommend=true"
-                                   class="btn btn-danger rounded-pill px-4">
-                                    Đặt vé
-                                </a>
+                                <div class="d-flex justify-content-center gap-2">
+                                    <a href="/Home/MovieDetails/${movie.movieId}"
+                                       class="btn btn-outline-light rounded-pill px-3 py-1 btn-sm fw-semibold">
+                                        Chi tiết
+                                    </a>
+                                    <a href="/Home/BookTicket/${movie.movieId}"
+                                       class="btn btn-danger rounded-pill px-3 py-1 btn-sm fw-semibold shadow-sm">
+                                        Đặt vé
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

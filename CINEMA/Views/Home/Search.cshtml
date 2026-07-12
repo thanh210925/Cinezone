@@ -181,11 +181,18 @@
                                     @movie.Title
                                 </div>
 
-                                <a asp-action="BookTicket"
-                                   asp-route-id="@movie.MovieId"
-                                   class="btn btn-warning book-btn mt-3">
-                                    🎟 Đặt vé ngay
-                                </a>
+                                <div class="d-flex justify-content-center gap-2 mt-3">
+                                    <a asp-action="MovieDetails"
+                                       asp-route-id="@movie.MovieId"
+                                       class="btn btn-sm btn-outline-secondary px-3 py-2 rounded-pill fw-semibold">
+                                        🔍 Chi tiết
+                                    </a>
+                                    <a asp-action="BookTicket"
+                                       asp-route-id="@movie.MovieId"
+                                       class="btn btn-sm btn-danger px-3 py-2 rounded-pill fw-semibold">
+                                        🎟 Đặt vé
+                                    </a>
+                                </div>
 
                             </div>
 
@@ -224,11 +231,18 @@
                                 @movie.Title
                             </div>
 
-                            <a asp-action="BookTicket"
-                               asp-route-id="@movie.MovieId"
-                               class="btn btn-warning book-btn mt-3">
-                                🎟 Đặt vé ngay
-                            </a>
+                            <div class="d-flex justify-content-center gap-2 mt-3">
+                                <a asp-action="MovieDetails"
+                                   asp-route-id="@movie.MovieId"
+                                   class="btn btn-sm btn-outline-secondary px-3 py-2 rounded-pill fw-semibold">
+                                    🔍 Chi tiết
+                                </a>
+                                <a asp-action="BookTicket"
+                                   asp-route-id="@movie.MovieId"
+                                   class="btn btn-sm btn-danger px-3 py-2 rounded-pill fw-semibold">
+                                    🎟 Đặt vé
+                                </a>
+                            </div>
 
                         </div>
 

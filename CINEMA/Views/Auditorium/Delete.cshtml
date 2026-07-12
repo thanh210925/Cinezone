@@ -1,6 +1,6 @@
 @model CINEMA.Models.Auditorium
 @{
-    ViewData["Title"] = "Xóa phòng chiếu";
+    ViewData["Title"] = "Ngừng hoạt động phòng chiếu";
     Layout = "_AdminLayout";
 }
 
@@ -14,26 +14,23 @@
     }
 
     <div class="card shadow-sm border-0">
-        <div class="card-header bg-danger text-white">
-            <h4 class="mb-0">
-                <i class="bi bi-exclamation-triangle-fill"></i> Xác nhận xóa phòng chiếu
+        <div class="card-header bg-warning text-dark">
+            <h4 class="mb-0 fw-bold">
+                <i class="bi bi-pause-circle-fill me-2"></i> Ngừng hoạt động phòng chiếu
             </h4>
         </div>
         <div class="card-body">
-            @if (ViewBag.HasTickets == true)
-            {
-                <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4">
-                    <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
-                    <div>
-                        <strong>Lưu ý về dữ liệu:</strong> Phòng chiếu này đã có dữ liệu vé đặt của khách hàng. 
-                        Để tránh ảnh hưởng tới thống kê doanh thu và báo cáo lịch sử, hệ thống sẽ 
-                        <strong>chuyển trạng thái sang Tạm dừng</strong> (không hiển thị khi tạo suất chiếu mới) thay vì xóa hoàn toàn khỏi cơ sở dữ liệu.
-                    </div>
+            <div class="alert alert-info border-0 shadow-sm d-flex align-items-center mb-4">
+                <i class="bi bi-info-circle-fill fs-4 me-3 text-info"></i>
+                <div>
+                    <strong>Lưu ý:</strong> Hành động này sẽ chuyển trạng thái phòng chiếu sang <strong>Tạm dừng</strong>. 
+                    Phòng sẽ không xuất hiện khi lập lịch chiếu mới, nhưng toàn bộ danh sách ghế ngồi, lịch sử đặt vé và doanh thu trước đây vẫn được giữ lại hoàn toàn để làm báo cáo thống kê.
                 </div>
-            }
-            <p>Bạn có chắc chắn muốn @(ViewBag.HasTickets == true ? "tạm dừng" : "xóa") phòng chiếu sau đây không?</p>
+            </div>
 
-            <dl class="row">
+            <p class="fw-semibold">Bạn có chắc chắn muốn ngưng hoạt động phòng chiếu dưới đây không?</p>
+
+            <dl class="row mt-3">
                 <dt class="col-sm-3">Tên phòng:</dt>
                 <dd class="col-sm-9">@Model.Name</dd>
 
@@ -50,11 +47,11 @@
                 <dd class="col-sm-9">@Model.ScreenType</dd>
             </dl>
 
-            <form asp-action="Delete" asp-route-id="@Model.AuditoriumId" method="post">
+            <form asp-action="Delete" asp-route-id="@Model.AuditoriumId" method="post" class="mt-4">
                 <input type="hidden" name="id" value="@Model.AuditoriumId" />
                 <div class="text-end">
-                    <button type="submit" class="btn btn-danger px-4">
-                        <i class="bi bi-trash"></i> @(ViewBag.HasTickets == true ? "Xác nhận Tạm dừng" : "Xác nhận Xóa")
+                    <button type="submit" class="btn btn-warning px-4 fw-semibold">
+                        <i class="bi bi-pause-fill"></i> Xác nhận Tạm dừng
                     </button>
                     <a asp-action="Index" class="btn btn-secondary">Hủy</a>
                 </div>

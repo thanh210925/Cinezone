@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CINEMA.Models.Movie>
+@model IEnumerable<CINEMA.Models.Movie>
 
 <div class="container mt-5 mb-5">
     <div class="d-flex align-items-center mb-4">
@@ -13,9 +13,13 @@
                     <div class="movie-card-modern h-100 shadow-sm">
                         <div class="poster-wrapper">
                             <img src="@movie.PosterUrl" class="img-fluid" alt="@movie.Title">
-                            <div class="overlay">
-                                <a asp-controller="Home" asp-action="BookTicket" asp-route-id="@movie.MovieId" 
-                                   class="btn btn-outline-light rounded-pill px-4">Đặt vé</a>
+                            <div class="overlay p-2 text-center">
+                                <div class="d-flex flex-column gap-2 w-75">
+                                    <a asp-controller="Home" asp-action="MovieDetails" asp-route-id="@movie.MovieId" 
+                                       class="btn btn-sm btn-light rounded-pill px-3 fw-bold">Chi tiết</a>
+                                    <a asp-controller="Home" asp-action="BookTicket" asp-route-id="@movie.MovieId" 
+                                       class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold">Đặt vé</a>
+                                </div>
                             </div>
                         </div>
                         <div class="info-wrapper p-3">

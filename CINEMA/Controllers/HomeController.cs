@@ -439,8 +439,83 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
 
 
         // =====================================================
-        // ======================= ĐẶT VÉ =======================
+        // =================== CHI TIẾT PHIM ===================
         // =====================================================
+        [HttpGet]
+        public IActionResult MovieDetails(int id)
+        {
+            var movie = _context.Movies
+                .Include(m => m.Genres)
+                .FirstOrDefault(m => m.MovieId == id && m.IsActive == true);
+
+            if (movie == null)
+                return NotFound("Không tìm thấy phim.");
+
+            // 📌 GHI LOG XEM CHI TIẾT
+            LogActivity("VIEW_DETAILS", movieId: id);
+            TrackMovieView(id);
+
+            // ── QUẢN LÝ ĐÁNH GIÁ & BÌNH LUẬN ──
+            var now = DateTime.Now;
+            var customerId = GetCurrentCustomerId();
+            bool canComment = false;
+            int? validOrderId = null;
+
+            if (customerId.HasValue)
+            {
+                // MỞ ĐỂ TEST: Bất kỳ ai đăng nhập đều được bình luận
+                canComment = true;
+                /*
+                var pastTicket = _context.Tickets
+                    .Include(t => t.Order)
+                    .Include(t => t.Showtime)
+                    .FirstOrDefault(t => 
+                        t.Order != null && 
+                        t.Order.CustomerId == customerId.Value &&
+                        (t.Order.Status == "Paid" || t.Order.Status == "Completed" || t.Order.Status == "Đã thanh toán") &&
+                        t.Showtime != null && 
+                        t.Showtime.MovieId == id &&
+                        t.Showtime.StartTime < now
+                    );
+                if (pastTicket != null)
+                {
+                    canComment = true;
+                    validOrderId = pastTicket.OrderId;
+                }
+                */
+            }
+
+            var reviews = _context.Reviews
+                .Include(r => r.Customer)
+                .Where(r => r.MovieId == id && r.IsHidden == false)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToList();
+
+            double averageRating = 0;
+            int ratingsCount = reviews.Count;
+            if (ratingsCount > 0)
+            {
+                averageRating = Math.Round(reviews.Average(r => r.Rating), 1);
+            }
+
+            // Gợi ý phim cùng thể loại (ví dụ 4 phim)
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var genreIds = movie.Genres?.Select(g => g.GenreId).ToList() ?? new List<int>();
+            var relatedMovies = _context.Movies
+                .Include(m => m.Genres)
+                .Where(m => m.IsActive == true && m.MovieId != id && m.Genres.Any(g => genreIds.Contains(g.GenreId)))
+                .Take(4)
+                .ToList();
+
+            ViewBag.CanComment = canComment;
+            ViewBag.ValidOrderId = validOrderId;
+            ViewBag.Reviews = reviews;
+            ViewBag.AverageRating = averageRating;
+            ViewBag.RatingsCount = ratingsCount;
+            ViewBag.RelatedMovies = relatedMovies;
+
+            return View(movie);
+        }
 
         [HttpGet]
         public IActionResult BookTicket(int id, int? showtimeId, bool isRecommend = false)
@@ -451,6 +526,51 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
 
             if (movie == null)
                 return NotFound("Không tìm thấy phim.");
+
+            // ── QUẢN LÝ ĐÁNH GIÁ & BÌNH LUẬN ──
+            var now = DateTime.Now;
+            var customerId = GetCurrentCustomerId();
+            bool canComment = false;
+            int? validOrderId = null;
+
+            if (customerId.HasValue)
+            {
+                var pastTicket = _context.Tickets
+                    .Include(t => t.Order)
+                    .Include(t => t.Showtime)
+                    .FirstOrDefault(t => 
+                        t.Order != null && 
+                        t.Order.CustomerId == customerId.Value &&
+                        (t.Order.Status == "Paid" || t.Order.Status == "Completed" || t.Order.Status == "Đã thanh toán") &&
+                        t.Showtime != null && 
+                        t.Showtime.MovieId == id &&
+                        t.Showtime.StartTime < now
+                    );
+                if (pastTicket != null)
+                {
+                    canComment = true;
+                    validOrderId = pastTicket.OrderId;
+                }
+            }
+
+            var reviews = _context.Reviews
+                .Include(r => r.Customer)
+                .Where(r => r.MovieId == id && r.IsHidden == false)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToList();
+
+            double averageRating = 0;
+            int ratingsCount = reviews.Count;
+            if (ratingsCount > 0)
+            {
+                averageRating = Math.Round(reviews.Average(r => r.Rating), 1);
+            }
+
+            ViewBag.CanComment = canComment;
+            ViewBag.ValidOrderId = validOrderId;
+            ViewBag.Reviews = reviews;
+            ViewBag.AverageRating = averageRating;
+            ViewBag.RatingsCount = ratingsCount;
 
             // 📌 GHI LOG XEM PHIM (LƯU VẾT CLICK GỢI Ý NẾU CÓ)
             if (isRecommend)
@@ -504,7 +624,6 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
                 .ThenBy(s => s.SeatNumber)
                 .ToList();
 
-            var now = DateTime.Now;
             var bookedSeats = _context.Tickets
                 .Include(t => t.Seat)
                 .Include(t => t.Order)
@@ -517,7 +636,6 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
                 .ToList();
 
 
-            var customerId = GetCurrentCustomerId();
             var genreIds = movie.Genres?.Select(g => g.GenreId).ToList() ?? new List<int>();
             var recommendedCombos = _recommendationEngine.GetRecommendedCombos(id, genreIds, customerId);
 
@@ -951,6 +1069,101 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
 
             ViewBag.GenreName = genre.Name;
             return View(movies);
+        }
+
+        // =====================================================
+        // ================ QUẢN LÝ BÌNH LUẬN & ĐÁNH GIÁ ====================
+        // =====================================================
+
+        [HttpPost]
+        public IActionResult AddReview(int movieId, int rating, string comment, int? orderId)
+        {
+            var customerId = GetCurrentCustomerId();
+            if (!customerId.HasValue)
+            {
+                return Json(new { success = false, message = "Bạn cần đăng nhập để đánh giá phim." });
+            }
+
+            if (rating < 1 || rating > 5)
+            {
+                return Json(new { success = false, message = "Đánh giá sao phải từ 1 đến 5." });
+            }
+
+            // MỞ ĐỂ TEST: Bất kỳ ai đăng nhập đều được bình luận
+            var hasWatched = true;
+            /*
+            var now = DateTime.Now;
+            var hasWatched = _context.Tickets
+                .Include(t => t.Order)
+                .Include(t => t.Showtime)
+                .Any(t => 
+                    t.Order != null && 
+                    t.Order.CustomerId == customerId.Value &&
+                    (t.Order.Status == "Paid" || t.Order.Status == "Completed" || t.Order.Status == "Đã thanh toán") &&
+                    t.Showtime != null && 
+                    t.Showtime.MovieId == movieId &&
+                    t.Showtime.StartTime < now
+                );
+            */
+            if (!hasWatched)
+            {
+                return Json(new { success = false, message = "Bạn cần xem phim (suất chiếu đã diễn ra) trước khi đánh giá." });
+            }
+
+            // Check if user already reviewed this movie
+            var existingReview = _context.Reviews.FirstOrDefault(r => r.MovieId == movieId && r.CustomerId == customerId.Value);
+            if (existingReview != null)
+            {
+                existingReview.Rating = rating;
+                existingReview.Comment = comment;
+                existingReview.CreatedAt = DateTime.Now;
+                _context.SaveChanges();
+                return Json(new { success = true, message = "Đã cập nhật đánh giá của bạn!" });
+            }
+
+            var review = new Review
+            {
+                MovieId = movieId,
+                CustomerId = customerId.Value,
+                OrderId = orderId,
+                Rating = rating,
+                Comment = comment,
+                CreatedAt = DateTime.Now,
+                IsHidden = false,
+                LikesCount = 0
+            };
+
+            _context.Reviews.Add(review);
+            _context.SaveChanges();
+
+            return Json(new { success = true, message = "Cảm ơn bạn đã đánh giá phim!" });
+        }
+
+        [HttpPost]
+        public IActionResult LikeReview(int reviewId)
+        {
+            var review = _context.Reviews.Find(reviewId);
+            if (review == null) return Json(new { success = false, message = "Đánh giá không tồn tại." });
+
+            review.LikesCount++;
+            _context.SaveChanges();
+
+            return Json(new { success = true, likesCount = review.LikesCount });
+        }
+
+        [HttpPost]
+        public IActionResult ReportReview(int reviewId, string reason)
+        {
+            var review = _context.Reviews.Find(reviewId);
+            if (review == null) return Json(new { success = false, message = "Đánh giá không tồn tại." });
+
+            review.HasReport = true;
+            review.ReportReason = string.IsNullOrEmpty(review.ReportReason) 
+                ? reason 
+                : review.ReportReason + "; " + reason;
+            _context.SaveChanges();
+
+            return Json(new { success = true, message = "Đã gửi báo cáo vi phạm thành công." });
         }
     }
 }

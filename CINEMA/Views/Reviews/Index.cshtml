@@ -1,0 +1,198 @@
+@model IEnumerable<CINEMA.Models.Review>
+@using System.Text.Encodings.Web
+@{
+    ViewData["Title"] = "Quản lý đánh giá";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item active">Quản lý đánh giá & bình luận</li>
+        </ol>
+    </nav>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-white pt-4 px-4 border-0 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-chat-square-text-fill text-primary me-2"></i>Danh sách bình luận & đánh giá</h4>
+            
+            <div class="d-flex gap-2">
+                <a href="@Url.Action("Index", new { hasReport = (bool?)null, isHidden = (bool?)null })" 
+                   class="btn btn-sm rounded-pill px-3 @(ViewBag.HasReportFilter == null && ViewBag.IsHiddenFilter == null ? "btn-primary" : "btn-outline-secondary")">
+                    Tất cả
+                </a>
+                <a href="@Url.Action("Index", new { hasReport = true, isHidden = (bool?)null })" 
+                   class="btn btn-sm rounded-pill px-3 @(ViewBag.HasReportFilter == true ? "btn-danger" : "btn-outline-danger")">
+                    <i class="bi bi-flag-fill me-1"></i> Bị Báo Cáo
+                </a>
+                <a href="@Url.Action("Index", new { hasReport = (bool?)null, isHidden = true })" 
+                   class="btn btn-sm rounded-pill px-3 @(ViewBag.IsHiddenFilter == true ? "btn-secondary" : "btn-outline-secondary")">
+                    <i class="bi bi-eye-slash-fill me-1"></i> Đang Ẩn
+                </a>
+            </div>
+        </div>
+
+        <div class="card-body p-0 mt-3">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle custom-table mb-0">
+                    <thead class="table-light text-secondary">
+                        <tr>
+                            <th class="ps-4" width="5%">ID</th>
+                            <th width="15%">Phim</th>
+                            <th width="15%">Khách hàng</th>
+                            <th class="text-center" width="10%">Đánh giá</th>
+                            <th width="25%">Nội dung bình luận</th>
+                            <th width="15%">Lý do báo cáo</th>
+                            <th class="text-center pe-4" width="15%">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var r in Model)
+                            {
+                                <tr class="@(r.HasReport ? "table-danger bg-opacity-10" : "") @(r.IsHidden ? "opacity-75" : "")">
+                                    <td class="ps-4 fw-medium text-muted">#@r.ReviewId</td>
+                                    <td>
+                                        <div class="fw-bold text-dark text-truncate" style="max-width: 150px;">@r.Movie?.Title</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">@r.Customer?.FullName</div>
+                                        <small class="text-muted text-truncate d-block" style="max-width: 150px;">@r.Customer?.Email</small>
+                                    </td>
+                                    <td class="text-center text-warning">
+                                        @for (int i = 1; i <= 5; i++)
+                                        {
+                                            if (i <= r.Rating)
+                                            {
+                                                <i class="bi bi-star-fill"></i>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-star"></i>
+                                            }
+                                        }
+                                    </td>
+                                    <td>
+                                        <p class="mb-1 text-dark text-truncate-2 small" style="max-width: 300px; white-space: pre-line;">@r.Comment</p>
+                                        <small class="text-muted"><i class="bi bi-clock me-1"></i>@r.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                        
+                                        @if (!string.IsNullOrEmpty(r.AdminReply))
+                                        {
+                                            <div class="mt-1 p-1 bg-light border-start border-primary border-3 rounded small">
+                                                <span class="fw-bold text-primary">Đã phản hồi:</span> @r.AdminReply
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (r.HasReport)
+                                        {
+                                            <span class="badge bg-danger text-wrap text-start d-block">
+                                                <i class="bi bi-flag-fill me-1"></i> @r.ReportReason
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-center pe-4">
+                                        <div class="d-flex justify-content-center gap-1">
+                                            @if (r.IsHidden)
+                                            {
+                                                <form asp-action="Approve" asp-route-id="@r.ReviewId" method="post" class="d-inline">
+                                                    <button type="submit" class="btn btn-success btn-sm rounded-pill px-2 py-1" title="Duyệt và Hiện bình luận">
+                                                        <i class="bi bi-eye-fill me-1"></i> Hiện
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form asp-action="Hide" asp-route-id="@r.ReviewId" method="post" class="d-inline">
+                                                    <button type="submit" class="btn btn-warning text-dark btn-sm rounded-pill px-2 py-1" title="Ẩn bình luận">
+                                                        <i class="bi bi-eye-slash-fill me-1"></i> Ẩn
+                                                    </button>
+                                                </form>
+                                            }
+
+                                            <button type="button" class="btn btn-primary btn-sm rounded-pill px-2 py-1" 
+                                                    onclick="openReplyModal(@r.ReviewId, '@r.Customer?.FullName', '@Html.Raw(JavaScriptEncoder.Default.Encode(r.Comment ?? ""))')" title="Phản hồi bình luận">
+                                                <i class="bi bi-reply-fill"></i> Phản hồi
+                                            </button>
+
+                                            <form asp-action="Delete" asp-route-id="@r.ReviewId" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa vĩnh viễn đánh giá này?');">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle p-1" title="Xóa vĩnh viễn">
+                                                    <i class="bi bi-trash-fill"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-chat-left-dots fs-1 d-block mb-2 text-secondary"></i>
+                                    Không có đánh giá/bình luận nào phù hợp bộ lọc.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PHẢN HỒI -->
+<div class="modal fade" id="replyModal" tabindex="-1" aria-labelledby="replyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="replyModalLabel"><i class="bi bi-reply-fill me-2"></i>Phản hồi bình luận</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="Reply" method="post">
+                <input type="hidden" id="replyReviewId" name="id" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted">Bình luận của khách hàng:</label>
+                        <div class="p-3 bg-light rounded-3 text-dark small" id="customerCommentText" style="white-space: pre-line;"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="replyText" class="form-label fw-bold text-dark">Nội dung phản hồi từ Cinema <span class="text-danger">*</span></label>
+                        <textarea class="form-control rounded-3" id="replyText" name="replyText" rows="4" placeholder="Nhập phản hồi của ban quản lý..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold"><i class="bi bi-send-fill me-1"></i> Gửi phản hồi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openReplyModal(id, customerName, comment) {
+            document.getElementById("replyReviewId").value = id;
+            document.getElementById("customerCommentText").innerText = `"${customerName}": ${comment}`;
+            document.getElementById("replyText").value = "";
+            
+            var modal = new bootstrap.Modal(document.getElementById('replyModal'));
+            modal.show();
+        }
+    </script>
+}

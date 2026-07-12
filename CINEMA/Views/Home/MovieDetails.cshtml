@@ -1,0 +1,395 @@
+@model CINEMA.Models.Movie
+@using System.Text.Encodings.Web
+@{
+    ViewData["Title"] = Model.Title + " - Chi tiết phim";
+    var relatedMovies = ViewBag.RelatedMovies as List<CINEMA.Models.Movie> ?? new List<CINEMA.Models.Movie>();
+}
+
+@functions {
+    public string GetEmbedUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return "";
+        try
+        {
+            if (url.Contains("youtube.com/embed/")) return url;
+            
+            string videoId = "";
+            if (url.Contains("youtu.be/"))
+            {
+                videoId = url.Substring(url.LastIndexOf("/") + 1);
+            }
+            else if (url.Contains("youtube.com/watch"))
+            {
+                var uri = new Uri(url);
+                var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+                videoId = query["v"] ?? "";
+            }
+            
+            if (!string.IsNullOrEmpty(videoId))
+            {
+                if (videoId.Contains("&")) videoId = videoId.Substring(0, videoId.IndexOf("&"));
+                return "https://www.youtube.com/embed/" + videoId;
+            }
+        }
+        catch { }
+        return url;
+    }
+}
+
+<div class="container py-4 bg-light">
+    <!-- 🎬 BANNER & THÔNG TIN CHÍNH -->
+    <div class="card shadow-sm border-0 mb-4 rounded-4 overflow-hidden bg-white">
+        <div class="row g-0">
+            <!-- Poster -->
+            <div class="col-md-4 bg-dark text-center d-flex align-items-center justify-content-center">
+                <img src="@Model.PosterUrl" class="img-fluid w-100" alt="@Model.Title" style="object-fit: cover; max-height: 500px;" />
+            </div>
+            
+            <!-- Movie Info -->
+            <div class="col-md-8">
+                <div class="card-body p-4 d-flex flex-column h-100 justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h2 class="fw-bold text-dark mb-0">@Model.Title</h2>
+                            <span class="badge bg-danger text-white fs-6 py-2 px-3">@Model.AgeRating</span>
+                        </div>
+                        
+                        <!-- Metadata badges -->
+                        <div class="d-flex flex-wrap gap-3 text-muted small mb-4">
+                            <span><i class="bi bi-film me-1"></i> @(Model.Genres != null && Model.Genres.Any() ? string.Join(", ", Model.Genres.Select(g => g.Name)) : "Đang cập nhật")</span>
+                            <span><i class="bi bi-globe me-1"></i> @Model.Country</span>
+                            <span><i class="bi bi-clock me-1"></i> @Model.Duration phút</span>
+                            <span><i class="bi bi-calendar-event me-1"></i> @(Model.ReleaseDate.HasValue ? Model.ReleaseDate.Value.ToString("dd/MM/yyyy") : "Đang cập nhật")</span>
+                        </div>
+
+                        <hr class="text-muted" />
+
+                        <!-- Description -->
+                        <h5 class="fw-bold text-secondary mb-2">Nội dung phim</h5>
+                        <p class="text-dark mb-4" style="line-height: 1.6; font-size: 0.95rem; text-align: justify; white-space: pre-line;">
+                            @Model.Description
+                        </p>
+                    </div>
+
+                    <!-- Booking action button -->
+                    <div class="d-flex gap-3 align-items-center flex-wrap mt-auto">
+                        <a href="/Home/BookTicket/@Model.MovieId" class="btn btn-danger btn-lg fw-bold rounded-pill px-5 py-3 shadow-lg hover-lift">
+                            <i class="bi bi-ticket-perforated-fill me-2"></i> ĐẶT VÉ NGAY
+                        </a>
+                        
+                        <button type="button" class="btn btn-outline-primary btn-lg rounded-pill px-4 py-3" onclick="copyShareLink(this)">
+                            <i class="bi bi-share me-2"></i> Chia sẻ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📺 TRAILER -->
+    @if (!string.IsNullOrEmpty(Model.TrailerUrl))
+    {
+        <div class="card shadow-sm border-0 mb-4 rounded-4 overflow-hidden bg-white p-4">
+            <h4 class="fw-bold mb-3 text-dark"><i class="bi bi-play-btn-fill text-danger me-2"></i>Official Trailer</h4>
+            <div class="ratio ratio-16x9 rounded-3 overflow-hidden shadow-sm">
+                <iframe src="@GetEmbedUrl(Model.TrailerUrl)" title="Trailer" allowfullscreen class="border-0"></iframe>
+            </div>
+        </div>
+    }
+
+    <!-- ⭐ CỘNG ĐỒNG ĐÁNH GIÁ PHIM -->
+    <div class="card shadow-sm border-0 rounded-4 mb-4 p-4 bg-white">
+        <h4 class="fw-bold mb-4 text-dark"><i class="bi bi-chat-left-heart-fill text-danger me-2"></i>Cộng đồng đánh giá phim</h4>
+
+        <div class="row g-4 align-items-center mb-4 pb-4 border-bottom">
+            <div class="col-md-4 text-center border-end">
+                <h1 class="display-3 fw-bold text-warning mb-0">@(ViewBag.AverageRating ?? 0)</h1>
+                <div class="fs-5 text-warning my-1">
+                    @for (int i = 1; i <= 5; i++) {
+                        if (i <= Math.Round((double)(ViewBag.AverageRating ?? 0.0))) {
+                            <i class="bi bi-star-fill"></i>
+                        } else {
+                            <i class="bi bi-star"></i>
+                        }
+                    }
+                </div>
+                <p class="text-muted small mb-0">(@(ViewBag.RatingsCount ?? 0) đánh giá từ người xem)</p>
+            </div>
+            
+            <div class="col-md-8">
+                @if (ViewBag.CanComment == true)
+                {
+                    <h5 class="fw-bold mb-2">Viết đánh giá của bạn</h5>
+                    <form id="reviewForm" onsubmit="event.preventDefault(); submitReview();">
+                        <input type="hidden" id="revMovieId" value="@Model.MovieId" />
+                        <input type="hidden" id="revOrderId" value="@ViewBag.ValidOrderId" />
+                        <input type="hidden" id="revRating" value="5" />
+                        
+                        <div class="mb-3">
+                            <span class="text-muted small me-2">Chọn số sao:</span>
+                            <span class="fs-4 text-warning" style="cursor: pointer;">
+                                <i class="bi bi-star-fill star-select" data-val="1" onclick="setRating(1)"></i>
+                                <i class="bi bi-star-fill star-select" data-val="2" onclick="setRating(2)"></i>
+                                <i class="bi bi-star-fill star-select" data-val="3" onclick="setRating(3)"></i>
+                                <i class="bi bi-star-fill star-select" data-val="4" onclick="setRating(4)"></i>
+                                <i class="bi bi-star-fill star-select" data-val="5" onclick="setRating(5)"></i>
+                            </span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <textarea id="revComment" class="form-control rounded-3" rows="3" placeholder="Chia sẻ suy nghĩ của bạn về bộ phim..." required></textarea>
+                        </div>
+                        
+                        <div class="text-end">
+                            <button type="submit" id="btnSubmitReview" class="btn btn-primary rounded-pill px-4 fw-semibold">
+                                <i class="bi bi-send-fill me-1"></i> Gửi đánh giá
+                            </button>
+                        </div>
+                    </form>
+                }
+                else
+                {
+                    <div class="alert alert-light border rounded-3 d-flex align-items-center p-3 mb-0">
+                        <i class="bi bi-info-circle-fill text-muted fs-4 me-3"></i>
+                        <span class="text-muted small">
+                            Chỉ những khách hàng <strong>đã đặt mua vé xem phim này</strong> (suất chiếu đã diễn ra) tại rạp mới có quyền đánh giá và bình luận để tránh các đánh giá ảo.
+                        </span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- DANH SÁCH BÌNH LUẬN -->
+        <h5 class="fw-bold mb-3">Đánh giá nổi bật (@(ViewBag.RatingsCount ?? 0))</h5>
+        <div class="d-flex flex-column gap-3" id="reviewsContainer">
+            @if (ViewBag.Reviews != null && ((List<CINEMA.Models.Review>)ViewBag.Reviews).Any())
+            {
+                foreach (var r in (List<CINEMA.Models.Review>)ViewBag.Reviews)
+                {
+                    <div class="p-3 border rounded-3 bg-light bg-opacity-50">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:36px; height:36px; font-size: 0.9rem;">
+                                    @(string.IsNullOrEmpty(r.Customer?.FullName) ? "U" : r.Customer.FullName.Substring(0, 1).ToUpper())
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark" style="font-size: 0.95rem;">@(r.Customer?.FullName ?? "Người dùng CineZone")</div>
+                                    <div class="text-warning small">
+                                        @for (int i = 1; i <= 5; i++) {
+                                            if (i <= r.Rating) {
+                                                <i class="bi bi-star-fill"></i>
+                                            } else {
+                                                <i class="bi bi-star"></i>
+                                            }
+                                        }
+                                        <span class="text-muted ms-2" style="font-size: 0.78rem;">@r.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="dropdown">
+                                <button class="btn btn-link btn-sm text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
+                                    <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="reportReview(@r.ReviewId, 'Spam')"><i class="bi bi-flag-fill me-2"></i>Báo cáo Spam</a></li>
+                                    <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="reportReview(@r.ReviewId, 'Ngôn từ phản cảm')"><i class="bi bi-chat-square-dots-fill me-2"></i>Báo cáo phản cảm</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <p class="mt-2 text-dark mb-2" style="font-size: 0.93rem; white-space: pre-line;">@r.Comment</p>
+                        
+                        <div class="d-flex align-items-center gap-3">
+                            <button class="btn btn-sm btn-outline-secondary border-0 px-2 py-1 rounded-pill" onclick="likeReview(@r.ReviewId, this)">
+                                <i class="bi bi-hand-thumbs-up me-1"></i> Hữu ích (<span class="like-cnt">@r.LikesCount</span>)
+                            </button>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(r.AdminReply))
+                        {
+                            <div class="mt-3 p-2 bg-primary bg-opacity-10 border-start border-primary border-3 rounded-2 ms-4">
+                                <div class="fw-bold text-primary small"><i class="bi bi-shield-check me-1"></i>CineZone Phản hồi</div>
+                                <div class="text-dark small mt-1">@r.AdminReply</div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-4 text-muted small">
+                    <i class="bi bi-chat-square-dots fs-2 d-block mb-2 text-secondary"></i>
+                    Chưa có đánh giá nào cho phim này. Hãy là người đầu tiên đánh giá!
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- 🎬 PHIM CÙNG THỂ LOẠI -->
+    @if (relatedMovies.Any())
+    {
+        <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+            <h4 class="fw-bold mb-4 text-dark"><i class="bi bi-collection-play-fill text-danger me-2"></i>Phim cùng thể loại</h4>
+            <div class="row g-4">
+                @foreach (var m in relatedMovies)
+                {
+                    <div class="col-lg-3 col-md-4 col-sm-6">
+                        <div class="card border rounded-3 overflow-hidden shadow-none h-100 hover-lift">
+                            <a href="/Home/MovieDetails/@m.MovieId" class="text-decoration-none">
+                                <img src="@m.PosterUrl" class="card-img-top w-100" style="height: 320px; object-fit: cover;" alt="@m.Title" />
+                                <div class="card-body p-3 text-center">
+                                    <h6 class="fw-bold text-dark text-truncate mb-0">@m.Title</h6>
+                                    <small class="text-muted small">@m.Duration phút | @m.AgeRating</small>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // ── CHIA SẺ ──
+        window.copyShareLink = function(button) {
+            const url = window.location.href;
+            const showSuccess = () => {
+                const originalContent = button.innerHTML;
+                button.innerHTML = '<i class="bi bi-check2"></i> Đã sao chép!';
+                button.classList.add('btn-primary', 'text-white');
+                setTimeout(() => {
+                    button.innerHTML = originalContent;
+                    button.classList.remove('btn-primary', 'text-white');
+                }, 2000);
+            };
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(showSuccess).catch(() => fallbackCopyText(url, showSuccess));
+            } else {
+                fallbackCopyText(url, showSuccess);
+            }
+        };
+
+        function fallbackCopyText(text, callback) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                if (document.execCommand('copy')) callback();
+            } catch (err) {
+                alert('Không thể sao chép tự động. Hãy copy liên kết trên thanh địa chỉ nhé!');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function setRating(val) {
+            document.getElementById("revRating").value = val;
+            document.querySelectorAll(".star-select").forEach(star => {
+                let starVal = parseInt(star.dataset.val);
+                if (starVal <= val) {
+                    star.classList.remove("bi-star");
+                    star.classList.add("bi-star-fill");
+                } else {
+                    star.classList.remove("bi-star-fill");
+                    star.classList.add("bi-star");
+                }
+            });
+        }
+
+        async function submitReview() {
+            const movieId = document.getElementById("revMovieId").value;
+            const orderId = document.getElementById("revOrderId").value;
+            const rating = document.getElementById("revRating").value;
+            const comment = document.getElementById("revComment").value.trim();
+
+            if (!comment) return;
+
+            const btn = document.getElementById("btnSubmitReview");
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang gửi...';
+
+            try {
+                const formData = new FormData();
+                formData.append("movieId", movieId);
+                formData.append("rating", rating);
+                formData.append("comment", comment);
+                if (orderId) formData.append("orderId", orderId);
+
+                const r = await fetch('/Home/AddReview', {
+                    method: 'POST',
+                    body: formData
+                });
+                const res = await r.json();
+
+                if (res.success) {
+                    alert(res.message);
+                    location.reload();
+                } else {
+                    alert(res.message);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Gửi đánh giá';
+                }
+            } catch(e) {
+                alert('Có lỗi xảy ra khi gửi đánh giá.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-send-fill me-1"></i> Gửi đánh giá';
+            }
+        }
+
+        async function likeReview(reviewId, btn) {
+            try {
+                const formData = new FormData();
+                formData.append("reviewId", reviewId);
+
+                const r = await fetch('/Home/LikeReview', {
+                    method: 'POST',
+                    body: formData
+                });
+                const res = await r.json();
+
+                if (res.success) {
+                    const span = btn.querySelector('.like-cnt');
+                    if (span) span.innerText = res.likesCount;
+                    btn.classList.remove('btn-outline-secondary');
+                    btn.classList.add('btn-primary', 'text-white');
+                    btn.disabled = true;
+                } else {
+                    alert(res.message);
+                }
+            } catch(e) {
+                alert('Lỗi kết nối.');
+            }
+        }
+
+        async function reportReview(reviewId, reason) {
+            if (!confirm(`Bạn muốn báo cáo bình luận này vì lý do: "${reason}"?`)) return;
+
+            try {
+                const formData = new FormData();
+                formData.append("reviewId", reviewId);
+                formData.append("reason", reason);
+
+                const r = await fetch('/Home/ReportReview', {
+                    method: 'POST',
+                    body: formData
+                });
+                const res = await r.json();
+
+                if (res.success) {
+                    alert(res.message);
+                } else {
+                    alert(res.message);
+                }
+            } catch(e) {
+                alert('Lỗi kết nối.');
+            }
+        }
+    </script>
+}
