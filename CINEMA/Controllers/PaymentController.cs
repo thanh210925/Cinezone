@@ -549,7 +549,7 @@ namespace CINEMA.Controllers
 
         // =================== [3] Thanh toán VNPay Callback ===================
         [HttpGet]
-        public IActionResult PaymentReturn()
+        public async Task<IActionResult> PaymentReturn()
         {
             string hashSecret = _config["Vnpay:HashSecret"];
 
@@ -571,6 +571,9 @@ namespace CINEMA.Controllers
 
              var order = _context.Orders
                 .Include(o => o.Tickets)
+                .Include(o => o.Customer)
+                .Include(o => o.OrderCombos)
+                    .ThenInclude(oc => oc.Combo)
                 .FirstOrDefault(o => o.OrderId == orderId);
 
             if (order == null)
@@ -636,20 +639,43 @@ namespace CINEMA.Controllers
 
                 _context.SaveChanges();
 
-                // Gửi email đặt vé thành công
+                // Gửi email đặt vé/bắp nước thành công (await trực tiếp để đảm bảo gửi thành công)
                 string reqBaseUrl = _config["AppSettings:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}";
-                int successOrderId = order.OrderId;
-                Task.Run(async () => {
-                    try {
-                        await _emailService.SendOrderSuccessEmailAsync(successOrderId, reqBaseUrl);
-                    } catch (Exception ex) {
-                        _logger.LogError(ex, "Failed to send order success email for order {OrderId}", successOrderId);
-                    }
-                });
+                try
+                {
+                    await _emailService.SendOrderSuccessEmailAsync(order.OrderId, reqBaseUrl);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send order success email for order {OrderId}", order.OrderId);
+                }
 
+                // Thiết lập ViewBag cho trang Success
                 ViewBag.Total = order.TotalAmount;
                 ViewBag.PaymentStatus = "Đã thanh toán";
                 ViewBag.BookingCode = $"CZ{order.OrderId:D6}";
+
+                // Nếu là đơn bắp nước lẻ (không có vé), hiển thị thông tin bắp nước
+                bool isConcessionOnly = order.Tickets == null || !order.Tickets.Any();
+                if (isConcessionOnly)
+                {
+                    ViewBag.CustomerName = order.Customer?.FullName;
+                    ViewBag.CustomerPhone = order.Customer?.Phone;
+
+                    // Xác định phương thức thanh toán hiển thị
+                    string pm = order.PaymentMethod ?? "";
+                    ViewBag.PaymentMethod = pm.Contains("VNPAY") ? "Ví VNPAY" : pm;
+
+                    ViewBag.Combos = order.OrderCombos?.Select(oc => new CINEMA.ViewModels.ComboViewModel
+                    {
+                        ComboName = oc.Combo?.Name ?? "Combo",
+                        Quantity = oc.Quantity ?? 0,
+                        Price = oc.UnitPrice ?? 0
+                    }).ToList();
+
+                    ViewBag.Message = "Hóa đơn đặt bắp nước đã được gửi tới hòm thư của bạn. Vui lòng xuất trình mã đơn hàng tại quầy để nhận bắp nước.";
+                }
+
                 return View("Success");
             }
 
@@ -844,7 +870,7 @@ namespace CINEMA.Controllers
                 return RedirectToAction("MyTickets", "Tickets");
             }
 
-            if (order.PaymentMethod == "Chuyển khoản")
+            if (order.PaymentMethod == "Chuyển khoản" || (order.PaymentMethod != null && order.PaymentMethod.Contains("VNPAY")))
             {
                 var pay = new VnpayLibrary();
                 string baseUrl = _config["Vnpay:BaseUrl"];

@@ -222,13 +222,35 @@ namespace CINEMA.Services
             if (order == null || order.Customer == null || string.IsNullOrEmpty(order.Customer.Email))
                 return;
 
-            string subject = $"🎟️ CINEZONE: Đặt Vé Thành Công - Mã Đơn #{order.OrderId:D6}";
-            var firstTicket = order.Tickets.FirstOrDefault();
-            string movieTitle = firstTicket?.Showtime?.Movie?.Title ?? "Phim chiếu rạp";
-            string showtimeText = firstTicket?.Showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa rõ";
-            string roomName = firstTicket?.Showtime?.Auditorium?.Name ?? "Chưa rõ";
-            string theaterName = firstTicket?.Showtime?.Auditorium?.Theater?.Name ?? "CineZone Cinema";
-            string seatsText = string.Join(", ", order.Tickets.Select(t => t.Seat?.RowLabel + t.Seat?.SeatNumber));
+            bool isConcessionOnly = order.Tickets == null || !order.Tickets.Any();
+            string subject = isConcessionOnly
+                ? $"🍿 CINEZONE: Đặt Bắp Nước Thành Công - Mã Đơn #{order.OrderId:D6}"
+                : $"🎟️ CINEZONE: Đặt Vé Thành Công - Mã Đơn #{order.OrderId:D6}";
+
+            string movieTitle = "";
+            string showtimeText = "";
+            string roomName = "";
+            string seatsText = "";
+            string theaterName = "CineZone Cinema";
+
+            if (!isConcessionOnly)
+            {
+                var t = order.Tickets.FirstOrDefault();
+                movieTitle = t?.Showtime?.Movie?.Title ?? "Phim chiếu rạp";
+                showtimeText = t?.Showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa rõ";
+                roomName = t?.Showtime?.Auditorium?.Name ?? "Chưa rõ";
+                theaterName = t?.Showtime?.Auditorium?.Theater?.Name ?? "CineZone Cinema";
+                seatsText = string.Join(", ", order.Tickets.Select(tk => tk.Seat?.RowLabel + tk.Seat?.SeatNumber));
+            }
+            else
+            {
+                string sourceText = order.PaymentMethod ?? order.Status ?? "";
+                if (sourceText.Contains("Nhận tại:"))
+                {
+                    int idx = sourceText.IndexOf("Nhận tại:");
+                    theaterName = sourceText.Substring(idx + 9).Replace(")", "").Trim();
+                }
+            }
 
             var sb = new StringBuilder();
             sb.Append($@"
@@ -261,6 +283,27 @@ namespace CINEMA.Services
         </div>
         <div class='content'>
             <div class='greeting'>Xin chào {order.Customer.FullName},</div>
+");
+
+            if (isConcessionOnly)
+            {
+                sb.Append($@"
+            <div class='intro'>Chúc mừng bạn đã đặt bắp nước trực tuyến thành công tại CineZone! Vui lòng xuất trình mã đơn hàng này tại quầy bắp nước của rạp để nhận phần của mình.</div>
+            
+            <div class='ticket-info'>
+                <div class='info-row'>
+                    <span class='label'>Mã đơn hàng</span>
+                    <span class='value' style='color:#f2b705;'>CZ{order.OrderId:D6}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Rạp nhận bắp nước</span>
+                    <span class='value'>{theaterName}</span>
+                </div>
+");
+            }
+            else
+            {
+                sb.Append($@"
             <div class='intro'>Chúc mừng bạn đã đặt vé xem phim thành công tại CineZone! Dưới đây là thông tin chi tiết đơn hàng của bạn. Vui lòng xuất trình mã đơn hàng này tại quầy để nhận vé.</div>
             
             <div class='ticket-info'>
@@ -289,6 +332,7 @@ namespace CINEMA.Services
                     <span class='value'>{seatsText}</span>
                 </div>
 ");
+            }
 
             if (order.OrderCombos != null && order.OrderCombos.Any())
             {
@@ -309,7 +353,7 @@ namespace CINEMA.Services
             </div>
             
             <div style='text-align: center; margin-top: 30px;'>
-                <p style='font-size: 13px; color: #94a3b8; margin-bottom: 5px;'>Chúc bạn có những trải nghiệm xem phim tuyệt vời tại CineZone!</p>
+                <p style='font-size: 13px; color: #94a3b8; margin-bottom: 5px;'>Cảm ơn bạn đã lựa chọn dịch vụ của CineZone!</p>
             </div>
         </div>
         <div class='footer'>

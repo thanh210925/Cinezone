@@ -1,0 +1,340 @@
+@{
+    ViewData["Title"] = "Thanh toán bắp nước";
+    Layout = "_Layout";
+    var theater = ViewBag.Theater as CINEMA.Models.Theater;
+    var checkoutItems = ViewBag.CheckoutItems as IEnumerable<dynamic>;
+    decimal baseTotal = ViewBag.Total ?? 0;
+    var comboIds = ViewBag.ComboIds as List<int>;
+    var quantities = ViewBag.Quantities as List<int>;
+}
+
+<div class="container py-4">
+    <div class="row g-4 justify-content-center">
+        <!-- FORM NHẬP THÔNG TIN KHÁCH HÀNG & PHƯƠNG THỨC -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 card-glassmorphism">
+                <h4 class="fw-extrabold text-gradient-purple mb-4 d-flex align-items-center">
+                    <i class="bi bi-person-bounding-box me-2 text-danger"></i>Thông Tin Nhận Bắp Nước
+                </h4>
+
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger border-0 rounded-3 p-3 mb-4">
+                        <i class="bi bi-exclamation-circle me-1"></i> @TempData["Error"]
+                    </div>
+                }
+
+                <form asp-action="ProcessConcessionsPayment" method="post" id="paymentForm">
+                    <!-- Gửi kèm danh sách combo và rạp -->
+                    <input type="hidden" name="theaterId" value="@theater?.TheaterId" />
+                    @if (comboIds != null)
+                    {
+                        @for (int i = 0; i < comboIds.Count; i++)
+                        {
+                            <input type="hidden" name="comboIds" value="@comboIds[i]" />
+                            <input type="hidden" name="quantities" value="@quantities[i]" />
+                        }
+                    }
+
+                    <!-- Nhập thông tin liên hệ -->
+                    <div class="mb-4">
+                        <label class="form-label text-dark font-theme-title small fw-bold">Họ và tên *</label>
+                        <div class="input-group shadow-sm rounded-pill overflow-hidden border">
+                            <span class="input-group-text bg-transparent border-0 ps-3 text-muted"><i class="bi bi-person"></i></span>
+                            <input type="text" name="fullName" required class="form-control border-0 ps-2" placeholder="Họ và tên của bạn" style="height: 50px;" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="form-label text-dark font-theme-title small fw-bold">Số điện thoại *</label>
+                            <div class="input-group shadow-sm rounded-pill overflow-hidden border">
+                                <span class="input-group-text bg-transparent border-0 ps-3 text-muted"><i class="bi bi-telephone"></i></span>
+                                <input type="tel" name="phone" required class="form-control border-0 ps-2" placeholder="Số điện thoại" style="height: 50px;" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-dark font-theme-title small fw-bold">Email nhận hóa đơn *</label>
+                            <div class="input-group shadow-sm rounded-pill overflow-hidden border">
+                                <span class="input-group-text bg-transparent border-0 ps-3 text-muted"><i class="bi bi-envelope"></i></span>
+                                <input type="email" name="email" required class="form-control border-0 ps-2" placeholder="Email nhận mã đơn" style="height: 50px;" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KHU VỰC VOUCHER / MÃ KHUYẾN MÃI -->
+                    <div class="mb-4 p-3.5 rounded-4 border border-secondary border-opacity-10" style="background-color: rgba(255,255,255,0.02);">
+                        <label class="form-label text-dark font-theme-title small fw-bold d-flex align-items-center">
+                            <i class="bi bi-ticket-perforated-fill text-warning me-1.5"></i> Áp dụng Voucher (nếu có)
+                        </label>
+                        <div class="input-group shadow-sm rounded-pill overflow-hidden border">
+                            <input type="text" name="voucherCode" id="voucherCode" class="form-control border-0 ps-3" placeholder="Nhập mã voucher giảm giá" style="height: 48px;" />
+                            <button type="button" class="btn btn-warning px-4 fw-bold" onclick="applyVoucher()" style="border-radius: 0;">Áp dụng</button>
+                        </div>
+                        <div id="voucher-status-msg" class="small mt-2 px-1 fw-semibold"></div>
+                    </div>
+
+                    <!-- CHỌN PHƯƠNG THỨC THANH TOÁN -->
+                    <div class="mb-5">
+                        <label class="form-label text-dark font-theme-title small fw-bold mb-3">Phương thức thanh toán</label>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="payment-method-card w-100 h-100 rounded-4 p-3 border d-flex align-items-center gap-3 cursor-pointer" for="method-vnpay">
+                                    <input type="radio" name="paymentMethod" id="method-vnpay" value="VNPAY" checked class="form-check-input flex-shrink-0" />
+                                    <div class="icon-wrap bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.4rem;">
+                                        <i class="bi bi-qr-code-scan"></i>
+                                    </div>
+                                    <div>
+                                        <span class="fw-bold text-dark font-theme-title d-block" style="font-size: 0.92rem;">Ví VNPAY</span>
+                                        <span class="text-muted small">Cổng thanh toán ATM / QR</span>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="payment-method-card w-100 h-100 rounded-4 p-3 border d-flex align-items-center gap-3 cursor-pointer" for="method-cash">
+                                    <input type="radio" name="paymentMethod" id="method-cash" value="CASH" class="form-check-input flex-shrink-0" />
+                                    <div class="icon-wrap bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.4rem;">
+                                        <i class="bi bi-wallet2"></i>
+                                    </div>
+                                    <div>
+                                        <span class="fw-bold text-dark font-theme-title d-block" style="font-size: 0.92rem;">Tại quầy</span>
+                                        <span class="text-muted small">Nhận hàng & trả tiền mặt</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ĐIỀU KHOẢN ĐỒNG Ý -->
+                    <div class="mb-4">
+                        <div class="form-check d-flex align-items-start gap-2">
+                            <input class="form-check-input" type="checkbox" required id="agreeTerms" />
+                            <label class="form-check-label text-muted small" for="agreeTerms">
+                                Tôi đồng ý với các <a href="/Home/TermsAndPolicies" class="text-danger" target="_blank">điều khoản dịch vụ</a> và xác nhận đặt bắp nước đúng chi nhánh rạp CineZone đã chọn.
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100 rounded-pill py-3 fw-bold shadow-lg d-flex align-items-center justify-content-center gap-2 hover-scale btn-checkout-submit" style="height: 54px; font-size: 1.05rem; border: 0; background: linear-gradient(135deg, #e91e63, #c2185b);">
+                        <i class="bi bi-shield-check"></i> XÁC NHẬN THANH TOÁN
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- HÓA ĐƠN CHI TIẾT TỔNG HỢP -->
+        <div class="col-lg-5 col-xl-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 card-glassmorphism bill-sticky" style="position: sticky; top: 100px;">
+                <!-- Rạp Nhận bắp nước -->
+                <div class="mb-4 pb-3 border-bottom">
+                    <span class="text-danger small fw-bold text-uppercase d-block mb-1 tracking-wider"><i class="bi bi-geo-alt"></i> Chi nhánh nhận hàng</span>
+                    <h5 class="fw-bold text-dark font-theme-title mb-1">@theater?.Name</h5>
+                    <p class="text-muted small mb-0" style="font-size: 0.8rem; line-height: 1.4;">@theater?.Address</p>
+                </div>
+
+                <!-- Danh sách Combo đã chọn -->
+                <div class="mb-4">
+                    <span class="text-muted small fw-bold text-uppercase d-block mb-2.5">Sản phẩm đã chọn</span>
+                    <div class="checkout-list-wrap custom-scrollbar" style="max-height: 240px; overflow-y: auto; padding-right: 2px;">
+                        @foreach (var c in checkoutItems ?? Enumerable.Empty<dynamic>())
+                        {
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="d-flex align-items-center">
+                                    <img src="@(string.IsNullOrEmpty(c.ImageUrl) ? "/images/popcorn-placeholder.jpg" : c.ImageUrl)" 
+                                         class="rounded-3 shadow-sm me-3 border" 
+                                         style="width: 50px; height: 50px; object-fit: cover;" 
+                                         onerror="this.src='https://placehold.co/100x100?text=Combo'" />
+                                    <div>
+                                        <span class="fw-bold text-dark font-theme-title text-truncate d-block" style="max-width: 140px; font-size: 0.88rem;">@c.Name</span>
+                                        <span class="text-muted small" style="font-size: 0.75rem;">Số lượng: @c.Quantity</span>
+                                    </div>
+                                </div>
+                                <span class="fw-bold text-dark font-theme-title" style="font-size: 0.9rem;">@(((decimal)c.Total).ToString("N0")) đ</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Tóm tắt chi phí thanh toán -->
+                <div class="border-top pt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Tạm tính</span>
+                        <span class="fw-bold text-dark" id="summary-subtotal">@baseTotal.ToString("N0") đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Voucher Giảm giá</span>
+                        <span class="text-success fw-bold" id="summary-discount">-0 đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center border-top border-dashed pt-3 mt-3">
+                        <span class="fw-bold text-dark font-theme-title">Tổng thanh toán</span>
+                        <h4 class="fw-extrabold text-danger m-0" id="summary-total">@baseTotal.ToString("N0") đ</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Styling */
+    .text-gradient-purple {
+        background: linear-gradient(45deg, #e91e63, #8e24aa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .card-glassmorphism {
+        background-color: #ffffff;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .payment-method-card {
+        border-color: #e2e8f0;
+        background-color: #ffffff;
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .payment-method-card:hover {
+        border-color: #cbd5e1;
+        background-color: #fafafa;
+    }
+
+    input[type="radio"]:checked + .icon-wrap {
+        transform: scale(1.05);
+    }
+    
+    .form-check-input:checked ~ .icon-wrap {
+        border-color: #ef4444;
+    }
+
+    /* Selected Payment card glowing */
+    .payment-method-card:has(input[type="radio"]:checked) {
+        border-color: #e91e63 !important;
+        box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1) !important;
+        background-color: rgba(233, 30, 99, 0.01) !important;
+    }
+
+    .hover-scale {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .hover-scale:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(233, 30, 99, 0.3) !important;
+    }
+
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+    .border-dashed {
+        border-top: 1px dashed #cbd5e1;
+    }
+
+    /* DARK THEME STYLING OVERRIDES (Using body.dark-theme wrapper) */
+    body.dark-theme .card-glassmorphism,
+    body.dark-theme .payment-method-card {
+        background: rgba(20, 14, 38, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(12px) !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+    }
+
+    body.dark-theme .payment-method-card:hover {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+
+    body.dark-theme .payment-method-card:has(input[type="radio"]:checked) {
+        border-color: #e91e63 !important;
+        background-color: rgba(233, 30, 99, 0.04) !important;
+    }
+
+    body.dark-theme .font-theme-title,
+    body.dark-theme .text-dark,
+    body.dark-theme #summary-subtotal {
+        color: #ffffff !important;
+    }
+
+    body.dark-theme .border-top,
+    body.dark-theme .border-bottom {
+        border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    body.dark-theme .border-dashed {
+        border-top-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    /* Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.02);
+        border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 4px;
+    }
+    body.dark-theme .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+    }
+</style>
+
+<script>
+    let discountAmt = 0;
+    const baseTotal = parseFloat("@baseTotal");
+
+    function applyVoucher() {
+        const codeInput = document.getElementById("voucherCode");
+        const code = codeInput.value.trim();
+        const statusMsg = document.getElementById("voucher-status-msg");
+
+        if (!code) {
+            statusMsg.className = "small mt-2 px-1 text-danger fw-semibold";
+            statusMsg.innerText = "Vui lòng nhập mã voucher!";
+            return;
+        }
+
+        statusMsg.className = "small mt-2 px-1 text-warning fw-semibold";
+        statusMsg.innerText = "Đang kiểm tra...";
+
+        // Sử dụng CheckVoucher trong HomeController
+        fetch(`/Home/CheckVoucher?code=${encodeURIComponent(code)}&total=${baseTotal}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    discountAmt = parseFloat(data.discount) || 0;
+                    statusMsg.className = "small mt-2 px-1 text-success fw-semibold";
+                    statusMsg.innerText = `Áp dụng thành công! Được giảm ${discountAmt.toLocaleString("vi-VN")} đ`;
+                    recalculateTotal();
+                } else {
+                    discountAmt = 0;
+                    statusMsg.className = "small mt-2 px-1 text-danger fw-semibold";
+                    statusMsg.innerText = `Lỗi: ${data.message}`;
+                    recalculateTotal();
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                discountAmt = 0;
+                statusMsg.className = "small mt-2 px-1 text-danger fw-semibold";
+                statusMsg.innerText = "Lỗi đường truyền hoặc máy chủ!";
+                recalculateTotal();
+            });
+    }
+
+    function recalculateTotal() {
+        const discountEl = document.getElementById("summary-discount");
+        const totalEl = document.getElementById("summary-total");
+
+        discountEl.innerText = "-" + discountAmt.toLocaleString("vi-VN") + " đ";
+        
+        let finalTotal = baseTotal - discountAmt;
+        if (finalTotal < 0) finalTotal = 0;
+        
+        totalEl.innerText = finalTotal.toLocaleString("vi-VN") + " đ";
+    }
+</script>

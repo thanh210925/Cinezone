@@ -133,6 +133,35 @@
         font-weight: 700;
         font-size: 0.9rem;
     }
+
+    @@media print {
+        body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+        }
+        header, footer, nav, .navbar, .btn-pill-action, .btn, hr, .breadcrumb, #no-print {
+            display: none !important;
+        }
+        .receipt-container {
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+        .receipt-card {
+            box-shadow: none !important;
+            border: none !important;
+            padding: 1rem 0 !important;
+            background: #ffffff !important;
+        }
+        .receipt-card::after {
+            display: none !important;
+        }
+        .receipt-details-list {
+            border: 1px solid #000000 !important;
+            background: #ffffff !important;
+        }
+    }
 </style>
 
 <div class="container receipt-container">
@@ -294,9 +323,15 @@
             <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-pill-action px-4">
                 <i class="bi bi-house-door me-1"></i> Trang chủ
             </a>
-            <a asp-controller="Tickets" asp-action="MyTickets" class="btn btn-success btn-pill-action px-4 shadow-sm">
-                <i class="bi bi-ticket-perforated me-1"></i> Vé của tôi
-            </a>
+            <button onclick="window.print()" class="btn btn-primary btn-pill-action px-4 shadow-sm">
+                <i class="bi bi-printer me-1"></i> In hóa đơn
+            </button>
+            @if (Context.Session.GetInt32("CustomerId") != null)
+            {
+                <a asp-controller="Tickets" asp-action="MyTickets" class="btn btn-success btn-pill-action px-4 shadow-sm">
+                    <i class="bi bi-ticket-perforated me-1"></i> Vé của tôi
+                </a>
+            }
         </div>
 
     </div>

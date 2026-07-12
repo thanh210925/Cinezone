@@ -1,0 +1,353 @@
+@model IEnumerable<CINEMA.Models.Combo>
+@{
+    ViewData["Title"] = "Đặt Bắp Nước Online";
+    Layout = "_Layout";
+}
+
+<div class="container py-4">
+    <!-- Header Banner -->
+    <div class="text-center mb-5">
+        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2 rounded-pill fw-bold mb-3 small text-uppercase tracking-wider">
+            🍿 Dịch vụ ẩm thực rạp chiếu
+        </span>
+        <h1 class="fw-extrabold text-gradient-purple mb-2" style="font-size: 2.50rem;">Đặt Bắp Nước Trực Tuyến</h1>
+        <p class="text-muted mx-auto" style="max-width: 600px;">Đặt trước bắp nước lẻ cực kỳ nhanh chóng và nhận ngay tại quầy rạp mà không cần xếp hàng mua vé!</p>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger border-0 rounded-4 shadow-sm p-4 mb-4 d-flex align-items-center gap-3">
+            <i class="bi bi-exclamation-triangle-fill fs-3"></i>
+            <div>
+                <h6 class="fw-bold mb-0">Thao tác không hợp lệ</h6>
+                <p class="mb-0 small opacity-75">@TempData["Error"]</p>
+            </div>
+        </div>
+    }
+
+    <form asp-action="ConcessionsCheckout" method="post" id="concessionForm">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <!-- BƯỚC 1: CHỌN RẠP CHIẾU -->
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 select-branch-card card-glassmorphism">
+                    <h5 class="fw-bold text-dark font-theme-title mb-3 d-flex align-items-center">
+                        <i class="bi bi-geo-alt-fill text-danger me-2"></i>Bước 1: Chọn rạp nhận bắp nước
+                    </h5>
+                    <p class="text-muted small mb-3">Vui lòng chọn cụ thể chi nhánh rạp để quầy bắp nước chuẩn bị đơn hàng của bạn.</p>
+                    <select name="theaterId" id="theaterId" class="form-select rounded-pill dark-select" onchange="enableCombos()" style="height: 50px; font-size: 0.95rem; cursor: pointer; font-family: 'Be Vietnam Pro', sans-serif;">
+                        <option value="">-- Chọn chi nhánh rạp nhận bắp nước --</option>
+                        @foreach (var t in ViewBag.Theaters as IEnumerable<CINEMA.Models.Theater> ?? Enumerable.Empty<CINEMA.Models.Theater>())
+                        {
+                            <option value="@t.TheaterId">@t.Name - @t.Address</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- BƯỚC 2: CHỌN SẢN PHẨM -->
+                <div class="opacity-50 select-combos-card" id="combos-wrapper" style="pointer-events: none; transition: all 0.3s ease;">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 mb-3 card-glassmorphism">
+                        <h5 class="fw-bold text-dark font-theme-title m-0 d-flex align-items-center">
+                            <i class="bi bi-cup-straw text-danger me-2"></i>Bước 2: Chọn bắp nước
+                        </h5>
+                    </div>
+                    
+                    <div class="row g-4">
+                        @foreach (var item in Model)
+                        {
+                            var priceVal = item.Price ?? 0;
+                            <div class="col-md-6 combo-card-col">
+                                <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden concession-card" style="transition: all 0.3s ease;">
+                                    <div class="position-relative overflow-hidden" style="height: 180px;">
+                                        <img src="@(string.IsNullOrEmpty(item.ImageUrl) ? "/images/popcorn-placeholder.jpg" : item.ImageUrl)" 
+                                             class="w-100 h-100 object-fit-cover concession-img" 
+                                             onerror="this.src='https://placehold.co/400x250?text=Combo+B%E1%BA%AFp+N%C6%B0%E1%BB%9Bc'" />
+                                        <span class="badge bg-dark bg-opacity-75 text-white position-absolute bottom-0 start-0 m-3 px-3 py-1.5 rounded-pill fw-bold">
+                                            @priceVal.ToString("N0") đ
+                                        </span>
+                                    </div>
+                                    <div class="card-body p-4 d-flex flex-column justify-content-between">
+                                        <div>
+                                            <h5 class="fw-bold mb-2 text-dark font-theme-title">@item.Name</h5>
+                                            <p class="text-muted small mb-3 text-truncate-3" style="font-size: 0.85rem; line-height: 1.5; height: 58px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
+                                                @item.Description
+                                            </p>
+                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top border-light border-opacity-50">
+                                            <span class="text-muted small fw-bold">Số lượng</span>
+                                            <div class="input-group input-qty-group rounded-pill border overflow-hidden" style="width: 120px; height: 36px;">
+                                                <input type="hidden" name="comboIds" value="@item.ComboId" />
+                                                <button type="button" class="btn btn-qty bg-light border-0 px-2" onclick="changeQty(@item.ComboId, -1)">
+                                                    <i class="bi bi-dash"></i>
+                                                </button>
+                                                <input type="number" 
+                                                       name="quantities" 
+                                                       id="qty-@item.ComboId" 
+                                                       value="0" 
+                                                       min="0" 
+                                                       data-price="@priceVal" 
+                                                       data-name="@item.Name" 
+                                                       class="form-control text-center border-0 fw-bold qty-input bg-transparent" 
+                                                       style="font-size: 0.9rem;" 
+                                                       onchange="updateTotal()" readonly />
+                                                <button type="button" class="btn btn-qty bg-light border-0 px-2" onclick="changeQty(@item.ComboId, 1)">
+                                                    <i class="bi bi-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- TỔNG KẾT ĐƠN HÀNG (BILL SUMMARY) -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4 sticky-top bill-card card-glassmorphism" style="top: 100px; z-index: 10;">
+                    <h5 class="fw-bold text-dark font-theme-title mb-3 d-flex align-items-center">
+                        <i class="bi bi-receipt-cutoff me-2 text-danger"></i>Chi tiết đơn hàng
+                    </h5>
+                    
+                    <div id="bill-items" class="mb-4">
+                        <div class="text-center py-4 text-muted small" id="no-items-text">
+                            <i class="bi bi-cart3 fs-2 d-block mb-2 opacity-50"></i>
+                            Chưa chọn bắp nước nào.
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-3 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted small">Tạm tính</span>
+                            <span class="fw-bold text-dark" id="subtotal-val">0 đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center border-top border-dashed pt-3 mt-3">
+                            <span class="fw-bold">Tổng cộng</span>
+                            <h4 class="fw-extrabold text-danger m-0" id="total-val">0 đ</h4>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100 rounded-pill py-3 fw-bold shadow-lg d-flex align-items-center justify-content-center gap-2 hover-scale btn-pay" style="height: 52px; font-size: 1rem; border: 0; background: linear-gradient(135deg, #e91e63, #c2185b);">
+                        Tiếp Tục <i class="bi bi-arrow-right-short fs-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    /* Styling */
+    .text-gradient-purple {
+        background: linear-gradient(45deg, #e91e63, #8e24aa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .concession-card, .card-glassmorphism {
+        background-color: #ffffff;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .concession-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .concession-card:hover .concession-img {
+        transform: scale(1.06);
+    }
+
+    .concession-img {
+        transition: transform 0.4s ease;
+    }
+
+    .input-qty-group {
+        border-color: #e2e8f0 !important;
+    }
+
+    .btn-qty {
+        color: #475569;
+        transition: background-color 0.2s;
+    }
+    .btn-qty:hover {
+        background-color: #cbd5e1 !important;
+        color: #0f172a;
+    }
+
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .bill-card {
+        background-color: #ffffff;
+    }
+
+    .bill-item-row {
+        animation: slideIn 0.2s ease-out;
+    }
+
+    @@keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .fw-extrabold {
+        font-weight: 800;
+    }
+
+    .hover-scale {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .hover-scale:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(233, 30, 99, 0.3) !important;
+    }
+
+    /* DARK THEME STYLING OVERRIDES (Using body.dark-theme wrapper) */
+    body.dark-theme .concession-card,
+    body.dark-theme .bill-card,
+    body.dark-theme .card-glassmorphism {
+        background: rgba(20, 14, 38, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(12px) !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+    }
+
+    body.dark-theme .font-theme-title {
+        color: #ffffff !important;
+    }
+
+    body.dark-theme .input-qty-group {
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+
+    body.dark-theme .btn-qty {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        color: #e2e8f0;
+    }
+    body.dark-theme .btn-qty:hover {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        color: #ffffff;
+    }
+
+    body.dark-theme .qty-input {
+        color: #ffffff !important;
+    }
+
+    body.dark-theme .bill-item-row {
+        color: #e2e8f0 !important;
+    }
+
+    body.dark-theme .border-top {
+        border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    body.dark-theme #subtotal-val,
+    body.dark-theme .text-dark {
+        color: #ffffff !important;
+    }
+</style>
+
+<script>
+    function enableCombos() {
+        const theaterSelect = document.getElementById('theaterId');
+        const wrapper = document.getElementById('combos-wrapper');
+        
+        if (theaterSelect.value !== '') {
+            wrapper.style.pointerEvents = 'auto';
+            wrapper.classList.remove('opacity-50');
+        } else {
+            wrapper.style.pointerEvents = 'none';
+            wrapper.classList.add('opacity-50');
+            // Reset all qty values to 0
+            const inputs = document.querySelectorAll('.qty-input');
+            inputs.forEach(input => {
+                input.value = 0;
+            });
+            updateTotal();
+        }
+    }
+
+    function changeQty(comboId, val) {
+        const input = document.getElementById('qty-' + comboId);
+        let curr = parseInt(input.value) || 0;
+        curr += val;
+        if (curr < 0) curr = 0;
+        input.value = curr;
+        updateTotal();
+    }
+
+    function updateTotal() {
+        const inputs = document.querySelectorAll('.qty-input');
+        let subtotal = 0;
+        const billContainer = document.getElementById('bill-items');
+        
+        let htmlItems = '';
+        let hasItems = false;
+
+        inputs.forEach(input => {
+            const qty = parseInt(input.value) || 0;
+            const price = parseFloat(input.getAttribute('data-price')) || 0;
+            const name = input.getAttribute('data-name');
+            
+            if (qty > 0) {
+                hasItems = true;
+                const cost = price * qty;
+                subtotal += cost;
+                
+                htmlItems += `
+                    <div class="d-flex justify-content-between align-items-center mb-2 bill-item-row">
+                        <div>
+                            <span class="fw-bold" style="font-size: 0.9rem;">${name}</span>
+                            <span class="text-muted small d-block" style="font-size: 0.75rem;">Số lượng: ${qty}</span>
+                        </div>
+                        <span class="fw-bold">${cost.toLocaleString('vi-VN')} đ</span>
+                    </div>
+                `;
+            }
+        });
+
+        if (hasItems) {
+            billContainer.innerHTML = htmlItems;
+        } else {
+            billContainer.innerHTML = `
+                <div class="text-center py-4 text-muted small" id="no-items-text">
+                    <i class="bi bi-cart3 fs-2 d-block mb-2 opacity-50"></i>
+                    Chưa chọn bắp nước nào.
+                </div>
+            `;
+        }
+
+        document.getElementById('subtotal-val').innerText = subtotal.toLocaleString('vi-VN') + ' đ';
+        document.getElementById('total-val').innerText = subtotal.toLocaleString('vi-VN') + ' đ';
+    }
+
+    document.getElementById('concessionForm').addEventListener('submit', function(e) {
+        const theaterSelect = document.getElementById('theaterId');
+        if (theaterSelect.value === '') {
+            e.preventDefault();
+            alert('Vui lòng chọn chi nhánh rạp nhận bắp nước!');
+            return;
+        }
+
+        const inputs = document.querySelectorAll('.qty-input');
+        let selectedCount = 0;
+        inputs.forEach(input => {
+            selectedCount += parseInt(input.value) || 0;
+        });
+
+        if (selectedCount <= 0) {
+            e.preventDefault();
+            alert('Vui lòng chọn ít nhất 1 sản phẩm bắp nước!');
+        }
+    });
+</script>

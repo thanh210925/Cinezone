@@ -18,11 +18,6 @@ namespace CINEMA.Controllers
         // =================== [1] DANH SÁCH ĐƠN HÀNG ===================
         public async Task<IActionResult> Index(string search, string status)
         {
-            if (HttpContext.Session.GetString("Role") != "Admin")
-            {
-                return RedirectToAction("Login", "Admin");
-            }
-
             var now = DateTime.Now;
 
             // 🔥 1. AUTO HỦY ĐƠN HẾT HẠN

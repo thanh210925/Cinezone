@@ -14,13 +14,15 @@ namespace CINEMA.Controllers
         private readonly CinemaContext _context;
         private readonly RecommendationEngine _recommendationEngine;
         private readonly Services.GeminiService _geminiService;
+        private readonly IEmailService _emailService;
 
-        public HomeController(ILogger<HomeController> logger, CinemaContext context, RecommendationEngine recommendationEngine, Services.GeminiService geminiService)
+        public HomeController(ILogger<HomeController> logger, CinemaContext context, RecommendationEngine recommendationEngine, Services.GeminiService geminiService, IEmailService emailService)
         {
             _logger = logger;
             _context = context;
             _recommendationEngine = recommendationEngine;
             _geminiService = geminiService;
+            _emailService = emailService;
         }
 
         // =====================================================
@@ -1198,6 +1200,266 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
             _context.SaveChanges();
 
             return Json(new { success = true, message = "Đã gửi báo cáo vi phạm thành công." });
+        }
+
+        // =====================================================
+        // 🍿 ĐẶT BẮP NƯỚC LẺ (STANDALONE CONCESSIONS)
+        // =====================================================
+        [HttpGet]
+        public IActionResult Concessions()
+        {
+            var combos = _context.Combos.Where(c => c.IsActive == true).ToList();
+            ViewBag.Theaters = _context.Theaters.Where(t => t.IsActive == true).ToList();
+            return View(combos);
+        }
+
+        [HttpPost]
+        public IActionResult ConcessionsCheckout(List<int> comboIds, List<int> quantities, int theaterId)
+        {
+            if (theaterId <= 0)
+            {
+                TempData["Error"] = "Vui lòng chọn rạp chiếu để nhận bắp nước!";
+                return RedirectToAction("Concessions");
+            }
+
+            var theater = _context.Theaters.FirstOrDefault(t => t.TheaterId == theaterId && t.IsActive == true);
+            if (theater == null)
+            {
+                TempData["Error"] = "Rạp chiếu không tồn tại hoặc đã ngừng hoạt động!";
+                return RedirectToAction("Concessions");
+            }
+
+            if (comboIds == null || quantities == null || comboIds.Count != quantities.Count)
+            {
+                TempData["Error"] = "Dữ liệu gửi lên không hợp lệ!";
+                return RedirectToAction("Concessions");
+            }
+
+            decimal totalAmount = 0m;
+            var checkoutList = new List<dynamic>();
+
+            for (int i = 0; i < comboIds.Count; i++)
+            {
+                int comboId = comboIds[i];
+                int qty = quantities[i];
+
+                if (qty <= 0) continue;
+
+                var combo = _context.Combos.FirstOrDefault(c => c.ComboId == comboId && c.IsActive == true);
+                if (combo != null)
+                {
+                    decimal price = combo.Price ?? 0;
+                    totalAmount += price * qty;
+
+                    checkoutList.Add(new {
+                        ComboId = comboId,
+                        Name = combo.Name,
+                        Quantity = qty,
+                        UnitPrice = price,
+                        ImageUrl = combo.ImageUrl,
+                        Total = price * qty
+                    });
+                }
+            }
+
+            if (!checkoutList.Any())
+            {
+                TempData["Error"] = "Vui lòng chọn ít nhất 1 sản phẩm bắp nước!";
+                return RedirectToAction("Concessions");
+            }
+
+            ViewBag.Theater = theater;
+            ViewBag.Total = totalAmount;
+            ViewBag.CheckoutItems = checkoutList;
+            ViewBag.ComboIds = comboIds;
+            ViewBag.Quantities = quantities;
+
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ProcessConcessionsPayment(
+            string fullName, 
+            string phone, 
+            string email, 
+            string voucherCode, 
+            int theaterId, 
+            List<int> comboIds, 
+            List<int> quantities, 
+            string paymentMethod)
+        {
+            if (string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(phone) || string.IsNullOrWhiteSpace(email))
+            {
+                TempData["Error"] = "Vui lòng điền đầy đủ Họ tên, Số điện thoại và Email!";
+                return RedirectToAction("Concessions");
+            }
+
+            var theater = _context.Theaters.FirstOrDefault(t => t.TheaterId == theaterId);
+            if (theater == null)
+            {
+                TempData["Error"] = "Rạp chiếu không hợp lệ!";
+                return RedirectToAction("Concessions");
+            }
+
+            // 1. Tìm hoặc Tạo tài khoản khách lẻ (Guest account)
+            var customer = _context.Customers.FirstOrDefault(c => c.Email.ToLower() == email.ToLower().Trim());
+            if (customer == null)
+            {
+                customer = new Customer
+                {
+                    FullName = fullName.Trim(),
+                    Email = email.ToLower().Trim(),
+                    Phone = phone.Trim(),
+                    PasswordHash = "GUEST_" + Guid.NewGuid().ToString("N"),
+                    CreatedAt = DateTime.Now,
+                    MembershipLevel = "Đồng",
+                    TotalSpent = 0
+                };
+                _context.Customers.Add(customer);
+                await _context.SaveChangesAsync();
+            }
+
+            // Lưu session cho khách lẻ (cần thiết cho PaymentController xử lý VNPAY)
+            HttpContext.Session.SetInt32("CustomerId", customer.CustomerId);
+            HttpContext.Session.SetString("CustomerName", customer.FullName);
+            HttpContext.Session.SetString("CustomerEmail", customer.Email);
+
+            // 2. Tính toán tiền bắp nước
+            decimal baseTotal = 0m;
+            var orderCombosList = new List<OrderCombo>();
+
+            for (int i = 0; i < comboIds.Count; i++)
+            {
+                int comboId = comboIds[i];
+                int qty = quantities[i];
+
+                if (qty <= 0) continue;
+
+                var combo = _context.Combos.FirstOrDefault(c => c.ComboId == comboId && c.IsActive == true);
+                if (combo != null)
+                {
+                    decimal price = combo.Price ?? 0;
+                    baseTotal += price * qty;
+
+                    orderCombosList.Add(new OrderCombo
+                    {
+                        ComboId = comboId,
+                        Quantity = qty,
+                        UnitPrice = price
+                    });
+                }
+            }
+
+            if (!orderCombosList.Any())
+            {
+                TempData["Error"] = "Vui lòng chọn ít nhất 1 sản phẩm bắp nước!";
+                return RedirectToAction("Concessions");
+            }
+
+            // 3. Áp dụng Voucher (nếu có)
+            decimal discount = 0m;
+            if (!string.IsNullOrEmpty(voucherCode))
+            {
+                var voucher = _context.Vouchers.FirstOrDefault(v => v.Code.ToLower() == voucherCode.ToLower().Trim() && v.IsActive);
+                if (voucher != null)
+                {
+                    if (voucher.StartDate.HasValue && DateTime.Now < voucher.StartDate.Value) { }
+                    else if (voucher.EndDate.HasValue && DateTime.Now > voucher.EndDate.Value) { }
+                    else if (voucher.UsedCount >= voucher.Quantity) { }
+                    else if (baseTotal < voucher.MinOrderValue) { }
+                    else
+                    {
+                        if (voucher.DiscountPercent.HasValue)
+                            discount = baseTotal * (decimal)voucher.DiscountPercent.Value;
+                        else if (voucher.DiscountAmount.HasValue)
+                            discount = voucher.DiscountAmount.Value;
+                    }
+                }
+            }
+
+            decimal totalAmount = baseTotal - discount;
+            if (totalAmount < 0) totalAmount = 0;
+
+            // 4. Tạo Order
+            var order = new Order
+            {
+                CustomerId = customer.CustomerId,
+                CreatedAt = DateTime.Now,
+                Status = paymentMethod == "VNPAY" ? "Chờ thanh toán" : "Đã thanh toán",
+                TotalAmount = totalAmount,
+                VoucherCode = string.IsNullOrEmpty(voucherCode) ? null : voucherCode.Trim(),
+                DiscountAmount = discount,
+                PaymentMethod = paymentMethod + " (Nhận tại: " + theater.Name + ")"
+            };
+
+            _context.Orders.Add(order);
+            await _context.SaveChangesAsync();
+
+            // 5. Lưu OrderCombo
+            foreach (var oc in orderCombosList)
+            {
+                oc.OrderId = order.OrderId;
+                _context.OrderCombos.Add(oc);
+            }
+            await _context.SaveChangesAsync();
+
+            // Cập nhật Voucher đã dùng
+            if (!string.IsNullOrEmpty(voucherCode) && discount > 0)
+            {
+                var voucher = _context.Vouchers.FirstOrDefault(v => v.Code.ToLower() == voucherCode.ToLower().Trim());
+                if (voucher != null)
+                {
+                    voucher.UsedCount++;
+                }
+            }
+
+            // Cập nhật chi tiêu khách hàng
+            customer.TotalSpent += totalAmount;
+            customer.MembershipLevel = customer.CalculateMembershipLevel();
+            await _context.SaveChangesAsync();
+
+            // 6. Xử lý thanh toán
+            if (paymentMethod == "VNPAY")
+            {
+                // Chuyển sang VNPAY của PaymentController
+                return RedirectToAction("CreatePayment", "Payment", new { orderId = order.OrderId });
+            }
+            else
+            {
+                // Thanh toán trực tiếp tại quầy / COD giả lập thành công lập tức
+                string reqBaseUrl = $"{Request.Scheme}://{Request.Host}";
+                try
+                {
+                    await _emailService.SendOrderSuccessEmailAsync(order.OrderId, reqBaseUrl);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send guest concessions success email.");
+                }
+
+                // Thiết lập các thuộc tính ViewBag để hiển thị trang Success.cshtml tương tự vé
+                ViewBag.PaymentStatus = "Đã thanh toán";
+                ViewBag.BookingCode = $"CZ{order.OrderId:D6}";
+                ViewBag.CustomerName = customer.FullName;
+                ViewBag.CustomerPhone = customer.Phone;
+                ViewBag.PaymentMethod = "Thanh toán trực tiếp tại quầy";
+                ViewBag.Total = totalAmount;
+
+                var combosToShow = _context.OrderCombos
+                    .Where(oc => oc.OrderId == order.OrderId)
+                    .Include(oc => oc.Combo)
+                    .Select(oc => new CINEMA.ViewModels.ComboViewModel
+                    {
+                        ComboName = oc.Combo != null ? oc.Combo.Name : "Combo",
+                        Quantity = oc.Quantity ?? 0,
+                        Price = oc.UnitPrice ?? 0
+                    }).ToList();
+
+                ViewBag.Combos = combosToShow;
+                ViewBag.Message = "Hóa đơn đặt bắp nước đã được gửi tới hòm thư của bạn. Vui lòng xuất trình mã đơn hàng tại quầy để nhận bắp nước.";
+
+                return View("~/Views/Payment/Success.cshtml");
+            }
         }
     }
 }

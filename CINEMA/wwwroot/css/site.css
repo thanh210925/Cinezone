@@ -17,7 +17,7 @@ body {
     margin: 0;
     margin-bottom: 60px;
     padding-top: 0; /* Đẩy nội dung xuống dưới navbar */
-    font-family: Arial, sans-serif;
+    font-family: 'Be Vietnam Pro', Arial, sans-serif;
     /* Flexbox layout */
     display: flex;
     flex-direction: column;
@@ -568,4 +568,193 @@ footer .btn {
 .theater-block {
     padding: 10px 0;
     border-bottom: 1px dashed #ccc;
+}
+
+/* =========================================================================
+   7. CHẾ ĐỘ TỐI (DARK MODE) DÀNH CHO KHÁCH HÀNG (HOME, LỊCH CHIẾU,...)
+   ========================================================================= */
+body.dark-theme {
+    background: linear-gradient(-45deg, #0c051c, #0a1128, #030712, #18092d) !important;
+    background-size: 400% 400% !important;
+    animation: gradientMove 15s ease infinite !important;
+    color: #f8fafc !important;
+}
+
+body.dark-theme .navbar {
+    background-color: rgba(12, 7, 24, 0.85) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    backdrop-filter: blur(15px) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.dark-theme .navbar-brand,
+body.dark-theme .navbar .nav-link {
+    color: #f1f5f9 !important;
+}
+
+body.dark-theme .navbar-brand:hover,
+body.dark-theme .navbar .nav-link:hover {
+    color: #dc3545 !important;
+}
+
+body.dark-theme .dropdown-menu {
+    background-color: rgba(18, 12, 35, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(10px) !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.dark-theme .dropdown-item {
+    color: #cbd5e1 !important;
+}
+
+body.dark-theme .dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: #ffffff !important;
+}
+
+body.dark-theme footer {
+    background: #06030c !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+    color: #94a3b8 !important;
+}
+
+body.dark-theme footer a,
+body.dark-theme footer .footer-link {
+    color: #cbd5e1 !important;
+}
+
+body.dark-theme footer a:hover,
+body.dark-theme footer .footer-link:hover {
+    color: #ffc107 !important;
+}
+
+/* Thẻ phim & Thẻ thông tin Glassmorphic (Movie Card & General Card) */
+body.dark-theme .card,
+body.dark-theme .movie-card,
+body.dark-theme .modal-content,
+body.dark-theme #chatbox {
+    background: rgba(20, 14, 38, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(12px) !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+}
+
+body.dark-theme .movie-card .bg-white,
+body.dark-theme .movie-card .card-body {
+    background: transparent !important;
+}
+
+body.dark-theme .movie-card h5 {
+    color: #ffffff !important;
+}
+
+/* Lịch chiếu (Schedule) */
+body.dark-theme .card h2,
+body.dark-theme .card h3,
+body.dark-theme .card h4,
+body.dark-theme .card h5,
+body.dark-theme .card h6 {
+    color: #ffffff !important;
+}
+
+body.dark-theme .theater-block {
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.15) !important;
+}
+
+body.dark-theme .btn-light-grey {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: #cbd5e1 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+body.dark-theme .btn-light-grey:hover {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+}
+
+body.dark-theme .btn-showtime {
+    background-color: rgba(20, 14, 38, 0.8) !important;
+    border: 2px solid #3b82f6 !important;
+    color: #3b82f6 !important;
+}
+
+body.dark-theme .btn-showtime:hover {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa) !important;
+    color: #ffffff !important;
+}
+
+body.dark-theme .form-control,
+body.dark-theme .form-select {
+    background-color: rgba(20, 14, 38, 0.8) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+body.dark-theme .form-control:focus,
+body.dark-theme .form-select:focus {
+    background-color: rgba(30, 22, 58, 0.9) !important;
+    color: #ffffff !important;
+}
+
+body.dark-theme select option {
+    background-color: #0c071d !important;
+    color: #ffffff !important;
+}
+
+/* Ghế ngồi và thanh toán */
+body.dark-theme .seat {
+    border-radius: 4px;
+}
+
+body.dark-theme .seat.available {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+body.dark-theme .seat.selected {
+    background-color: #22c55e !important;
+}
+
+body.dark-theme .seat.occupied {
+    background-color: #ef4444 !important;
+}
+
+/* Modals */
+body.dark-theme .modal-header,
+body.dark-theme .modal-footer {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Ghi đè nền và chữ */
+body.dark-theme .text-dark {
+    color: #cbd5e1 !important;
+}
+
+body.dark-theme .text-muted {
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .bg-white,
+body.dark-theme .bg-light {
+    background: transparent !important;
+}
+
+/* Chatbox */
+body.dark-theme #chat-body {
+    background-color: rgba(12, 7, 24, 0.9) !important;
+}
+
+body.dark-theme .bubble {
+    color: #ffffff !important;
+}
+
+body.dark-theme .message.bot .bubble {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+body.dark-theme .message.user .bubble {
+    background-color: #4f46e5 !important;
 }

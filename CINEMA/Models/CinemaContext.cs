@@ -317,7 +317,7 @@ public partial class CinemaContext : DbContext
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
             entity.Property(e => e.PaidAt).HasColumnType("datetime");
-            entity.Property(e => e.PaymentMethod).HasMaxLength(30);
+            entity.Property(e => e.PaymentMethod).HasMaxLength(100);
             entity.Property(e => e.Status).HasMaxLength(20);
             entity.Property(e => e.TicketTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(12, 2)");
