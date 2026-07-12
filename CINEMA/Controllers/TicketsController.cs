@@ -1,16 +1,25 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CINEMA.Models;
+using CINEMA.Services;
+using Microsoft.Extensions.Configuration;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace CINEMA.Controllers
 {
     public class TicketsController : Controller
     {
         private readonly CinemaContext _context;
+        private readonly IEmailService _emailService;
+        private readonly IConfiguration _config;
 
-        public TicketsController(CinemaContext context)
+        public TicketsController(CinemaContext context, IEmailService emailService, IConfiguration config)
         {
             _context = context;
+            _emailService = emailService;
+            _config = config;
         }
 
         // =================== [AUTO CHECK EXPIRED] ===================
@@ -25,6 +34,8 @@ namespace CINEMA.Controllers
                     && o.ExpiredAt <= now)
                 .ToList();
 
+            string reqBaseUrl = _config["AppSettings:BaseUrl"] ?? (HttpContext != null ? $"{Request.Scheme}://{Request.Host}" : "http://localhost");
+
             foreach (var order in expiredOrders)
             {
                 order.Status = "Đã hủy";
@@ -34,6 +45,16 @@ namespace CINEMA.Controllers
                     t.Status = "Đã hủy";
                     t.PaymentStatus = "Đã hủy";
                 }
+
+                // Gửi email hủy vé bất đồng bộ trong background
+                int cancelOrderId = order.OrderId;
+                Task.Run(async () => {
+                    try {
+                        await _emailService.SendOrderCanceledEmailAsync(cancelOrderId, reqBaseUrl);
+                    } catch (Exception ex) {
+                        Console.WriteLine($"[Email Error] Failed to send order canceled email for order {cancelOrderId}: {ex.Message}");
+                    }
+                });
             }
 
             _context.SaveChanges();

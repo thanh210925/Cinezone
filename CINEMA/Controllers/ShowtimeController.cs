@@ -206,18 +206,88 @@ namespace CINEMA.Controllers
         [HttpPost]
         public IActionResult CreateMultiple(List<Showtime> showtimes)
         {
-            if (showtimes != null && showtimes.Any())
+            if (showtimes == null || !showtimes.Any())
             {
-                _context.Showtimes.AddRange(showtimes);
-                _context.SaveChanges();
+                return RedirectToAction("Index");
             }
+
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var dbMovies = _context.Movies.ToList();
+            var dbAuditoriums = _context.Auditoriums.ToList();
+
+            // 1. Kiểm tra tính hợp lệ của từng dòng và kiểm tra trùng lặp lịch
+            for (int i = 0; i < showtimes.Count; i++)
+            {
+                var s1 = showtimes[i];
+                if (s1.MovieId == null || s1.AuditoriumId == null || s1.StartTime == null || s1.EndTime == null)
+                {
+                    ModelState.AddModelError("", $"Dòng {i + 1}: Vui lòng nhập đầy đủ thông tin.");
+                    continue;
+                }
+
+                if (s1.StartTime >= s1.EndTime)
+                {
+                    ModelState.AddModelError("", $"Dòng {i + 1}: Thời gian bắt đầu phải trước thời gian kết thúc.");
+                    continue;
+                }
+
+                var movie = dbMovies.FirstOrDefault(m => m.MovieId == s1.MovieId);
+                var room = dbAuditoriums.FirstOrDefault(a => a.AuditoriumId == s1.AuditoriumId);
+                string movieTitle = movie?.Title ?? $"Phim #{s1.MovieId}";
+                string roomName = room?.Name ?? $"Phòng #{s1.AuditoriumId}";
+
+                // Kiểm tra trùng lặp trong chính danh sách gửi lên
+                for (int j = i + 1; j < showtimes.Count; j++)
+                {
+                    var s2 = showtimes[j];
+                    if (s1.AuditoriumId == s2.AuditoriumId && s1.StartTime < s2.EndTime && s1.EndTime > s2.StartTime)
+                    {
+                        ModelState.AddModelError("", $"Dòng {i + 1} bị trùng thời gian chiếu với Dòng {j + 1} tại phòng {roomName}.");
+                    }
+                }
+
+                // Kiểm tra trùng lặp với CSDL (Suất chiếu đang hoạt động và giao nhau)
+                var overlap = _context.Showtimes
+                    .Include(s => s.Movie)
+                    .Include(s => s.Auditorium)
+                    .FirstOrDefault(s => s.AuditoriumId == s1.AuditoriumId 
+                                      && s.IsActive == true 
+                                      && s1.StartTime < s.EndTime 
+                                      && s1.EndTime > s.StartTime);
+
+                if (overlap != null)
+                {
+                    ModelState.AddModelError("", $"Dòng {i + 1}: Suất chiếu của phim '{movieTitle}' ({s1.StartTime:dd/MM/yyyy HH:mm} - {s1.EndTime:HH:mm}) bị trùng lịch với phim '{overlap.Movie?.Title}' ({overlap.StartTime:dd/MM/yyyy HH:mm} - {overlap.EndTime:HH:mm}) đang xếp tại phòng {roomName}.");
+                }
+            }
+
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Movies = _context.Movies
+                    .Where(m => m.IsActive == true && m.ReleaseDate <= today)
+                    .OrderBy(m => m.Title)
+                    .ToList();
+                ViewBag.Auditoriums = dbAuditoriums;
+                return View("Create", showtimes);
+            }
+
+            // Gán trạng thái hoạt động và lưu
+            foreach (var showtime in showtimes)
+            {
+                showtime.IsActive = true;
+            }
+
+            _context.Showtimes.AddRange(showtimes);
+            _context.SaveChanges();
+
             LogHelper.Write(
-            _context,
-            _httpContextAccessor,
-            "ADDED_MULTIPLE",
-            "Showtime",
-            showtimes.Count
-        );
+                _context,
+                _httpContextAccessor,
+                "ADDED_MULTIPLE",
+                "Showtime",
+                showtimes.Count
+            );
+
             return RedirectToAction("Index");
         }
     }

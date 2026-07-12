@@ -195,6 +195,14 @@
     <!-- CHỈ HIỂN THỊ FORM ĐẶT VÉ KHI ĐÃ CHỌN SUẤT CHIẾU -->
     @if (showtime != null)
     {
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
         <form id="bookingForm" asp-controller="Payment" asp-action="Index" method="post" onsubmit="return validateForm()">
             <input type="hidden" id="selectedSeats" name="selectedSeats" />
             <input type="hidden" name="MovieId" value="@Model.MovieId" />
@@ -622,14 +630,34 @@
                 });
             });
 
-            document.querySelectorAll(".ticket-input, .combo-input").forEach(el => {
+            document.querySelectorAll(".ticket-input").forEach(el => {
                 el.addEventListener("input", function () {
+                    let adult = parseInt(document.getElementsByName("AdultTickets")[0]?.value) || 0;
+                    let child = parseInt(document.getElementsByName("ChildTickets")[0]?.value) || 0;
+                    let student = parseInt(document.getElementsByName("StudentTickets")[0]?.value) || 0;
+                    let sum = adult + child + student;
+
+                    if (sum > 10) {
+                        alert("Bạn chỉ được đặt tối đa 10 vé cho mỗi đơn hàng!");
+                        let currentVal = parseInt(el.value) || 0;
+                        let otherSum = sum - currentVal;
+                        let allowedVal = 10 - otherSum;
+                        if (allowedVal < 0) allowedVal = 0;
+                        el.value = allowedVal;
+                    }
+
                     document.querySelectorAll(".seat-checkbox").forEach(cb => cb.checked = false);
                     updateSelectedSeats();
                     discount = 0;
                     document.getElementById("voucherCode").value = "";
                     document.getElementById("voucherMessage").innerText = "";
                     document.getElementById("voucherCodeHidden").value = "";
+                    calcTotal();
+                });
+            });
+
+            document.querySelectorAll(".combo-input").forEach(el => {
+                el.addEventListener("input", function () {
                     calcTotal();
                 });
             });

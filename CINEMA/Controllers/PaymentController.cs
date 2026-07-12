@@ -21,13 +21,23 @@ namespace CINEMA.Controllers
         private readonly IConfiguration _config;
         private readonly ILogger<PaymentController> _logger;
         private readonly IVnpayService _vnpayService;
+        private readonly RecommendationEngine _recommendationEngine;
+        private readonly IEmailService _emailService;
 
-        public PaymentController(CinemaContext context, IConfiguration config, ILogger<PaymentController> logger, IVnpayService vnpayService)
+        public PaymentController(
+            CinemaContext context, 
+            IConfiguration config, 
+            ILogger<PaymentController> logger, 
+            IVnpayService vnpayService,
+            RecommendationEngine recommendationEngine,
+            IEmailService emailService)
         {
             _context = context;
             _config = config;
             _logger = logger;
             _vnpayService = vnpayService;
+            _recommendationEngine = recommendationEngine;
+            _emailService = emailService;
         }
 
         // =================== [1] Trang xác nhận thanh toán ===================
@@ -46,23 +56,25 @@ namespace CINEMA.Controllers
             var customerId = HttpContext.Session.GetInt32("CustomerId");
             if (customerId == null)
             {
-                TempData["MovieId"] = MovieId;
-                TempData["ShowtimeId"] = ShowtimeId;
+                HttpContext.Session.SetInt32("Booking_MovieId", MovieId);
+                HttpContext.Session.SetInt32("Booking_ShowtimeId", ShowtimeId);
+                
                 var seatArray = selectedSeats?
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     ?? Array.Empty<string>();
-
-                TempData["Seats"] = JsonSerializer.Serialize(seatArray); TempData["AdultTickets"] = AdultTickets;
-                TempData["ChildTickets"] = ChildTickets;
-                TempData["StudentTickets"] = StudentTickets;
-                TempData["TotalPrice"] = TotalPrice.ToString(CultureInfo.InvariantCulture);
-                TempData["VoucherCode"] = VoucherCode;
-                TempData["DiscountAmount"] = DiscountAmount;
+                HttpContext.Session.SetString("Booking_Seats", JsonSerializer.Serialize(seatArray));
+                
+                HttpContext.Session.SetInt32("Booking_AdultTickets", AdultTickets);
+                HttpContext.Session.SetInt32("Booking_ChildTickets", ChildTickets);
+                HttpContext.Session.SetInt32("Booking_StudentTickets", StudentTickets);
+                HttpContext.Session.SetString("Booking_TotalPrice", TotalPrice.ToString(CultureInfo.InvariantCulture));
+                HttpContext.Session.SetString("Booking_VoucherCode", VoucherCode ?? "");
+                HttpContext.Session.SetString("Booking_DiscountAmount", (DiscountAmount ?? 0).ToString(CultureInfo.InvariantCulture));
+                
                 var comboDict = Request.Form.Keys
                     .Where(k => k.StartsWith("Combo_"))
                     .ToDictionary(k => k, k => Request.Form[k].ToString());
-
-                TempData["Combos"] = JsonSerializer.Serialize(comboDict);
+                HttpContext.Session.SetString("Booking_Combos", JsonSerializer.Serialize(comboDict));
 
                 var returnUrl = Url.Action(nameof(ResumePayment), "Payment");
                 return RedirectToAction("Login", "Customer", new { ReturnUrl = returnUrl });
@@ -74,6 +86,31 @@ namespace CINEMA.Controllers
                 HttpContext.Session.Clear();
                 return RedirectToAction("Login", "Customer", new { message = "Tài khoản không tồn tại." });
             }
+
+            // Luôn lưu vào Session để phục vụ tính năng Nâng cấp Combo (Upselling)
+            HttpContext.Session.SetInt32("Booking_MovieId", MovieId);
+            HttpContext.Session.SetInt32("Booking_ShowtimeId", ShowtimeId);
+            var seatArrayLogged = selectedSeats?.Split(',', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+            HttpContext.Session.SetString("Booking_Seats", JsonSerializer.Serialize(seatArrayLogged));
+            HttpContext.Session.SetInt32("Booking_AdultTickets", AdultTickets);
+            HttpContext.Session.SetInt32("Booking_ChildTickets", ChildTickets);
+            HttpContext.Session.SetInt32("Booking_StudentTickets", StudentTickets);
+            HttpContext.Session.SetString("Booking_TotalPrice", TotalPrice.ToString(CultureInfo.InvariantCulture));
+            HttpContext.Session.SetString("Booking_VoucherCode", VoucherCode ?? "");
+            HttpContext.Session.SetString("Booking_DiscountAmount", (DiscountAmount ?? 0).ToString(CultureInfo.InvariantCulture));
+            
+            var comboDictLogged = Request.Form.Keys
+                .Where(k => k.StartsWith("Combo_"))
+                .ToDictionary(k => k, k => Request.Form[k].ToString());
+            HttpContext.Session.SetString("Booking_Combos", JsonSerializer.Serialize(comboDictLogged));
+
+            int totalTickets = AdultTickets + ChildTickets + StudentTickets;
+            if (totalTickets > 10)
+            {
+                TempData["Error"] = "Bạn chỉ được đặt tối đa 10 vé cho mỗi đơn hàng!";
+                return RedirectToAction("BookTicket", "Home", new { id = MovieId, showtimeId = ShowtimeId });
+            }
+
             var seatList = selectedSeats?
     .Split(',', StringSplitOptions.RemoveEmptyEntries)
     .ToList() ?? new List<string>();
@@ -106,6 +143,21 @@ namespace CINEMA.Controllers
                     }
                 }
             }
+            // 🎟️ TÍNH TOÁN CHIẾT KHẤU HẠNG THÀNH VIÊN
+            decimal originalPrice = TotalPrice;
+            string membershipLevel = customer.MembershipLevel ?? "Đồng";
+            decimal mDiscountPercent = 0m;
+
+            if (membershipLevel == "Kim cương")
+                mDiscountPercent = 0.10m; // 10%
+            else if (membershipLevel == "Bạc")
+                mDiscountPercent = 0.05m; // 5%
+
+            decimal membershipDiscountAmount = originalPrice * mDiscountPercent;
+            decimal priceAfterMembership = originalPrice - membershipDiscountAmount;
+            decimal finalPrice = priceAfterMembership;
+            decimal voucherDiscountAmount = 0m;
+
             // 🎟️ APPLY VOUCHER (HIỂN THỊ)
             if (!string.IsNullOrEmpty(VoucherCode))
             {
@@ -115,14 +167,16 @@ namespace CINEMA.Controllers
                 if (voucher != null)
                 {
                     if (voucher.DiscountPercent != null)
-                        TotalPrice -= TotalPrice * (decimal)voucher.DiscountPercent;
+                        voucherDiscountAmount = priceAfterMembership * (decimal)voucher.DiscountPercent;
+                    else if (voucher.DiscountAmount != null)
+                        voucherDiscountAmount = voucher.DiscountAmount.Value;
 
-                    if (voucher.DiscountAmount != null)
-                        TotalPrice -= voucher.DiscountAmount.Value;
+                    finalPrice -= voucherDiscountAmount;
                 }
             }
 
-            if (TotalPrice < 0) TotalPrice = 0;
+            if (finalPrice < 0) finalPrice = 0;
+
             // 📌 Gửi ViewModel
             var vm = new PaymentViewModel
             {
@@ -145,12 +199,22 @@ namespace CINEMA.Controllers
                 AdultTickets = AdultTickets,
                 ChildTickets = ChildTickets,
                 StudentTickets = StudentTickets,
-                TotalPrice = TotalPrice,
+                TotalPrice = finalPrice,
                 VoucherCode = VoucherCode,
-                Combos = combosVm
+                DiscountAmount = voucherDiscountAmount,
+                Combos = combosVm,
+
+                // Thông tin chi tiết ưu đãi thành viên
+                MembershipLevel = membershipLevel,
+                MembershipDiscountPercent = mDiscountPercent * 100,
+                MembershipDiscountAmount = membershipDiscountAmount,
+                OriginalPrice = originalPrice
             };
 
-            return View(vm);
+            // Tính toán gợi ý nâng cấp combo
+            CalculateUpsellOffers(combosVm);
+
+            return View("Index", vm);
         }
 
         // =================== [2] Xử lý thanh toán ===================
@@ -167,6 +231,15 @@ namespace CINEMA.Controllers
 
             try
             {
+                // Giới hạn chỉ được đặt tối đa 10 vé
+                int totalTickets = model.AdultTickets + model.ChildTickets + model.StudentTickets;
+                if (totalTickets > 10)
+                {
+                    transaction.Rollback();
+                    TempData["Error"] = "Bạn chỉ được đặt tối đa 10 vé cho mỗi đơn hàng!";
+                    return RedirectToAction("BookTicket", "Home", new { id = model.MovieId, showtimeId = model.ShowtimeId });
+                }
+
                 // 1. Kiểm tra xem có ghế nào đã được đặt hoặc giữ chỗ (chưa hết hạn) hay chưa
                 var now = DateTime.Now;
                 var bookedSeatsForShowtime = _context.Tickets
@@ -198,14 +271,29 @@ namespace CINEMA.Controllers
                     return NotFound("Không tìm thấy suất chiếu.");
                 }
 
+                decimal basePrice = showtime.BasePrice ?? 0m;
+                decimal ticketOnlyOriginal = model.AdultTickets * basePrice
+                                           + model.ChildTickets * (basePrice * 0.7m)
+                                           + model.StudentTickets * (basePrice * 0.8m);
+
                 decimal comboTotal = model.Combos?.Sum(c => c.Price * c.Quantity) ?? 0;
-                decimal ticketOnlyTotal = model.TotalPrice - comboTotal;
+                decimal originalPrice = ticketOnlyOriginal + comboTotal;
 
+                // TÍNH TOÁN CHIẾT KHẤU HẠNG THÀNH VIÊN TRÊN SERVER (BẢO MẬT)
+                var customer = _context.Customers.Find(customerId.Value);
+                string membershipLevel = customer?.MembershipLevel ?? "Đồng";
+                decimal mDiscountPercent = 0m;
 
-                decimal pricePerTicket = model.SelectedSeats.Count > 0
-                    ? ticketOnlyTotal / model.SelectedSeats.Count
-                    : 0;
-                decimal total = model.TotalPrice;
+                if (membershipLevel == "Kim cương")
+                    mDiscountPercent = 0.10m;
+                else if (membershipLevel == "Bạc")
+                    mDiscountPercent = 0.05m;
+
+                decimal membershipDiscount = originalPrice * mDiscountPercent;
+                decimal priceAfterMembership = originalPrice - membershipDiscount;
+
+                decimal total = priceAfterMembership;
+                decimal voucherDiscount = 0m;
 
                 // 🎟️ CHECK VOUCHER DB
                 if (!string.IsNullOrEmpty(model.VoucherCode))
@@ -225,17 +313,22 @@ namespace CINEMA.Controllers
                             return Content("Chưa đủ điều kiện");
 
                         if (voucher.DiscountPercent != null)
-                            total -= total * (decimal)voucher.DiscountPercent;
+                            voucherDiscount = total * (decimal)voucher.DiscountPercent;
+                        else if (voucher.DiscountAmount != null)
+                            voucherDiscount = voucher.DiscountAmount.Value;
 
-                        if (voucher.DiscountAmount != null)
-                            total -= voucher.DiscountAmount.Value;
-
-                        //voucher.UsedCount++;
-                        //_context.SaveChanges();
+                        total -= voucherDiscount;
                     }
                 }
 
                 if (total < 0) total = 0;
+
+                decimal ticketOnlyTotal = total - comboTotal;
+                if (ticketOnlyTotal < 0) ticketOnlyTotal = 0;
+
+                decimal pricePerTicket = model.SelectedSeats.Count > 0
+                    ? ticketOnlyTotal / model.SelectedSeats.Count
+                    : 0;
 
                 // 🔹 Tạo đơn hàng
                 var order = new Order
@@ -249,11 +342,11 @@ namespace CINEMA.Controllers
 
                     VoucherCode = model.VoucherCode,
 
-                    DiscountAmount = model.TotalPrice - total,
+                    DiscountAmount = membershipDiscount + voucherDiscount,
 
                     Status = (method == "Chuyển khoản")
-         ? "Đang chờ thanh toán"
-         : "Chờ thanh toán",
+                        ? "Đang chờ thanh toán"
+                        : "Chờ thanh toán",
 
                     PaymentMethod = method
                 };
@@ -323,6 +416,17 @@ namespace CINEMA.Controllers
 
                 if (method == "Tại quầy")
                 {
+                    // Gửi email nhắc nhở thanh toán tại quầy
+                    string reqBaseUrl = _config["AppSettings:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}";
+                    int currentOrderId = order.OrderId;
+                    Task.Run(async () => {
+                        try {
+                            await _emailService.SendPaymentReminderEmailAsync(currentOrderId, reqBaseUrl);
+                        } catch (Exception ex) {
+                            _logger.LogError(ex, "Failed to send payment reminder email for order {OrderId}", currentOrderId);
+                        }
+                    });
+
                     ViewBag.PaymentMethod = "Tại quầy";
                     ViewBag.PaymentStatus = "Chờ thanh toán";
                     ViewBag.BookingCode = $"CZ{order.OrderId:D6}";
@@ -333,6 +437,17 @@ namespace CINEMA.Controllers
                 // 🔹 Thanh toán VNPay
                 if (method == "Chuyển khoản")
                 {
+                    // Gửi email nhắc nhở thanh toán VNPAY (chứa link thanh toán lại nếu xảy ra sự cố)
+                    string reqBaseUrl = _config["AppSettings:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}";
+                    int currentOrderId = order.OrderId;
+                    Task.Run(async () => {
+                        try {
+                            await _emailService.SendPaymentReminderEmailAsync(currentOrderId, reqBaseUrl);
+                        } catch (Exception ex) {
+                            _logger.LogError(ex, "Failed to send payment reminder email for order {OrderId}", currentOrderId);
+                        }
+                    });
+
                     var pay = new VnpayLibrary();
                     string baseUrl = _config["Vnpay:BaseUrl"];
                     string returnUrl = _config["Vnpay:ReturnUrl"];
@@ -460,6 +575,17 @@ namespace CINEMA.Controllers
 
                 _context.SaveChanges();
 
+                // Gửi email đặt vé thành công
+                string reqBaseUrl = _config["AppSettings:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}";
+                int successOrderId = order.OrderId;
+                Task.Run(async () => {
+                    try {
+                        await _emailService.SendOrderSuccessEmailAsync(successOrderId, reqBaseUrl);
+                    } catch (Exception ex) {
+                        _logger.LogError(ex, "Failed to send order success email for order {OrderId}", successOrderId);
+                    }
+                });
+
                 ViewBag.Total = order.TotalAmount;
                 ViewBag.PaymentStatus = "Đã thanh toán";
                 ViewBag.BookingCode = $"CZ{order.OrderId:D6}";
@@ -485,19 +611,18 @@ namespace CINEMA.Controllers
             if (customer == null)
                 return RedirectToAction("Login", "Customer");
 
-            if (TempData["MovieId"] == null)
+            if (HttpContext.Session.GetInt32("Booking_MovieId") == null)
                 return RedirectToAction("Index", "Home");
 
-            int movieId = (int)TempData["MovieId"];
-            int showtimeId = (int)TempData["ShowtimeId"];
-            var seats = JsonSerializer.Deserialize<string[]>((string)TempData["Seats"]);
-            int adult = (int)TempData["AdultTickets"];
-            int child = (int)TempData["ChildTickets"];
-            int student = (int)TempData["StudentTickets"];
-            decimal total = decimal.Parse((string)TempData["TotalPrice"], CultureInfo.InvariantCulture);
-            string voucherCode = (string)TempData["VoucherCode"];
-            decimal? discountAmount = TempData["DiscountAmount"] as decimal?;
-            TempData.Keep();
+            int movieId = HttpContext.Session.GetInt32("Booking_MovieId").Value;
+            int showtimeId = HttpContext.Session.GetInt32("Booking_ShowtimeId").Value;
+            var seats = JsonSerializer.Deserialize<string[]>(HttpContext.Session.GetString("Booking_Seats"));
+            int adult = HttpContext.Session.GetInt32("Booking_AdultTickets").Value;
+            int child = HttpContext.Session.GetInt32("Booking_ChildTickets").Value;
+            int student = HttpContext.Session.GetInt32("Booking_StudentTickets").Value;
+            decimal total = decimal.Parse(HttpContext.Session.GetString("Booking_TotalPrice"), CultureInfo.InvariantCulture);
+            string voucherCode = HttpContext.Session.GetString("Booking_VoucherCode");
+            decimal? discountAmount = decimal.Parse(HttpContext.Session.GetString("Booking_DiscountAmount") ?? "0", CultureInfo.InvariantCulture);
 
             // 📌 Load Theater
             var showtime = _context.Showtimes
@@ -508,11 +633,12 @@ namespace CINEMA.Controllers
 
             if (showtime == null) return NotFound();
 
-            // 📌 Lấy combo từ TempData
+            // 📌 Lấy combo từ Session
             var combos = new List<ComboViewModel>();
-            if (TempData["Combos"] != null)
+            var combosJson = HttpContext.Session.GetString("Booking_Combos");
+            if (!string.IsNullOrEmpty(combosJson))
             {
-                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>((string)TempData["Combos"]);
+                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(combosJson);
                 foreach (var kv in dict)
                 {
                     if (int.TryParse(kv.Key.Replace("Combo_", ""), out int comboId) &&
@@ -533,6 +659,40 @@ namespace CINEMA.Controllers
                     }
                 }
             }
+
+            // 🎟️ TÍNH TOÁN CHIẾT KHẤU HẠNG THÀNH VIÊN KHI KHÔI PHỤC (RẤT QUAN TRỌNG)
+            decimal originalPrice = total; // Giá trị gốc trước khi chiết khấu
+            string membershipLevel = customer.MembershipLevel ?? "Đồng";
+            decimal mDiscountPercent = 0m;
+
+            if (membershipLevel == "Kim cương")
+                mDiscountPercent = 0.10m; // 10%
+            else if (membershipLevel == "Bạc")
+                mDiscountPercent = 0.05m; // 5%
+
+            decimal membershipDiscountAmount = originalPrice * mDiscountPercent;
+            decimal priceAfterMembership = originalPrice - membershipDiscountAmount;
+            decimal finalPrice = priceAfterMembership;
+            decimal voucherDiscountAmount = 0m;
+
+            // 🎟️ APPLY VOUCHER KHI KHÔI PHỤC
+            if (!string.IsNullOrEmpty(voucherCode))
+            {
+                var voucher = _context.Vouchers
+                    .FirstOrDefault(v => v.Code == voucherCode && v.IsActive);
+
+                if (voucher != null)
+                {
+                    if (voucher.DiscountPercent != null)
+                        voucherDiscountAmount = priceAfterMembership * (decimal)voucher.DiscountPercent;
+                    else if (voucher.DiscountAmount != null)
+                        voucherDiscountAmount = voucher.DiscountAmount.Value;
+
+                    finalPrice -= voucherDiscountAmount;
+                }
+            }
+
+            if (finalPrice < 0) finalPrice = 0;
 
             // 📌 Build ViewModel
             var vm = new PaymentViewModel
@@ -556,13 +716,22 @@ namespace CINEMA.Controllers
                 AdultTickets = adult,
                 ChildTickets = child,
                 StudentTickets = student,
-                TotalPrice = total,
+                TotalPrice = finalPrice,
                 VoucherCode = voucherCode,
-                DiscountAmount = discountAmount,
-                Combos = combos
+                DiscountAmount = voucherDiscountAmount,
+                Combos = combos,
+
+                // Gửi thông tin ưu đãi thành viên
+                MembershipLevel = membershipLevel,
+                MembershipDiscountPercent = mDiscountPercent * 100,
+                MembershipDiscountAmount = membershipDiscountAmount,
+                OriginalPrice = originalPrice
             };
 
-             return View("Index", vm);
+            // Tính toán gợi ý nâng cấp combo khi khôi phục
+            CalculateUpsellOffers(combos);
+
+            return View("Index", vm);
         }
 
         // =================== [5] API Thanh toán lại ===================
@@ -598,6 +767,18 @@ namespace CINEMA.Controllers
                     t.PaymentStatus = "Đã hủy";
                 }
                 _context.SaveChanges();
+
+                // Gửi email hủy vé
+                string reqBaseUrl = _config["AppSettings:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}";
+                int cancelOrderId = order.OrderId;
+                Task.Run(async () => {
+                    try {
+                        await _emailService.SendOrderCanceledEmailAsync(cancelOrderId, reqBaseUrl);
+                    } catch (Exception ex) {
+                        _logger.LogError(ex, "Failed to send order canceled email for order {OrderId}", cancelOrderId);
+                    }
+                });
+
                 TempData["ErrorMessage"] = "Đơn hàng đã hết hạn thanh toán!";
                 return RedirectToAction("MyTickets", "Tickets");
             }
@@ -641,6 +822,142 @@ namespace CINEMA.Controllers
                 TempData["SuccessMessage"] = "Đơn hàng của bạn sẽ được thanh toán tại quầy.";
                 return RedirectToAction("MyTickets", "Tickets");
             }
+        }
+
+        // =================== [6] API Nâng cấp Combo (Upselling) ===================
+        [HttpGet]
+        public IActionResult UpgradeCombo(int currentId, int upgradedId)
+        {
+            var combosJson = HttpContext.Session.GetString("Booking_Combos");
+            if (!string.IsNullOrEmpty(combosJson))
+            {
+                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(combosJson);
+                string currentKey = $"Combo_{currentId}";
+                string upgradedKey = $"Combo_{upgradedId}";
+
+                if (dict.ContainsKey(currentKey))
+                {
+                    string qty = dict[currentKey];
+                    dict.Remove(currentKey);
+                    dict[upgradedKey] = qty;
+
+                    HttpContext.Session.SetString("Booking_Combos", JsonSerializer.Serialize(dict));
+                }
+            }
+            return RedirectToAction(nameof(ResumePayment));
+        }
+
+        private void CalculateUpsellOffers(List<ComboViewModel> currentCombos)
+        {
+            var upsellOffers = new List<UpsellOffer>();
+
+            // Tự động seed các Combo lớn nếu chưa có để đảm bảo có hàng hóa nâng cấp (Upselling)
+            if (!_context.Combos.Any(c => c.Name.Contains("Lớn") || c.Name.Contains("Double") || c.Name.Contains("Solo") || c.Name.Contains("Party")))
+            {
+                try
+                {
+                    var seedCombos = new List<Combo>
+                    {
+                        new Combo { Name = "Combo Solo (Lớn)", Price = 55000, Description = "1 Bắp Caramel 64OZ + 1 Nước ngọt Lớn 32OZ", IsActive = true, ImageUrl = "/images/combo_solo.jpg" },
+                        new Combo { Name = "Combo Double (Lớn)", Price = 85000, Description = "1 Bắp Caramel 64OZ + 2 Nước ngọt Lớn 32OZ", IsActive = true, ImageUrl = "/images/combo_double.jpg" },
+                        new Combo { Name = "Combo Party (Lớn)", Price = 115000, Description = "2 Bắp Caramel 64OZ + 2 Nước ngọt Lớn 32OZ + 1 Snack", IsActive = true, ImageUrl = "/images/combo_party.jpg" }
+                    };
+                    _context.Combos.AddRange(seedCombos);
+                    _context.SaveChanges();
+                }
+                catch {}
+            }
+
+            var allActiveCombos = _context.Combos.Where(c => c.IsActive == true).ToList();
+            var rules = _recommendationEngine.GetRules();
+
+            // Tập hợp tất cả ComboId đang có trong giỏ hàng (để loại trừ hoàn toàn)
+            var cartComboIds = currentCombos.Select(c => c.ComboId).ToHashSet();
+
+            foreach (var cartCombo in currentCombos)
+            {
+                Combo bestUpgrade = null;
+                double maxConf = -1;
+
+                // Danh sách combo hợp lệ để nâng cấp: không phải combo đang có trong giỏ, và giá cao hơn
+                var upgradeCandidates = allActiveCombos
+                    .Where(c => !cartComboIds.Contains(c.ComboId) && c.Price > cartCombo.Price)
+                    .ToList();
+
+                // ╔══════════════════════════════════════════════════════════════╗
+                // ║  [APRIORI] Upselling Combo tại bước Thanh toán             ║
+                // ║  Luật khai phá: Combo_A → Combo_B (giá cao hơn)            ║
+                // ║  Nguồn: Lịch sử đơn hàng chứa nhiều Combo cùng lúc         ║
+                // ╚══════════════════════════════════════════════════════════════╝
+                foreach (var rule in rules)
+                {
+                    // [APRIORI] Kiểm tra: LHS của luật có chứa combo đang chọn không?
+                    // Ví dụ luật: {Combo_1 (Bắp nhỏ)} → {Combo_3 (Solo Lớn)}  Confidence=58%
+                    if (rule.LHS.Contains($"Combo_{cartCombo.ComboId}"))
+                    {
+                        foreach (var rhsItem in rule.RHS)
+                        {
+                            if (rhsItem.StartsWith("Combo_") && int.TryParse(rhsItem.Substring(6), out int upId))
+                            {
+                                // RHS là Combo đắt hơn & chưa có trong giỏ → đây là gợi ý nâng cấp
+                                var cand = upgradeCandidates.FirstOrDefault(c => c.ComboId == upId);
+                                if (cand != null && rule.Confidence > maxConf)
+                                {
+                                    bestUpgrade = cand;
+                                    maxConf = rule.Confidence; // Chọn luật có Confidence cao nhất
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 2. Fallback: Tìm combo lớn hơn cùng danh mục (bắp/nước) không có trong giỏ
+                if (bestUpgrade == null)
+                {
+                    // Xác định từ khóa danh mục dựa theo tên combo hiện tại
+                    bool isBap = cartCombo.ComboName.Contains("Bắp") || cartCombo.ComboName.Contains("Bap") 
+                                 || cartCombo.ComboName.Contains("Caramel") || cartCombo.ComboName.Contains("Popcorn");
+                    bool isNuoc = !isBap; // Nước/Coke/Fanta/Sprite...
+
+                    if (isBap)
+                    {
+                        // Tìm combo bắp lớn hơn hoặc combo kết hợp bắp nước
+                        bestUpgrade = upgradeCandidates
+                            .Where(c => c.Price <= cartCombo.Price + 80000
+                                     && (c.Name.Contains("Bắp") || c.Name.Contains("Solo") 
+                                         || c.Name.Contains("Double") || c.Name.Contains("Party") 
+                                         || c.Name.Contains("Combo") || c.Name.Contains("Lớn")))
+                            .OrderBy(c => c.Price)
+                            .FirstOrDefault();
+                    }
+                    else
+                    {
+                        // Tìm combo nước lớn hơn hoặc combo kết hợp
+                        bestUpgrade = upgradeCandidates
+                            .Where(c => c.Price <= cartCombo.Price + 60000
+                                     && (c.Name.Contains("Combo") || c.Name.Contains("Double") 
+                                         || c.Name.Contains("Lớn") || c.Name.Contains("Party")
+                                         || c.Name.Contains("Solo")))
+                            .OrderBy(c => c.Price)
+                            .FirstOrDefault();
+                    }
+                }
+
+                // 3. Fallback cuối: Chỉ đề xuất nếu tìm được upgrade hợp lý (không đề xuất bất kỳ giá cao hơn nào)
+                if (bestUpgrade != null)
+                {
+                    upsellOffers.Add(new UpsellOffer
+                    {
+                        CurrentComboId = cartCombo.ComboId,
+                        CurrentComboName = cartCombo.ComboName,
+                        UpgradedComboId = bestUpgrade.ComboId,
+                        UpgradedComboName = bestUpgrade.Name,
+                        PriceDiff = (bestUpgrade.Price ?? 0) - cartCombo.Price,
+                        NewPrice = bestUpgrade.Price ?? 0
+                    });
+                }
+            }
+            ViewBag.UpsellOffers = upsellOffers;
         }
     }
 }

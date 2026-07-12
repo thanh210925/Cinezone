@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using CINEMA.Models;
 
@@ -52,5 +52,21 @@ namespace CINEMA.ViewModels
         public decimal TicketTotal { get; set; }
         public string VoucherCode { get; set; }
         public decimal? DiscountAmount { get; set; }
+
+        // 👉 Thông tin ưu đãi hạng thành viên
+        public string MembershipLevel { get; set; }
+        public decimal MembershipDiscountPercent { get; set; }
+        public decimal MembershipDiscountAmount { get; set; }
+        public decimal OriginalPrice { get; set; }
+    }
+
+    public class UpsellOffer
+    {
+        public int CurrentComboId { get; set; }
+        public string CurrentComboName { get; set; }
+        public int UpgradedComboId { get; set; }
+        public string UpgradedComboName { get; set; }
+        public decimal PriceDiff { get; set; }
+        public decimal NewPrice { get; set; }
     }
 }

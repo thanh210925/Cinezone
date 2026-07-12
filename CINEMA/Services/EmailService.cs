@@ -7,16 +7,20 @@ using System.Net;
 using System.Net.Mail;
 using System.Text;
 using System.Threading.Tasks;
+using System.Globalization;
+using Microsoft.EntityFrameworkCore;
 
 namespace CINEMA.Services
 {
     public class EmailService : IEmailService
     {
         private readonly EmailSettings _emailSettings;
+        private readonly CinemaContext _context;
 
-        public EmailService(IOptions<EmailSettings> emailSettings)
+        public EmailService(IOptions<EmailSettings> emailSettings, CinemaContext context)
         {
             _emailSettings = emailSettings.Value;
+            _context = context;
         }
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
@@ -196,6 +200,314 @@ namespace CINEMA.Services
             }
 
             await Task.WhenAll(sendTasks);
+        }
+
+        public async Task SendOrderSuccessEmailAsync(int orderId, string baseUrl)
+        {
+            var order = await _context.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Seat)
+                .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Showtime)
+                        .ThenInclude(s => s.Movie)
+                .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Showtime)
+                        .ThenInclude(s => s.Auditorium)
+                            .ThenInclude(a => a.Theater)
+                .Include(o => o.OrderCombos)
+                    .ThenInclude(oc => oc.Combo)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+            if (order == null || order.Customer == null || string.IsNullOrEmpty(order.Customer.Email))
+                return;
+
+            string subject = $"🎟️ CINEZONE: Đặt Vé Thành Công - Mã Đơn #{order.OrderId:D6}";
+            var firstTicket = order.Tickets.FirstOrDefault();
+            string movieTitle = firstTicket?.Showtime?.Movie?.Title ?? "Phim chiếu rạp";
+            string showtimeText = firstTicket?.Showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa rõ";
+            string roomName = firstTicket?.Showtime?.Auditorium?.Name ?? "Chưa rõ";
+            string theaterName = firstTicket?.Showtime?.Auditorium?.Theater?.Name ?? "CineZone Cinema";
+            string seatsText = string.Join(", ", order.Tickets.Select(t => t.Seat?.RowLabel + t.Seat?.SeatNumber));
+
+            var sb = new StringBuilder();
+            sb.Append($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <style>
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #0b0f19; color: #f8fafc; margin: 0; padding: 0; }}
+        .wrapper {{ max-width: 600px; margin: 20px auto; background-color: #0f172a; border-radius: 16px; overflow: hidden; border: 1px solid #1e293b; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }}
+        .header {{ background: linear-gradient(135deg, #1e1b4b 0%, #311042 100%); padding: 25px; text-align: center; border-bottom: 2px solid #f2b705; }}
+        .header h1 {{ margin: 0; color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: 2px; }}
+        .content {{ padding: 30px 25px; }}
+        .greeting {{ font-size: 18px; color: #f2b705; font-weight: bold; margin-bottom: 15px; }}
+        .intro {{ color: #94a3b8; font-size: 14px; line-height: 1.6; margin-bottom: 25px; }}
+        .ticket-info {{ background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; margin-bottom: 25px; }}
+        .info-row {{ display: flex; justify-content: space-between; border-bottom: 1px dashed #334155; padding: 10px 0; font-size: 14px; }}
+        .info-row:last-child {{ border-bottom: none; }}
+        .label {{ color: #94a3b8; font-weight: 500; }}
+        .value {{ color: #ffffff; font-weight: bold; text-align: right; }}
+        .total-amount {{ color: #f2b705 !important; font-size: 18px; }}
+        .footer {{ background-color: #0b0f19; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #1e293b; }}
+        .footer a {{ color: #f2b705; text-decoration: none; }}
+    </style>
+</head>
+<body>
+    <div class='wrapper'>
+        <div class='header'>
+            <h1>CINEZONE</h1>
+        </div>
+        <div class='content'>
+            <div class='greeting'>Xin chào {order.Customer.FullName},</div>
+            <div class='intro'>Chúc mừng bạn đã đặt vé xem phim thành công tại CineZone! Dưới đây là thông tin chi tiết đơn hàng của bạn. Vui lòng xuất trình mã đơn hàng này tại quầy để nhận vé.</div>
+            
+            <div class='ticket-info'>
+                <div class='info-row'>
+                    <span class='label'>Mã đơn hàng</span>
+                    <span class='value' style='color:#f2b705;'>CZ{order.OrderId:D6}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Rạp chiếu</span>
+                    <span class='value'>{theaterName}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Phim</span>
+                    <span class='value'>{movieTitle}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Suất chiếu</span>
+                    <span class='value'>{showtimeText}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Phòng chiếu</span>
+                    <span class='value'>{roomName}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Số ghế đã chọn</span>
+                    <span class='value'>{seatsText}</span>
+                </div>
+");
+
+            if (order.OrderCombos != null && order.OrderCombos.Any())
+            {
+                string comboText = string.Join("<br/>", order.OrderCombos.Select(oc => $"{oc.Combo?.Name} (x{oc.Quantity})"));
+                sb.Append($@"
+                <div class='info-row'>
+                    <span class='label'>Bắp nước đã chọn</span>
+                    <span class='value'>{comboText}</span>
+                </div>
+");
+            }
+
+            sb.Append($@"
+                <div class='info-row' style='border-top: 1px solid #475569; padding-top: 15px;'>
+                    <span class='label' style='font-size:16px;'>Tổng thanh toán</span>
+                    <span class='value total-amount'>{order.TotalAmount?.ToString("C0", new CultureInfo("vi-VN"))}</span>
+                </div>
+            </div>
+            
+            <div style='text-align: center; margin-top: 30px;'>
+                <p style='font-size: 13px; color: #94a3b8; margin-bottom: 5px;'>Chúc bạn có những trải nghiệm xem phim tuyệt vời tại CineZone!</p>
+            </div>
+        </div>
+        <div class='footer'>
+            <p>Hệ thống rạp chiếu phim hiện đại CineZone</p>
+            <p>Hotline: 1900 1234 | Email: support@cinezone.com</p>
+        </div>
+    </div>
+</body>
+</html>
+");
+            await SendEmailAsync(order.Customer.Email, subject, sb.ToString());
+        }
+
+        public async Task SendPaymentReminderEmailAsync(int orderId, string baseUrl)
+        {
+            var order = await _context.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Seat)
+                .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Showtime)
+                        .ThenInclude(s => s.Movie)
+                .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Showtime)
+                        .ThenInclude(s => s.Auditorium)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+            if (order == null || order.Customer == null || string.IsNullOrEmpty(order.Customer.Email))
+                return;
+
+            string subject = $"⏳ CINEZONE: Đơn Hàng Đang Chờ Thanh Toán - Mã Đơn #{order.OrderId:D6}";
+            var firstTicket = order.Tickets.FirstOrDefault();
+            string movieTitle = firstTicket?.Showtime?.Movie?.Title ?? "Phim chiếu rạp";
+            string showtimeText = firstTicket?.Showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa rõ";
+            string roomName = firstTicket?.Showtime?.Auditorium?.Name ?? "Chưa rõ";
+            string seatsText = string.Join(", ", order.Tickets.Select(t => t.Seat?.RowLabel + t.Seat?.SeatNumber));
+            string expiredText = order.ExpiredAt?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa rõ";
+            string paymentUrl = $"{baseUrl.TrimEnd('/')}/Payment/CreatePayment?orderId={order.OrderId}";
+
+            var sb = new StringBuilder();
+            sb.Append($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <style>
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #0b0f19; color: #f8fafc; margin: 0; padding: 0; }}
+        .wrapper {{ max-width: 600px; margin: 20px auto; background-color: #0f172a; border-radius: 16px; overflow: hidden; border: 1px solid #1e293b; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }}
+        .header {{ background: linear-gradient(135deg, #1e1b4b 0%, #311042 100%); padding: 25px; text-align: center; border-bottom: 2px solid #ffc107; }}
+        .header h1 {{ margin: 0; color: #ffffff; font-size: 26px; font-weight: 800; }}
+        .content {{ padding: 30px 25px; }}
+        .greeting {{ font-size: 18px; color: #ffc107; font-weight: bold; margin-bottom: 15px; }}
+        .intro {{ color: #94a3b8; font-size: 14px; line-height: 1.6; margin-bottom: 25px; }}
+        .ticket-info {{ background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; margin-bottom: 25px; }}
+        .info-row {{ display: flex; justify-content: space-between; border-bottom: 1px dashed #334155; padding: 10px 0; font-size: 14px; }}
+        .info-row:last-child {{ border-bottom: none; }}
+        .label {{ color: #94a3b8; font-weight: 500; }}
+        .value {{ color: #ffffff; font-weight: bold; text-align: right; }}
+        .cta-box {{ text-align: center; margin: 30px 0; }}
+        .cta-btn {{ display: inline-block; background: linear-gradient(90deg, #ff9800 0%, #ff5722 100%); color: #ffffff !important; font-weight: bold; font-size: 16px; padding: 12px 35px; text-decoration: none; border-radius: 30px; box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4); }}
+        .footer {{ background-color: #0b0f19; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #1e293b; }}
+        .footer a {{ color: #ffc107; text-decoration: none; }}
+    </style>
+</head>
+<body>
+    <div class='wrapper'>
+        <div class='header'>
+            <h1>CINEZONE</h1>
+        </div>
+        <div class='content'>
+            <div class='greeting'>Xin chào {order.Customer.FullName},</div>
+            <div class='intro'>Bạn đang có đơn đặt vé phim ở trạng thái **Chờ thanh toán**. Vui lòng hoàn tất thanh toán trước thời gian giữ ghế để tránh vé bị hủy tự động.</div>
+            
+            <div class='ticket-info'>
+                <div class='info-row'>
+                    <span class='label'>Mã đơn hàng</span>
+                    <span class='value' style='color:#ffc107;'>CZ{order.OrderId:D6}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Phim</span>
+                    <span class='value'>{movieTitle}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Suất chiếu</span>
+                    <span class='value'>{showtimeText}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Số ghế</span>
+                    <span class='value'>{seatsText}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Thời hạn giữ ghế</span>
+                    <span class='value' style='color:#ef4444;'>{expiredText}</span>
+                </div>
+                <div class='info-row' style='border-top: 1px solid #475569; padding-top: 15px;'>
+                    <span class='label' style='font-size:16px;'>Tổng thanh toán</span>
+                    <span class='value' style='color:#ffc107; font-size:18px;'>{order.TotalAmount?.ToString("C0", new CultureInfo("vi-VN"))}</span>
+                </div>
+            </div>
+            
+            <div class='cta-box'>
+                <a href='{paymentUrl}' class='cta-btn'>THANH TOÁN NGAY</a>
+            </div>
+        </div>
+        <div class='footer'>
+            <p>Hệ thống rạp chiếu phim hiện đại CineZone</p>
+            <p>Hotline: 1900 1234 | Email: support@cinezone.com</p>
+        </div>
+    </div>
+</body>
+</html>
+");
+            await SendEmailAsync(order.Customer.Email, subject, sb.ToString());
+        }
+
+        public async Task SendOrderCanceledEmailAsync(int orderId, string baseUrl)
+        {
+            var order = await _context.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Seat)
+                .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Showtime)
+                        .ThenInclude(s => s.Movie)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+            if (order == null || order.Customer == null || string.IsNullOrEmpty(order.Customer.Email))
+                return;
+
+            string subject = $"❌ CINEZONE: Đơn Hàng Đã Bị Hủy - Mã Đơn #{order.OrderId:D6}";
+            var firstTicket = order.Tickets.FirstOrDefault();
+            string movieTitle = firstTicket?.Showtime?.Movie?.Title ?? "Phim chiếu rạp";
+            string showtimeText = firstTicket?.Showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa rõ";
+            string seatsText = string.Join(", ", order.Tickets.Select(t => t.Seat?.RowLabel + t.Seat?.SeatNumber));
+
+            var sb = new StringBuilder();
+            sb.Append($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <style>
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #0b0f19; color: #f8fafc; margin: 0; padding: 0; }}
+        .wrapper {{ max-width: 600px; margin: 20px auto; background-color: #0f172a; border-radius: 16px; overflow: hidden; border: 1px solid #1e293b; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }}
+        .header {{ background: linear-gradient(135deg, #1e1b4b 0%, #200f19 100%); padding: 25px; text-align: center; border-bottom: 2px solid #ef4444; }}
+        .header h1 {{ margin: 0; color: #ffffff; font-size: 26px; font-weight: 800; }}
+        .content {{ padding: 30px 25px; }}
+        .greeting {{ font-size: 18px; color: #ef4444; font-weight: bold; margin-bottom: 15px; }}
+        .intro {{ color: #94a3b8; font-size: 14px; line-height: 1.6; margin-bottom: 25px; }}
+        .ticket-info {{ background: #1e293b; border-radius: 12px; padding: 20px; border: 1px solid #334155; margin-bottom: 25px; }}
+        .info-row {{ display: flex; justify-content: space-between; border-bottom: 1px dashed #334155; padding: 10px 0; font-size: 14px; }}
+        .info-row:last-child {{ border-bottom: none; }}
+        .label {{ color: #94a3b8; font-weight: 500; }}
+        .value {{ color: #ffffff; font-weight: bold; text-align: right; }}
+        .footer {{ background-color: #0b0f19; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #1e293b; }}
+    </style>
+</head>
+<body>
+    <div class='wrapper'>
+        <div class='header'>
+            <h1>CINEZONE</h1>
+        </div>
+        <div class='content'>
+            <div class='greeting'>Xin chào {order.Customer.FullName},</div>
+            <div class='intro'>Đơn đặt vé phim mã số **CZ{order.OrderId:D6}** của bạn đã bị hủy do quá thời gian thanh toán quy định (15 phút) hoặc bạn đã yêu cầu hủy. Các ghế đặt chỗ hiện đã được mở lại cho khách hàng khác.</div>
+            
+            <div class='ticket-info'>
+                <div class='info-row'>
+                    <span class='label'>Mã đơn hàng</span>
+                    <span class='value' style='color:#ef4444;'>CZ{order.OrderId:D6}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Phim</span>
+                    <span class='value'>{movieTitle}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Suất chiếu</span>
+                    <span class='value'>{showtimeText}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Số ghế</span>
+                    <span class='value'>{seatsText}</span>
+                </div>
+                <div class='info-row'>
+                    <span class='label'>Trạng thái</span>
+                    <span class='value' style='color:#ef4444;'>ĐÃ HỦY VÉ</span>
+                </div>
+            </div>
+            <p style='font-size: 13px; color: #94a3b8; text-align: center;'>Nếu đây là sự nhầm lẫn, vui lòng quay lại trang chủ CineZone để đặt vé mới. Rất mong được phục vụ bạn lần sau!</p>
+        </div>
+        <div class='footer'>
+            <p>Hệ thống rạp chiếu phim hiện đại CineZone</p>
+        </div>
+    </div>
+</body>
+</html>
+");
+            await SendEmailAsync(order.Customer.Email, subject, sb.ToString());
         }
     }
 }

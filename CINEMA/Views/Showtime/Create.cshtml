@@ -1,4 +1,4 @@
-﻿@model List<CINEMA.Models.Showtime>
+@model List<CINEMA.Models.Showtime>
 @{
     ViewData["Title"] = "Thêm nhiều lịch chiếu";
     Layout = "_AdminLayout";
@@ -29,7 +29,15 @@
             </h4>
         </div>
 
-        <div class="card-body p-0">
+        <div class="card-body p-4 pt-0">
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4 mt-3">
+                    <h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i> Lỗi tạo lịch chiếu:</h6>
+                    <div asp-validation-summary="All" class="small ms-3"></div>
+                </div>
+            }
+
             <form asp-action="CreateMultiple" method="post">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle custom-table mb-0" id="showtimeTable">
@@ -38,7 +46,7 @@
                                 <th class="ps-4" width="20%">Phim</th>
                                 <th width="15%">Phòng chiếu</th>
                                 <th width="15%">Giờ bắt đầu</th>
-                                <th width="15%">Giờ kết thúc</th>
+                                <th width="15%">Giờ kết thúc <small class="text-muted d-block" style="font-size:0.7rem; font-weight:normal;">(Gồm 15p dọn phòng)</small></th>
                                 <th width="12%">Giá vé (₫)</th>
                                 <th width="10%">Ngôn ngữ</th>
                                 <th class="text-center" width="8%">Bật</th>
@@ -208,10 +216,10 @@
             let startTimeVal = startTimeInput.value;
 
             if (durationStr && startTimeVal) {
-                let durationMinutes = parseInt(durationStr);
+                let durationMinutes = parseInt(durationStr) + 15; // 15 phút dọn dẹp phòng chiếu
                 let startTime = new Date(startTimeVal);
 
-                // Cộng số phút thời lượng phim vào giờ bắt đầu
+                // Cộng số phút thời lượng phim + dọn dẹp vào giờ bắt đầu
                 startTime.setMinutes(startTime.getMinutes() + durationMinutes);
 
                 // Format lại thành định dạng "YYYY-MM-DDThh:mm" cho thẻ input datetime-local

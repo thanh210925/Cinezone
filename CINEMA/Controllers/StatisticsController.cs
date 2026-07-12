@@ -771,7 +771,7 @@ namespace CINEMA.Controllers
 
             var genres = _context.Genres.ToDictionary(g => $"Genre_{g.GenreId}", g => g.Name);
             var movies = _context.Movies.ToDictionary(m => $"Movie_{m.MovieId}", m => m.Title);
-            var combos = _context.Combos.ToDictionary(c => $"Combo_{c.ComboId}", c => c.Name);
+            var combos = _context.Combos.ToDictionary(c => $"Combo_{c.ComboId}", c => c);
 
             ViewBag.Genres = genres;
             ViewBag.Movies = movies;

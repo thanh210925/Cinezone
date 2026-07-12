@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -37,9 +37,16 @@ namespace CINEMA.Controllers
 
             return View(combo);
         }
-        public IActionResult Create()
+        public IActionResult Create(string name = null, string description = null, decimal? price = null)
         {
-            return View();
+            var combo = new Combo
+            {
+                Name = name,
+                Description = description,
+                Price = price,
+                IsActive = true
+            };
+            return View(combo);
         }
         [HttpPost]
         [ValidateAntiForgeryToken]

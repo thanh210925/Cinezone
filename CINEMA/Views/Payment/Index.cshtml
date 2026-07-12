@@ -471,6 +471,68 @@
                         </div>
                     }
 
+                    @* 💡 Gợi ý Nâng cấp Combo (Upselling) *@
+                    @{
+                        var upsells = ViewBag.UpsellOffers as List<CINEMA.ViewModels.UpsellOffer>;
+                    }
+                    @if (upsells != null && upsells.Any())
+                    {
+                        <div class="card border-warning bg-warning bg-opacity-10 rounded-4 mb-4 p-3" style="border-style: dashed !important; border-width: 1.5px !important; border-color: #ffc107 !important; background-color: #fffdf5 !important;">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-gift-fill text-warning me-2 fs-5"></i>
+                                <span class="fw-bold text-dark" style="font-size:0.9rem;">Ưu đãi nâng cấp Combo từ AI</span>
+                            </div>
+                            <p class="text-muted small mb-3">Nâng cấp combo của bạn lên cỡ lớn hơn hoặc gói ưu đãi để thưởng thức trọn vẹn hơn với mức giá tiết kiệm:</p>
+                            <div class="d-flex flex-column gap-2">
+                                @foreach (var offer in upsells)
+                                {
+                                    <div class="d-flex justify-content-between align-items-center bg-white p-2 rounded-3 border">
+                                        <div class="small text-dark">
+                                            <span class="text-muted text-decoration-line-through">@offer.CurrentComboName</span>
+                                            <i class="bi bi-arrow-right mx-1 text-secondary"></i>
+                                            <span class="fw-bold">@offer.UpgradedComboName</span>
+                                        </div>
+                                        <a href="@Url.Action("UpgradeCombo", "Payment", new { currentId = offer.CurrentComboId, upgradedId = offer.UpgradedComboId })" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold py-1" style="font-size:0.75rem; color: #000;">
+                                            +@offer.PriceDiff.ToString("N0") ₫
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <p class="section-label"><i class="bi bi-receipt"></i> Chi tiết thanh toán</p>
+                    <div class="checkout-list-group mb-4">
+                        @if (Model.MembershipDiscountAmount > 0 || Model.DiscountAmount > 0)
+                        {
+                            <div class="checkout-list-item">
+                                <span>Tổng tiền gốc</span>
+                                <span class="text-muted text-decoration-line-through">@Model.OriginalPrice.ToString("N0") ₫</span>
+                            </div>
+                            @if (Model.MembershipDiscountAmount > 0)
+                            {
+                                <div class="checkout-list-item">
+                                    <span class="text-success fw-semibold"><i class="bi bi-gem me-1"></i> Ưu đãi hạng @Model.MembershipLevel</span>
+                                    <span class="text-success fw-bold">-@Model.MembershipDiscountAmount.ToString("N0") ₫ (-@Model.MembershipDiscountPercent.ToString("0")%)</span>
+                                </div>
+                            }
+                            @if (Model.DiscountAmount > 0)
+                            {
+                                <div class="checkout-list-item">
+                                    <span class="text-danger fw-semibold"><i class="bi bi-tag-fill me-1"></i> Giảm giá Voucher (@Model.VoucherCode)</span>
+                                    <span class="text-danger fw-bold">-@Model.DiscountAmount?.ToString("N0") ₫</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="checkout-list-item">
+                                <span>Tổng thanh toán</span>
+                                <span class="fw-bold text-dark">@Model.OriginalPrice.ToString("N0") ₫</span>
+                            </div>
+                        }
+                    </div>
+
                     <div class="ticket-perforation"></div>
 
                     <div class="total-price-box">

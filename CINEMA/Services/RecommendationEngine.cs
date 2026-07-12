@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using CINEMA.Models;
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.Http;
 
 namespace CINEMA.Services
 {
@@ -31,6 +32,7 @@ namespace CINEMA.Services
     {
         private readonly CinemaContext _context;
         private readonly GeminiService _geminiService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         
         private static List<AssociationRule> _cachedRules = new List<AssociationRule>();
         private static DateTime _lastRun = DateTime.MinValue;
@@ -41,10 +43,11 @@ namespace CINEMA.Services
             new Dictionary<string, (List<int> MovieIds, DateTime CachedAt)>();
         private static readonly object _cacheLock = new object();
 
-        public RecommendationEngine(CinemaContext context, GeminiService geminiService)
+        public RecommendationEngine(CinemaContext context, GeminiService geminiService, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _geminiService = geminiService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public List<AssociationRule> GetRules(bool forceRefresh = false)
@@ -367,13 +370,17 @@ namespace CINEMA.Services
                 }
             }
 
-            // 2. Lấy luật từ Apriori
+            // ╔══════════════════════════════════════════════════════════╗
+            // ║  [APRIORI] Gợi ý Combo theo Phim & Thể loại             ║
+            // ║  Luật khai phá: Movie_X / Genre_Y → Combo_Z             ║
+            // ║  Nguồn: Lịch sử đơn hàng (Orders + OrderCombos)        ║
+            // ╚══════════════════════════════════════════════════════════╝
             var rules = GetRules();
             
             // Tìm các Combo được gợi ý bởi luật Apriori cho Movie hoặc Genres này
             var aprioriComboScores = new Dictionary<int, double>(); // ComboId -> Max Confidence/Score
 
-            // Các khóa cần tìm ở LHS
+            // Các khóa cần tìm ở LHS: phim hiện tại + tất cả thể loại của phim
             var searchKeys = new List<string> { $"Movie_{movieId}" };
             foreach (var gid in genreIds)
             {
@@ -382,11 +389,13 @@ namespace CINEMA.Services
 
             foreach (var rule in rules)
             {
-                // Nếu LHS của luật khớp với phim hoặc bất kỳ thể loại nào của phim này
+                // [APRIORI] Khớp LHS của luật với phim/thể loại đang chiếu
+                // Ví dụ luật: {Movie_5, Genre_Action} → {Combo_2}  Confidence=72%
                 if (rule.LHS.Any(item => searchKeys.Contains(item)))
                 {
                     foreach (var rhsItem in rule.RHS)
                     {
+                        // RHS là Combo → ghi nhận combo được gợi ý, giữ confidence cao nhất
                         if (rhsItem.StartsWith("Combo_") && int.TryParse(rhsItem.Substring(6), out int comboId))
                         {
                             if (!aprioriComboScores.ContainsKey(comboId) || aprioriComboScores[comboId] < rule.Confidence)
@@ -473,6 +482,29 @@ namespace CINEMA.Services
                     }
                 }
             }
+            else
+            {
+                // Khách hàng chưa đăng nhập -> Lấy theo SessionId
+                string sessionId = _httpContextAccessor.HttpContext?.Session?.Id;
+                if (!string.IsNullOrEmpty(sessionId))
+                {
+                    var sessionViews = _context.UserActivityLogs
+                        .Where(l => l.SessionId == sessionId && l.MovieId != null)
+                        .Select(l => new { l.MovieId, l.Movie.Title })
+                        .ToList();
+                    foreach (var v in sessionViews)
+                    {
+                        if (v.MovieId.HasValue)
+                        {
+                            viewedMovieIds.Add(v.MovieId.Value);
+                            if (!watchedMovieTitles.Contains(v.Title))
+                            {
+                                watchedMovieTitles.Add(v.Title);
+                            }
+                        }
+                    }
+                }
+            }
 
             // 2. Lấy danh sách thể loại yêu thích (Top 3) dựa trên lịch sử hoạt động
             var targetGenreIds = new List<int>();
@@ -521,6 +553,53 @@ namespace CINEMA.Services
                     .Take(3)
                     .ToList();
             }
+            else
+            {
+                // Khách hàng chưa đăng nhập -> Lấy theo SessionId
+                string sessionId = _httpContextAccessor.HttpContext?.Session?.Id;
+                if (!string.IsNullOrEmpty(sessionId))
+                {
+                    var sessionActivityLogs = _context.UserActivityLogs
+                        .Where(l => l.SessionId == sessionId)
+                        .Include(l => l.Movie)
+                            .ThenInclude(m => m.Genres)
+                        .Include(l => l.Genre)
+                        .ToList();
+
+                    foreach (var log in sessionActivityLogs)
+                    {
+                        if (log.MovieId.HasValue)
+                        {
+                            userInteractedItems.Add($"Movie_{log.MovieId.Value}");
+                            if (log.Movie.Genres != null)
+                            {
+                                foreach (var g in log.Movie.Genres)
+                                {
+                                    userInteractedItems.Add($"Genre_{g.GenreId}");
+                                }
+                            }
+                        }
+                        if (log.GenreId.HasValue)
+                        {
+                            userInteractedItems.Add($"Genre_{log.GenreId.Value}");
+                        }
+                    }
+
+                    // Top 3 thể loại của session này
+                    targetGenreIds = sessionActivityLogs
+                        .SelectMany(l => {
+                            var list = new List<Genre>();
+                            if (l.Genre != null) list.Add(l.Genre);
+                            if (l.Movie?.Genres != null) list.AddRange(l.Movie.Genres);
+                            return list;
+                        })
+                        .GroupBy(g => g.GenreId)
+                        .OrderByDescending(group => group.Count())
+                        .Select(group => group.Key)
+                        .Take(3)
+                        .ToList();
+                }
+            }
 
             // Nếu không đăng nhập hoặc chưa có lịch sử, lấy xu hướng chung
             if (!targetGenreIds.Any())
@@ -565,9 +644,11 @@ namespace CINEMA.Services
             // HỘP ĐEN (BLACK BOX - GEMINI AI) GỢI Ý
             // -----------------------------------------------------------------
             var geminiRecommendedIds = new List<int>();
-            if (customerId.HasValue && watchedMovieTitles.Any() && allMovies.Any())
+            if (watchedMovieTitles.Any() && allMovies.Any())
             {
-                string cacheKey = $"user_{customerId.Value}";
+                string cacheKey = customerId.HasValue 
+                    ? $"user_{customerId.Value}" 
+                    : $"session_{_httpContextAccessor.HttpContext?.Session?.Id ?? "guest"}";
                 bool gotCache = false;
 
                 lock (_cacheLock)
@@ -620,7 +701,11 @@ Chỉ trả về JSON, không giải thích gì thêm.";
                 }
             }
 
-            // 3. Khớp luật Apriori cho phim (Hộp trắng)
+            // ╔══════════════════════════════════════════════════════════════════╗
+            // ║  [APRIORI] Gợi ý Phim cá nhân hóa (Hộp trắng)               ║
+            // ║  Luật khai phá: Movie_A / Genre_X → Movie_B                  ║
+            // ║  Nguồn: Lịch sử xem phim + hoạt động của người dùng          ║
+            // ╚══════════════════════════════════════════════════════════════════╝
             var rules = GetRules();
             var aprioriMovieScores = new Dictionary<int, double>(); // MovieId -> Max Confidence
 
@@ -628,11 +713,13 @@ Chỉ trả về JSON, không giải thích gì thêm.";
             {
                 foreach (var rule in rules)
                 {
-                    // Nếu LHS chứa các phần tử khách hàng đã tương tác (như xem phim hay quan tâm thể loại đó)
+                    // [APRIORI] Khớp LHS luật với những gì người dùng đã tương tác
+                    // Ví dụ luật: {Movie_3, Genre_Horror} → {Movie_7}  Confidence=65%
                     if (rule.LHS.Any(item => userInteractedItems.Contains(item)))
                     {
                         foreach (var rhsItem in rule.RHS)
                         {
+                            // RHS là Movie → ghi nhận phim nên gợi ý, giữ confidence cao nhất
                             if (rhsItem.StartsWith("Movie_") && int.TryParse(rhsItem.Substring(6), out int mId))
                             {
                                 if (!aprioriMovieScores.ContainsKey(mId) || aprioriMovieScores[mId] < rule.Confidence)
@@ -651,7 +738,8 @@ Chỉ trả về JSON, không giải thích gì thêm.";
             {
                 double score = 0;
 
-                // A. Điểm từ luật Apriori (Hộp trắng)
+                // A. [APRIORI] Điểm từ luật Apriori (Hộp trắng) — ưu tiên cao nhất
+                //    Điểm = Confidence × 10  (ví dụ: confidence=0.72 → +7.2 điểm)
                 if (aprioriMovieScores.TryGetValue(movie.MovieId, out double aprioriConf))
                 {
                     score += aprioriConf * 10.0;
