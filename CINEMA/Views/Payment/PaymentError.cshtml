@@ -91,7 +91,12 @@
         <!-- DYNAMIC ERROR MSG -->
         <div class="alert alert-danger border-0 rounded-4 p-4 text-start mb-4">
             <h6 class="fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Chi tiết lỗi:</h6>
-            @if (!string.IsNullOrEmpty(ViewBag.Message))
+            @if (TempData["Error"] != null)
+            {
+                <!-- Hiển thị lỗi từ Stripe -->
+                <p class="mb-0 text-dark small" style="line-height: 1.4;">@TempData["Error"]</p>
+            }
+            else if (!string.IsNullOrEmpty(ViewBag.Message))
             {
                 <p class="mb-0 text-dark small" style="line-height: 1.4;">@ViewBag.Message</p>
             }

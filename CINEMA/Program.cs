@@ -3,6 +3,7 @@ using CINEMA.Models;
 using CINEMA.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using Stripe;
 
 namespace CINEMA
 {
@@ -43,8 +44,8 @@ namespace CINEMA
             })
             // GG
             ;
-
-
+            //Stripe
+            builder.Services.AddScoped<IPaymentService, PaymentService>();
             var app = builder.Build();
 
             // 🟢 Tự động thêm cột EndDate vào bảng Movies nếu chưa có
@@ -75,6 +76,14 @@ namespace CINEMA
             {
                 app.UseExceptionHandler("/Home/Error");
                 app.UseHsts();
+            }
+            //Stripe
+            // Đọc Secret Key: ưu tiên configuration, sau đó fallback sang biến môi trường
+            var stripeSecret = builder.Configuration["Stripe:SecretKey"]
+                               ?? Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
+            if (!string.IsNullOrWhiteSpace(stripeSecret))
+            {
+                StripeConfiguration.ApiKey = stripeSecret;
             }
 
             app.UseHttpsRedirection();

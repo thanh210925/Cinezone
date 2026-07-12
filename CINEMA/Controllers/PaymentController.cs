@@ -12,6 +12,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.Json;
+//NEWWWWWW
+using Stripe.Checkout;
 
 namespace CINEMA.Controllers
 {
@@ -23,6 +25,8 @@ namespace CINEMA.Controllers
         private readonly IVnpayService _vnpayService;
         private readonly RecommendationEngine _recommendationEngine;
         private readonly IEmailService _emailService;
+        //NEWWWWWWW
+        private readonly IPaymentService _stripeService;
 
         public PaymentController(
             CinemaContext context, 
@@ -30,7 +34,8 @@ namespace CINEMA.Controllers
             ILogger<PaymentController> logger, 
             IVnpayService vnpayService,
             RecommendationEngine recommendationEngine,
-            IEmailService emailService)
+            IEmailService emailService,
+            IPaymentService stripeService)//NEWWWWWWW
         {
             _context = context;
             _config = config;
@@ -38,6 +43,7 @@ namespace CINEMA.Controllers
             _vnpayService = vnpayService;
             _recommendationEngine = recommendationEngine;
             _emailService = emailService;
+            _stripeService = stripeService;//NEWWWWWWW
         }
 
         // =================== [1] Trang xác nhận thanh toán ===================
@@ -219,7 +225,7 @@ namespace CINEMA.Controllers
 
         // =================== [2] Xử lý thanh toán ===================
         [HttpPost]
-        public IActionResult Confirm(PaymentViewModel model, string method)
+        public async Task<IActionResult> Confirm(PaymentViewModel model, string method)
         {
             _logger.LogInformation("[Confirm] Phương thức: {Method}", method);
             var customerId = HttpContext.Session.GetInt32("CustomerId");
@@ -432,6 +438,43 @@ namespace CINEMA.Controllers
                     ViewBag.BookingCode = $"CZ{order.OrderId:D6}";
                     ViewBag.Total = model.TotalPrice;
                     return View("Success", model);
+                }
+                //NEWWWWWWWWWWWWW
+                if (method == "Stripe" || method == "Online")
+                {
+                    // Gửi email nhắc nhở thanh toán 
+                    string reqBaseUrl = _config["AppSettings:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}";
+                    int currentOrderId = order.OrderId;
+                    Task.Run(async () => {
+                        try
+                        {
+                            await _emailService.SendPaymentReminderEmailAsync(currentOrderId, reqBaseUrl);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to send payment reminder email for order {OrderId}", currentOrderId);
+                        }
+                    });
+
+                    // Khởi tạo URL cho Stripe
+                    var baseSuccessUrl = Url.Action("StripeSuccess", "Payment", new { orderId = order.OrderId }, Request.Scheme) ?? string.Empty;
+                    var successUrl = baseSuccessUrl + (baseSuccessUrl.Contains("?") ? "&session_id={CHECKOUT_SESSION_ID}" : "?session_id={CHECKOUT_SESSION_ID}");
+
+                    // URL hủy: quay lại trang lỗi hoặc trang thanh toán
+                    var cancelUrl = Url.Action("PaymentError", "Payment", new { orderId = order.OrderId }, Request.Scheme) ?? string.Empty;
+
+                    // Gọi IPaymentService
+                    var payment = await _stripeService.CreatePaymentAsync(order, successUrl, cancelUrl);
+
+                    if (payment.Success && !string.IsNullOrEmpty(payment.PaymentUrl))
+                    {
+                        // Chuyển hướng trình duyệt của khách sang trang thanh toán Stripe
+                        return Redirect(payment.PaymentUrl);
+                    }
+
+                    // Fallback nếu Stripe lỗi
+                    TempData["Error"] = payment.Message;
+                    return View("PaymentError");
                 }
 
                 // 🔹 Thanh toán VNPay
@@ -958,6 +1001,110 @@ namespace CINEMA.Controllers
                 }
             }
             ViewBag.UpsellOffers = upsellOffers;
+        }
+
+
+        //NEWWWWWWW
+        // =================== [7] Thanh toán Stripe Callback ===================
+        [HttpGet]
+        public async Task<IActionResult> StripeSuccess(int orderId, string session_id)
+        {
+            if (string.IsNullOrEmpty(session_id)) return View("PaymentError");
+
+            var order = await _context.Orders
+                .Include(o => o.Tickets)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+            if (order == null) return NotFound();
+
+            try
+            {
+                var sessionService = new SessionService();
+                var session = await sessionService.GetAsync(session_id);
+
+                if (session != null && session.PaymentStatus == "paid")
+                {
+                    // Cập nhật trạng thái vé và đơn hàng
+                    order.Status = "Đã thanh toán";
+                    order.PaymentMethod = "Stripe";
+                    foreach (var t in order.Tickets)
+                    {
+                        t.PaymentStatus = "Đã thanh toán";
+                        t.Status = "Đã thanh toán";
+                    }
+
+                    // 💎 UPDATE MEMBERSHIP (Copy từ logic VNPay của bạn)
+                    var customer = await _context.Customers.FindAsync(order.CustomerId);
+                    if (customer != null)
+                    {
+                        customer.TotalSpent += order.TotalAmount ?? 0;
+                        customer.MembershipLevel = customer.CalculateMembershipLevel();
+                    }
+
+                    if (!string.IsNullOrEmpty(order.VoucherCode))
+                    {
+                        var voucher = await _context.Vouchers.FirstOrDefaultAsync(v => v.Code == order.VoucherCode);
+                        if (voucher != null) voucher.UsedCount++;
+                    }
+
+                    // 📌 GHI LOG ĐẶT VÉ THÀNH CÔNG VÀO DATABASE
+                    var firstTicket = order.Tickets.FirstOrDefault();
+                    int? logMovieId = null;
+                    if (firstTicket != null)
+                    {
+                        var showtimeObj = await _context.Showtimes.FindAsync(firstTicket.ShowtimeId);
+                        logMovieId = showtimeObj?.MovieId;
+                    }
+
+                    var successLog = new UserActivityLog
+                    {
+                        CustomerId = order.CustomerId,
+                        SessionId = HttpContext.Session.Id,
+                        ActivityType = "BOOK_TICKET",
+                        MovieId = logMovieId,
+                        Metadata = $"Thanh toán thành công qua Stripe cho đơn hàng #{order.OrderId}.",
+                        CreatedAt = DateTime.Now
+                    };
+                    _context.UserActivityLogs.Add(successLog);
+
+                    await _context.SaveChangesAsync();
+
+                    // Gửi email đặt vé thành công
+                    string reqBaseUrl = _config["AppSettings:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}";
+                    int successOrderId = order.OrderId;
+
+                    try
+                    {
+                        // Đợi gửi mail xong rồi mới chạy tiếp
+                        await _emailService.SendOrderSuccessEmailAsync(successOrderId, reqBaseUrl);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send order success email for order {OrderId}", successOrderId);
+                    }
+
+                    ViewBag.Total = order.TotalAmount;
+                    ViewBag.PaymentStatus = "Đã thanh toán";
+                    ViewBag.BookingCode = $"CZ{order.OrderId:D6}";
+                    return View("Success");
+                }
+                else
+                {
+                    // Trường hợp người dùng hủy hoặc lỗi từ Stripe
+                    order.Status = "Thanh toán thất bại";
+                    foreach (var t in order.Tickets)
+                    {
+                        t.Status = "Thanh toán thất bại";
+                    }
+                    await _context.SaveChangesAsync();
+                    return View("PaymentError");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi xác minh phiên thanh toán Stripe cho đơn {OrderId}", orderId);
+                return View("PaymentError");
+            }
         }
     }
 }
