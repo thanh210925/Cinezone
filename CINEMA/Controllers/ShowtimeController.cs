@@ -1,4 +1,5 @@
 using CINEMA.Models;
+using CINEMA.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CINEMA.Helpers;
@@ -20,6 +21,20 @@ namespace CINEMA.Controllers
         // ========================
         public IActionResult Index()
         {
+            // Tự động chuyển các suất đã qua giờ chiếu thành đã ngưng
+            var now = DateTime.Now;
+            var expiredShowtimes = _context.Showtimes
+                .Where(s => s.IsActive == true && s.StartTime < now)
+                .ToList();
+            if (expiredShowtimes.Any())
+            {
+                foreach (var s in expiredShowtimes)
+                {
+                    s.IsActive = false;
+                }
+                _context.SaveChanges();
+            }
+
             var showtimes = _context.Showtimes
                 .Include(s => s.Movie)
                 .Include(s => s.Auditorium)
@@ -44,7 +59,7 @@ namespace CINEMA.Controllers
                          && m.ReleaseDate <= today)
                 .OrderBy(m => m.Title)
                 .ToList();
-            ViewBag.Auditoriums = _context.Auditoriums.ToList();
+            ViewBag.Auditoriums = _context.Auditoriums.Include(a => a.Theater).ToList();
             return View();
         }
 
@@ -81,7 +96,7 @@ namespace CINEMA.Controllers
       .Where(m => m.IsActive == true)
       .OrderBy(m => m.Title)
       .ToList();
-            ViewBag.Auditoriums = _context.Auditoriums.ToList();
+            ViewBag.Auditoriums = _context.Auditoriums.Include(a => a.Theater).ToList();
 
             return View(showtime);
         }
@@ -213,7 +228,7 @@ namespace CINEMA.Controllers
 
             var today = DateOnly.FromDateTime(DateTime.Today);
             var dbMovies = _context.Movies.ToList();
-            var dbAuditoriums = _context.Auditoriums.ToList();
+            var dbAuditoriums = _context.Auditoriums.Include(a => a.Theater).ToList();
 
             // 1. Kiểm tra tính hợp lệ của từng dòng và kiểm tra trùng lặp lịch
             for (int i = 0; i < showtimes.Count; i++)
@@ -234,7 +249,7 @@ namespace CINEMA.Controllers
                 var movie = dbMovies.FirstOrDefault(m => m.MovieId == s1.MovieId);
                 var room = dbAuditoriums.FirstOrDefault(a => a.AuditoriumId == s1.AuditoriumId);
                 string movieTitle = movie?.Title ?? $"Phim #{s1.MovieId}";
-                string roomName = room?.Name ?? $"Phòng #{s1.AuditoriumId}";
+                string roomName = room != null ? $"{room.Name} ({room.Theater?.Name})" : $"Phòng #{s1.AuditoriumId}";
 
                 // Kiểm tra trùng lặp trong chính danh sách gửi lên
                 for (int j = i + 1; j < showtimes.Count; j++)
@@ -289,6 +304,144 @@ namespace CINEMA.Controllers
             );
 
             return RedirectToAction("Index");
+        }
+
+        // ========================
+        // 🔥 LƯU HÀNG LOẠT QUA AJAX JSON (Wizard V3)
+        // ========================
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public IActionResult CreateMultipleJson([FromBody] List<ShowtimeJsonDto> items)
+        {
+            var errors = new List<string>();
+            var toSave = new List<Showtime>();
+
+            if (items == null || items.Count == 0)
+                return Json(new { success = false, errors = new[] { "Danh sach rong!" } });
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                var item = items[i];
+
+                // Parse datetime từ ISO string
+                if (!DateTime.TryParse(item.StartTime, System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.RoundtripKind, out var startDt))
+                {
+                    errors.Add($"Suat {i + 1}: Gio bat dau khong hop le ({item.StartTime})");
+                    continue;
+                }
+                if (!DateTime.TryParse(item.EndTime, System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.RoundtripKind, out var endDt))
+                {
+                    errors.Add($"Suat {i + 1}: Gio ket thuc khong hop le ({item.EndTime})");
+                    continue;
+                }
+                if (startDt >= endDt)
+                {
+                    errors.Add($"Suat {i + 1}: Gio ket thuc phai sau gio bat dau ({item.StartTime} → {item.EndTime})");
+                    continue;
+                }
+
+                // Kiểm tra trùng với DB
+                var overlap = _context.Showtimes.FirstOrDefault(s =>
+                    s.AuditoriumId == item.AuditoriumId && s.IsActive == true
+                    && startDt < s.EndTime && endDt > s.StartTime);
+                if (overlap != null)
+                {
+                    var movie = _context.Movies.Find(overlap.MovieId);
+                    errors.Add($"Suat {i + 1} ({startDt:HH:mm}–{endDt:HH:mm}): Trung lich voi '{movie?.Title}' ({overlap.StartTime:HH:mm}–{overlap.EndTime:HH:mm})");
+                    continue;
+                }
+
+                // Kiểm tra trùng trong chính batch
+                bool dupInBatch = toSave.Any(s =>
+                    s.AuditoriumId == item.AuditoriumId && startDt < s.EndTime && endDt > s.StartTime);
+                if (dupInBatch) { errors.Add($"Suat {i + 1}: Trung gio voi mot suat khac trong danh sach."); continue; }
+
+                toSave.Add(new Showtime
+                {
+                    MovieId = item.MovieId,
+                    AuditoriumId = item.AuditoriumId,
+                    StartTime = startDt,
+                    EndTime = endDt,
+                    BasePrice = (decimal?)item.BasePrice,
+                    Language = item.Language,
+                    IsActive = true
+                });
+            }
+
+            if (toSave.Count == 0)
+                return Json(new { success = false, errors });
+
+            _context.Showtimes.AddRange(toSave);
+            _context.SaveChanges();
+
+            LogHelper.Write(_context, _httpContextAccessor, "ADDED_MULTIPLE_V3", "Showtime", toSave.Count);
+
+            return Json(new { success = true, count = toSave.Count, skipped = errors.Count, errors });
+        }
+
+
+        // ========================
+        // 🔥 KIỂM TRA TRÜNG LỊCH (AJAX) — dùng bởi wizard V3
+        // ========================
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public IActionResult CheckConflicts([FromBody] List<ConflictCheckRequest> requests)
+        {
+            var results = new List<ConflictCheckResult>();
+            if (requests == null) return Json(results);
+
+            foreach (var req in requests)
+            {
+                var overlap = _context.Showtimes
+                    .Include(s => s.Movie)
+                    .FirstOrDefault(s => s.AuditoriumId == req.AuditoriumId
+                                      && s.IsActive == true
+                                      && req.StartTime < s.EndTime
+                                      && req.EndTime > s.StartTime);
+                results.Add(new ConflictCheckResult
+                {
+                    Index = req.Index,
+                    HasConflict = overlap != null,
+                    ConflictWith = overlap != null
+                        ? $"{overlap.Movie?.Title} ({overlap.StartTime:HH:mm}–{overlap.EndTime:HH:mm})"
+                        : null
+                });
+            }
+            return Json(results);
+        }
+
+        // ========================
+        // 🔥 LẤY LỊCH THEO NGÀY (AJAX) — dùng cho tính năng Copy & Auto-avoid
+        // ========================
+        [HttpGet]
+        public IActionResult GetScheduleByDate(string date)
+        {
+            if (!DateOnly.TryParse(date, out var d))
+                return Json(new List<object>());
+
+            var startOfDay = d.ToDateTime(TimeOnly.MinValue);
+            var endOfDay = d.ToDateTime(TimeOnly.MaxValue);
+
+            var showtimes = _context.Showtimes
+                .Include(s => s.Movie)
+                .Include(s => s.Auditorium)
+                .Where(s => s.StartTime >= startOfDay && s.StartTime <= endOfDay && s.IsActive == true)
+                .Select(s => new
+                {
+                    movieId = s.MovieId,
+                    movieName = s.Movie != null ? s.Movie.Title : "",
+                    auditoriumId = s.AuditoriumId,
+                    auditoriumName = s.Auditorium != null ? s.Auditorium.Name : "",
+                    startTime = s.StartTime != null ? s.StartTime.Value.ToString("HH:mm") : "",
+                    endTime = s.EndTime != null ? s.EndTime.Value.ToString("HH:mm") : "",
+                    basePrice = s.BasePrice,
+                    language = s.Language
+                })
+                .ToList();
+
+            return Json(showtimes);
         }
     }
 

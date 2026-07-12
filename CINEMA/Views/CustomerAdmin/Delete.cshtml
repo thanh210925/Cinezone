@@ -1,4 +1,4 @@
-﻿@model CINEMA.Models.Customer
+@model CINEMA.Models.Customer
 @{
     ViewData["Title"] = "Xóa khách hàng";
     Layout = "_AdminLayout";
@@ -10,8 +10,8 @@
     Bạn có chắc chắn muốn xóa khách hàng <b>@Model.FullName</b> (Email: @Model.Email)?
 </div>
 
-<form asp-action="DeleteConfirmed" method="post">
-    <input type="hidden" asp-for="CustomerId" />
+<form asp-action="Delete" asp-route-id="@Model.CustomerId" method="post">
+    <input type="hidden" name="id" value="@Model.CustomerId" />
     <button type="submit" class="btn btn-danger">Xóa</button>
     <a asp-action="Index" class="btn btn-secondary">Hủy</a>
 </form>

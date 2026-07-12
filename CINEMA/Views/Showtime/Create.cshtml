@@ -1,239 +1,574 @@
-@model List<CINEMA.Models.Showtime>
 @{
-    ViewData["Title"] = "Thêm nhiều lịch chiếu";
+    ViewData["Title"] = "Tạo lịch chiếu";
     Layout = "_AdminLayout";
     var movies = ViewBag.Movies as List<CINEMA.Models.Movie>;
     var auditoriums = ViewBag.Auditoriums as List<CINEMA.Models.Auditorium>;
 }
-
 @section Styles {
-    <link rel="stylesheet" href="~/css/showtime-management.css" />
+<style>
+.wizard-nav{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:2rem;}
+.wstep{display:flex;align-items:center;gap:10px;}
+.wstep-dot{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;transition:.3s;flex-shrink:0;}
+.wstep-dot.pending{background:#e9ecef;color:#aaa;}
+.wstep-dot.active{background:#4361ee;color:#fff;box-shadow:0 0 0 5px rgba(67,97,238,.2);}
+.wstep-dot.done{background:#2ecc71;color:#fff;}
+.wstep-label{font-size:.82rem;font-weight:600;color:#aaa;white-space:nowrap;}
+.wstep-label.active{color:#4361ee;}.wstep-label.done{color:#2ecc71;}
+.wstep-line{flex:1;height:2px;background:#dee2e6;margin:0 10px;min-width:30px;transition:.5s;}
+.wstep-line.done{background:#2ecc71;}
+.wizard-panel{display:none;}.wizard-panel.active{display:block;animation:wfade .3s ease;}
+@@keyframes wfade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.room-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:2px solid #dee2e6;border-radius:24px;cursor:pointer;transition:.2s;font-size:.83rem;font-weight:600;user-select:none;background:#fff;}
+.room-chip:hover{border-color:#4361ee;color:#4361ee;}.room-chip.checked{background:#4361ee!important;color:#fff!important;border-color:#4361ee;}
+.ts-chip{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:2px solid #dee2e6;border-radius:20px;cursor:pointer;transition:.2s;font-size:.82rem;font-weight:600;user-select:none;background:#fff;}
+.ts-chip:hover{border-color:#4361ee;color:#4361ee;}.ts-chip.selected{background:#4361ee;color:#fff;border-color:#4361ee;}
+#sortableSlots{display:flex;flex-wrap:wrap;gap:8px;min-height:48px;padding:10px;border:1.5px dashed #c7d8ff;border-radius:12px;background:#f8fbff;}
+.s-item{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;background:#4361ee;color:#fff;border-radius:20px;font-size:.82rem;font-weight:600;cursor:grab;}
+.s-item:active{cursor:grabbing;opacity:.8;}.s-item .rm{cursor:pointer;margin-left:2px;opacity:.7;}.s-item .rm:hover{opacity:1;}
+.auto-chip{display:inline-flex;align-items:center;padding:5px 12px;background:#fff3cd;border:1.5px solid #ffc107;color:#856404;border-radius:16px;font-size:.8rem;font-weight:600;}
+.stat-card{border-radius:14px;padding:16px 20px;text-align:center;border:1.5px solid transparent;}
+.preview-card{border:1.5px solid #e0e0e0;border-radius:14px;padding:14px 16px;transition:.2s;background:#fff;position:relative;}
+.preview-card.valid{border-color:#b7ebc0;background:#f4fff6;}.preview-card.conflict{border-color:#f5b7b1;background:#fff8f8;}.preview-card.checking{opacity:.6;}
+.preview-card .card-cb{position:absolute;top:10px;right:12px;}
+.conf-detail{font-size:.72rem;color:#c0392b;background:#fdecea;border-radius:6px;padding:3px 7px;margin-top:4px;}
+.bulk-bar{background:#fff8e1;border:1.5px solid #ffca28;border-radius:12px;padding:12px 16px;margin-bottom:12px;display:none;align-items:center;gap:10px;flex-wrap:wrap;}
+.bulk-bar.on{display:flex;}
+.v3-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:9000;display:none;align-items:center;justify-content:center;}
+.v3-overlay.open{display:flex;}.v3-modal{background:#fff;border-radius:20px;padding:28px;min-width:360px;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.v3-modal h6{font-weight:700;margin-bottom:16px;}
+.info-box{background:#e8f0fe;border:1px solid #c7d8ff;border-radius:10px;padding:10px 14px;font-size:.8rem;color:#3451c7;}
+</style>
 }
 
 <div class="container-fluid py-4">
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="#" class="text-decoration-none">Dashboard</a></li>
-            <li class="breadcrumb-item"><a asp-action="Index" class="text-decoration-none">Quản lý lịch chiếu</a></li>
-            <li class="breadcrumb-item active">Thêm nhiều suất chiếu</li>
-        </ol>
-    </nav>
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/Admin/Dashboard" class="text-decoration-none">Dashboard</a></li>
+      <li class="breadcrumb-item"><a asp-action="Index" class="text-decoration-none">Quản lý lịch chiếu</a></li>
+      <li class="breadcrumb-item active">Tạo lịch chiếu</li>
+    </ol>
+  </nav>
 
+  <!-- STEP INDICATOR -->
+  <div class="wizard-nav">
+    <div class="wstep"><div class="wstep-dot active" id="dot-1">1</div><span class="wstep-label active" id="lbl-1">Cài đặt chung</span></div>
+    <div class="wstep-line" id="line-1"></div>
+    <div class="wstep"><div class="wstep-dot pending" id="dot-2">2</div><span class="wstep-label" id="lbl-2">Chọn khung giờ</span></div>
+    <div class="wstep-line" id="line-2"></div>
+    <div class="wstep"><div class="wstep-dot pending" id="dot-3">3</div><span class="wstep-label" id="lbl-3">Preview &amp; Lưu</span></div>
+  </div>
+
+  <!-- ===== STEP 1 ===== -->
+  <div class="wizard-panel active" id="panel-1">
     <div class="card shadow-sm border-0 rounded-4">
-        <div class="card-header bg-white border-bottom-0 pt-4 pb-3 px-4">
-            <h4 class="fw-bold text-primary mb-0 d-flex align-items-center">
-                <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
-                    <i class="bi bi-calendar-plus fs-5"></i>
-                </div>
-                Tạo nhanh nhiều suất chiếu
-            </h4>
-        </div>
-
-        <div class="card-body p-4 pt-0">
-            @if (!ViewData.ModelState.IsValid)
-            {
-                <div class="alert alert-danger border-0 shadow-sm rounded-4 mb-4 mt-3">
-                    <h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i> Lỗi tạo lịch chiếu:</h6>
-                    <div asp-validation-summary="All" class="small ms-3"></div>
-                </div>
-            }
-
-            <form asp-action="CreateMultiple" method="post">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle custom-table mb-0" id="showtimeTable">
-                        <thead class="table-light text-secondary">
-                            <tr>
-                                <th class="ps-4" width="20%">Phim</th>
-                                <th width="15%">Phòng chiếu</th>
-                                <th width="15%">Giờ bắt đầu</th>
-                                <th width="15%">Giờ kết thúc <small class="text-muted d-block" style="font-size:0.7rem; font-weight:normal;">(Gồm 15p dọn phòng)</small></th>
-                                <th width="12%">Giá vé (₫)</th>
-                                <th width="10%">Ngôn ngữ</th>
-                                <th class="text-center" width="8%">Bật</th>
-                                <th class="text-center pe-4" width="5%">Xóa</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="ps-4">
-                                    <select name="Showtimes[0].MovieId" class="form-select shadow-sm movie-select" required>
-                                        <option value="">-- Chọn phim --</option>
-                                        @if (movies != null)
-                                        {
-                                            foreach (var m in movies)
-                                            {
-                                                <option value="@m.MovieId" data-duration="@m.Duration">@m.Title (@m.Duration phút)</option>
-                                            }
-                                        }
-                                    </select>
-                                </td>
-                                <td>
-                                    <select name="Showtimes[0].AuditoriumId" class="form-select shadow-sm" required>
-                                        @if (auditoriums != null)
-                                        {
-                                            foreach (var r in auditoriums)
-                                            {
-                                                <option value="@r.AuditoriumId">@r.Name</option>
-                                            }
-                                        }
-                                    </select>
-                                </td>
-                                <td>
-                                    <input type="datetime-local" name="Showtimes[0].StartTime" class="form-control shadow-sm start-time-input" required />
-                                </td>
-                                <td>
-                                    <input type="datetime-local" name="Showtimes[0].EndTime" class="form-control shadow-sm bg-light end-time-input" readonly required />
-                                </td>
-                                <td>
-                                    <input type="number" name="Showtimes[0].BasePrice" class="form-control shadow-sm" placeholder="VD: 70000" required />
-                                </td>
-                                <td>
-                                    <input type="text" name="Showtimes[0].Language" class="form-control shadow-sm" placeholder="Vietsub" required />
-                                </td>
-                                <td class="text-center">
-                                    <div class="form-check form-switch d-flex justify-content-center mb-0">
-                                        <input class="form-check-input fs-5" type="checkbox" role="switch" name="Showtimes[0].IsActive" value="true" checked />
-                                    </div>
-                                    <input type="hidden" name="Showtimes[0].IsActive" value="false" />
-                                </td>
-                                <td class="text-center pe-4">
-                                    <button type="button" class="btn btn-light btn-sm text-danger action-btn removeRow" disabled title="Không thể xóa dòng đầu tiên">
-                                        <i class="bi bi-x-lg"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="p-4 border-top bg-light rounded-bottom-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
-                    <button type="button" id="addRow" class="btn btn-outline-primary rounded-pill px-4 fw-medium bg-white text-nowrap">
-                        <i class="bi bi-plus-circle me-1"></i> Thêm 1 dòng
-                    </button>
-                    <div class="d-flex gap-2">
-                        <a asp-action="Index" class="btn btn-light border rounded-pill px-4 shadow-sm text-secondary fw-medium text-nowrap">
-                            <i class="bi bi-arrow-left me-1"></i> Hủy
-                        </a>
-                        <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm fw-medium text-nowrap">
-                            <i class="bi bi-floppy me-1"></i> Lưu tất cả
-                        </button>
+      <div class="card-header bg-white border-0 pt-4 px-4">
+        <h5 class="fw-bold text-primary mb-0"><i class="bi bi-gear-fill me-2"></i>B 1: Cài đặt chung</h5>
+        <p class="text-muted small mb-0">Nhập thông tin chung cho tất cả suất chiếu.</p>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Phim <span class="text-danger">*</span></label>
+            <select id="s1Movie" class="form-select" onchange="onMovieChange(this)">
+              <option value="">-- Chon phim --</option>
+              @if (movies != null) {
+                foreach (var m in movies) {
+                  <option value="@m.MovieId" data-dur="@m.Duration" data-name="@m.Title">@m.Title (@m.Duration phút)</option>
+                }
+              }
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Ngày chiếu <span class="text-danger">*</span></label>
+            <input type="date" id="s1Date" class="form-control" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Dọn phòng (phut)</label>
+            <input type="number" id="s1Clean" class="form-control" value="15" min="0" max="60" onchange="updateInfo()" />
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Phòng chiếu theo rạp <span class="text-danger">*</span> <small class="fw-normal text-muted">(chọn nhiều phòng)</small></label>
+            <div class="row g-3 mt-1">
+              @if (auditoriums != null) {
+                var groups = auditoriums.GroupBy(a => a.TheaterId);
+                foreach (var g in groups) {
+                  var first = g.First();
+                  var tName = first.Theater?.Name ?? "Khác";
+                  <div class="col-md-4">
+                    <div class="card shadow-none border rounded-3 h-100">
+                      <div class="card-header bg-light py-2 px-3">
+                        <span class="fw-bold small text-dark"><i class="bi bi-geo-alt-fill text-primary me-1"></i> @tName</span>
+                      </div>
+                      <div class="card-body p-2 d-flex flex-column gap-1">
+                        @foreach (var r in g) {
+                          <label class="room-chip w-100 justify-content-start border-1 py-2" onclick="toggleRoom(this)">
+                            <input type="checkbox" value="@r.AuditoriumId" data-name="@r.Name (@tName)" class="d-none" />
+                            <i class="bi bi-building me-2 text-muted"></i>@r.Name
+                          </label>
+                        }
+                      </div>
                     </div>
-                </div>
-            </form>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Giá vé (d) <span class="text-danger">*</span></label>
+            <input type="number" id="s1Price" class="form-control" placeholder="70000" min="0" />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Ngôn ngữ</label>
+            <select id="s1Lang" class="form-select">
+              <option value="Vietsub">Vietsub</option>
+              <option value="Long tieng">Lồng tiếng</option>
+              <option value="Thuyet minh">Thuyết minh</option>
+              <option value="Subtitles">Subtitles (EN)</option>
+            </select>
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button type="button" class="btn btn-outline-secondary w-100" onclick="openModal('copyModal')">
+              <i class="bi bi-calendar-check me-1"></i> Copy lịch từ ngày khác
+            </button>
+          </div>
         </div>
+        <div id="s1Info" class="info-box mt-3 d-none"></div>
+      </div>
+      <div class="card-footer bg-white border-0 px-4 pb-4 d-flex justify-content-end">
+        <button type="button" class="btn btn-primary px-5 rounded-pill" onclick="goToStep(2)">
+          Tiep theo: Chọn khung giờ <i class="bi bi-arrow-right ms-1"></i>
+        </button>
+      </div>
     </div>
+  </div>
+
+  <!-- ===== STEP 2 ===== -->
+  <div class="wizard-panel" id="panel-2">
+    <div class="card shadow-sm border-0 rounded-4">
+      <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <h5 class="fw-bold text-primary mb-0"><i class="bi bi-clock-history me-2"></i>Bước 2: Chọn khung giờ chiếu</h5>
+          <p class="text-muted small mb-0" id="s2Sub">Thêm các khung giờ muốn chiếu trong ngày.</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-secondary" onclick="openLoadTpl()"><i class="bi bi-folder2-open me-1"></i>Tải mẫu</button>
+          <button class="btn btn-sm btn-outline-primary" onclick="saveTpl()"><i class="bi bi-floppy me-1"></i>Lưu mẫu</button>
+        </div>
+      </div>
+      <div class="card-body p-4">
+        <ul class="nav nav-pills mb-4">
+          <li class="nav-item"><button class="nav-link active" id="tabManualBtn" onclick="switchTab('manual')"><i class="bi bi-check2-square me-1"></i>Chọn sẵn</button></li>
+          <li class="nav-item"><button class="nav-link" id="tabAutoBtn" onclick="switchTab('auto')"><i class="bi bi-lightning-charge me-1"></i>Tự động sinh</button></li>
+        </ul>
+
+        <div id="tabManual">
+          <p class="small text-muted mb-2"><i class="bi bi-grip-horizontal me-1"></i>Kéo thả để sắp xếp. Nhấn để chọn / bỏ chọn.</p>
+          <div class="mb-3">
+            <div class="small fw-semibold text-muted mb-2">Giờ phổ biến:</div>
+            <div class="d-flex flex-wrap gap-2" id="presetChips">
+              @{ var presets = new[]{"08:00","09:30","11:00","12:30","13:00","14:30","16:00","17:30","19:00","20:30","22:00"}; }
+              @foreach(var t in presets){<button type="button" class="ts-chip" data-time="@t" onclick="togglePreset(this)">@t</button>}
+            </div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="small fw-semibold text-muted">Khung giờ đã chọn (kéo để sắp xếp):</div>
+            <button class="btn btn-link btn-sm text-danger p-0" onclick="clearSlots()">Xóa tất cả</button>
+          </div>
+          <div id="sortableSlots"><span id="slotHint" class="text-muted small">Chưa có khung giờ nào...</span></div>
+          <div class="d-flex gap-2 mt-3">
+            <input type="time" id="manualTime" class="form-control" style="width:140px;" />
+            <button class="btn btn-outline-primary btn-sm" onclick="addManual()"><i class="bi bi-plus me-1"></i>Thêm giờ</button>
+          </div>
+        </div>
+
+        <div id="tabAuto" class="d-none">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-3"><label class="form-label fw-semibold">Bắt đầu từ</label><input type="time" id="autoStart" class="form-control" value="09:00" /></div>
+            <div class="col-md-3"><label class="form-label fw-semibold">Kết thúc lúc</label><input type="time" id="autoEnd" class="form-control" value="22:00" /></div>
+            <div class="col-md-3 pt-4">
+              <div class="form-check"><input type="checkbox" class="form-check-input" id="autoAvoid" checked /><label class="form-check-label small fw-semibold" for="autoAvoid">Tự động tránh giờ trùng</label></div>
+            </div>
+            <div class="col-md-3"><button class="btn btn-success w-100 rounded-pill" onclick="autoGen()"><i class="bi bi-magic me-1"></i>Sinh tự động</button></div>
+          </div>
+          <div id="autoChips" class="d-flex flex-wrap gap-2 mt-3"></div>
+          <div id="autoInfo" class="mt-2 small text-muted"></div>
+        </div>
+
+        <div class="mt-4 p-3 bg-primary bg-opacity-10 rounded-3 d-flex justify-content-between align-items-center">
+          <div><span class="fw-bold text-primary" id="s2Cnt">0 khung giờ</span><span class="text-muted ms-2 small" id="s2Calc"></span></div>
+          <span class="small fw-semibold text-primary" id="s2Total"></span>
+        </div>
+      </div>
+      <div class="card-footer bg-white border-0 px-4 pb-4 d-flex justify-content-between">
+        <button class="btn btn-light border rounded-pill px-4" onclick="goToStep(1)"><i class="bi bi-arrow-left me-1"></i>Quay lại</button>
+        <button class="btn btn-primary px-5 rounded-pill" onclick="goToStep(3)">Xem trước Preview <i class="bi bi-arrow-right ms-1"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 3 ===== -->
+  <div class="wizard-panel" id="panel-3">
+    <div class="row g-3 mb-4">
+      <div class="col-3"><div class="stat-card bg-light border"><div class="fs-4 fw-bold" id="sTot">0</div><div class="small text-muted">Tổng suất</div></div></div>
+      <div class="col-3"><div class="stat-card" style="background:#f0fff4;border-color:#b7ebc0;"><div class="fs-4 fw-bold text-success" id="sVal">-</div><div class="small text-success">Hợp lệ</div></div></div>
+      <div class="col-3"><div class="stat-card" style="background:#fff8f8;border-color:#f5b7b1;"><div class="fs-4 fw-bold text-danger" id="sCon">-</div><div class="small text-danger">Trùng lịch</div></div></div>
+      <div class="col-3"><div class="stat-card" style="background:#e8f0fe;border-color:#c7d8ff;"><div class="fs-4 fw-bold text-primary" id="sSave">-</div><div class="small text-primary">Sẽ lưu</div></div></div>
+    </div>
+    <div class="bulk-bar" id="bulkBar">
+      <i class="bi bi-pencil-square text-warning"></i>
+      <span class="fw-semibold small"><span id="bulkCnt">0</span> suất được chọn</span>
+      <input type="number" id="bulkPrice" class="form-control form-control-sm" style="width:130px;" placeholder="Giá mới (d)" />
+      <select id="bulkLang" class="form-select form-select-sm" style="width:130px;"><option value="">-- Ngôn ngữ --</option><option>Vietsub</option><option>Long tieng</option><option>Thuyết minh</option></select>
+      <button class="btn btn-sm btn-warning fw-semibold" onclick="applyBulk()"><i class="bi bi-check me-1"></i>Áp dụng</button>
+      <button class="btn btn-sm btn-link text-muted ms-auto p-0" onclick="clearSel()">Bỏ chọn hết</button>
+    </div>
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+      <button class="btn btn-sm btn-outline-secondary" onclick="toggleAll()"><i class="bi bi-check-all me-1"></i>Chọn / Bỏ hết</button>
+      <button class="btn btn-sm btn-outline-danger" onclick="autoRemoveConflicts()"><i class="bi bi-x-circle me-1"></i>Loại bỏ suất trùng</button>
+      <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="recheck()"><i class="bi bi-arrow-clockwise me-1"></i>Kiểm tra lại</button>
+    </div>
+    <div id="previewGrid" class="row g-3 mb-4"></div>
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-footer bg-white border-0 px-4 py-3 d-flex justify-content-between">
+        <button class="btn btn-light border rounded-pill px-4" onclick="goToStep(2)"><i class="bi bi-arrow-left me-1"></i>Quay lại chỉnh sửa</button>
+        <button class="btn btn-success px-5 rounded-pill fw-semibold" onclick="doSubmit()" id="btnSave">
+          <i class="bi bi-floppy me-1"></i><span id="btnLbl">Lưu tất cả hợp lệ</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
-<template id="movieOptionsTemplate">
-    <option value="">-- Chọn phim --</option>
-    @if (movies != null)
-    {
-        foreach (var m in movies)
-        {
-            <option value="@m.MovieId" data-duration="@m.Duration">@m.Title (@m.Duration phút)</option>
-        }
-    }
-</template>
+<!-- COPY MODAL -->
+<div class="v3-overlay" id="copyModal">
+  <div class="v3-modal">
+    <h6><i class="bi bi-calendar-check me-2 text-primary"></i>Copy lịch từ ngày khác</h6>
+    <label class="form-label fw-semibold">Chọn ngày cần copy:</label>
+    <input type="date" id="copyDate" class="form-control mb-3" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+    <div id="copyMsg" class="small text-muted mb-2 d-none"></div>
+    <div class="d-flex gap-2 justify-content-end">
+      <button class="btn btn-light border" onclick="closeModal('copyModal')">Hủy</button>
+      <button class="btn btn-primary" onclick="copySchedule()"><i class="bi bi-download me-1"></i>Tải lịch</button>
+    </div>
+  </div>
+</div>
 
-<template id="auditoriumOptionsTemplate">
-    @if (auditoriums != null)
-    {
-        foreach (var r in auditoriums)
-        {
-            <option value="@r.AuditoriumId">@r.Name</option>
-        }
-    }
-</template>
+<!-- LOAD TEMPLATE MODAL -->
+<div class="v3-overlay" id="tplModal">
+  <div class="v3-modal">
+    <h6><i class="bi bi-folder2-open me-2 text-primary"></i>Tải mẫu lịch chiếu</h6>
+    <div id="tplList" class="mb-3"><p class="text-muted small">Chưa có mẫu nào.</p></div>
+    <div class="d-flex justify-content-end"><button class="btn btn-light border" onclick="closeModal('tplModal')">Đóng</button></div>
+  </div>
+</div>
+
+<!-- Hidden submit form -->
+<form id="submitForm" method="post" asp-action="CreateMultiple">
+  @Html.AntiForgeryToken()
+  <div id="submitBody"></div>
+</form>
 
 @section Scripts {
-    <script>
-        let index = 1;
-        const movieOptions = document.getElementById('movieOptionsTemplate').innerHTML;
-        const auditoriumOptions = document.getElementById('auditoriumOptionsTemplate').innerHTML;
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+// ── STATE ──
+const W = { step:1, movieId:'', movieName:'', movieDur:0, date:'', rooms:[], price:0, lang:'Vietsub', cleanMin:15, slots:[], items:[] };
+let sortInst = null;
 
-        // Xử lý thêm dòng mới
-        document.getElementById("addRow").addEventListener("click", function () {
-            let table = document.querySelector("#showtimeTable tbody");
-            let newRow = `
-                        <tr>
-                            <td class="ps-4">
-                                <select name="Showtimes[${index}].MovieId" class="form-select shadow-sm movie-select" required>
-                                    ${movieOptions}
-                                </select>
-                            </td>
-                            <td>
-                                <select name="Showtimes[${index}].AuditoriumId" class="form-select shadow-sm" required>
-                                    ${auditoriumOptions}
-                                </select>
-                            </td>
-                            <td><input type="datetime-local" name="Showtimes[${index}].StartTime" class="form-control shadow-sm start-time-input" required /></td>
-                            <td><input type="datetime-local" name="Showtimes[${index}].EndTime" class="form-control shadow-sm bg-light end-time-input" readonly required /></td>
-                            <td><input type="number" name="Showtimes[${index}].BasePrice" class="form-control shadow-sm" placeholder="VD: 70000" required /></td>
-                            <td><input type="text" name="Showtimes[${index}].Language" class="form-control shadow-sm" placeholder="Vietsub" required /></td>
-                            <td class="text-center">
-                                <div class="form-check form-switch d-flex justify-content-center mb-0">
-                                    <input class="form-check-input fs-5" type="checkbox" role="switch" name="Showtimes[${index}].IsActive" value="true" checked />
-                                </div>
-                                <input type="hidden" name="Showtimes[${index}].IsActive" value="false" />
-                            </td>
-                            <td class="text-center pe-4">
-                                <button type="button" class="btn btn-light btn-sm text-danger action-btn removeRow">
-                                    <i class="bi bi-trash3"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-            table.insertAdjacentHTML('beforeend', newRow);
-            index++;
-        });
-
-        // Xử lý xóa dòng
-        document.addEventListener("click", function (e) {
-            let removeBtn = e.target.closest(".removeRow");
-            if (removeBtn && !removeBtn.hasAttribute("disabled")) {
-                removeBtn.closest("tr").remove();
-            }
-        });
-
-        // Lắng nghe sự kiện thay đổi (Phim hoặc Giờ bắt đầu) để tính Giờ kết thúc
-        document.querySelector("#showtimeTable tbody").addEventListener("change", function (e) {
-            if (e.target.classList.contains("movie-select") || e.target.classList.contains("start-time-input")) {
-                let row = e.target.closest("tr");
-                autoCalculateEndTime(row);
-            }
-        });
-
-        // Hàm logic cộng thời gian
-        function autoCalculateEndTime(row) {
-            let movieSelect = row.querySelector(".movie-select");
-            let startTimeInput = row.querySelector(".start-time-input");
-            let endTimeInput = row.querySelector(".end-time-input");
-
-            if (!movieSelect || !startTimeInput || !endTimeInput) return;
-
-            let selectedOption = movieSelect.options[movieSelect.selectedIndex];
-            let durationStr = selectedOption.getAttribute("data-duration");
-            let startTimeVal = startTimeInput.value;
-
-            if (durationStr && startTimeVal) {
-                let durationMinutes = parseInt(durationStr) + 15; // 15 phút dọn dẹp phòng chiếu
-                let startTime = new Date(startTimeVal);
-
-                // Cộng số phút thời lượng phim + dọn dẹp vào giờ bắt đầu
-                startTime.setMinutes(startTime.getMinutes() + durationMinutes);
-
-                // Format lại thành định dạng "YYYY-MM-DDThh:mm" cho thẻ input datetime-local
-                let year = startTime.getFullYear();
-                let month = String(startTime.getMonth() + 1).padStart(2, '0');
-                let day = String(startTime.getDate()).padStart(2, '0');
-                let hours = String(startTime.getHours()).padStart(2, '0');
-                let minutes = String(startTime.getMinutes()).padStart(2, '0');
-
-                endTimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
-            } else {
-                // Xóa rỗng nếu người dùng chưa chọn đủ dữ liệu
-                endTimeInput.value = "";
-            }
-        }
-    </script>
+// ── STEP NAVIGATION ──
+function goToStep(n) {
+  if (n === 2 && !v1()) return;
+  if (n === 3 && !v2()) return;
+  if (n === 3) buildPreview();
+  document.querySelectorAll('.wizard-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + n).classList.add('active');
+  [1,2,3].forEach(i => {
+    document.getElementById('dot-' + i).className = 'wstep-dot ' + (i < n ? 'done' : i === n ? 'active' : 'pending');
+    document.getElementById('lbl-' + i).className = 'wstep-label ' + (i < n ? 'done' : i === n ? 'active' : '');
+    if (i < 3) document.getElementById('line-' + i).className = 'wstep-line ' + (i < n ? 'done' : '');
+  });
+  W.step = n;
+  window.scrollTo({top:0, behavior:'smooth'});
 }
+
+// ── STEP 1 ──
+function onMovieChange(sel) {
+  const o = sel.options[sel.selectedIndex];
+  W.movieId = sel.value; W.movieName = o.getAttribute('data-name') || ''; W.movieDur = parseInt(o.getAttribute('data-dur')) || 0;
+  updateInfo();
+}
+function updateInfo() {
+  W.cleanMin = parseInt(document.getElementById('s1Clean').value) || 15;
+  const box = document.getElementById('s1Info');
+  if (W.movieDur > 0) {
+    const tot = W.movieDur + W.cleanMin;
+    box.innerHTML = '<i class="bi bi-info-circle me-1"></i>Phim <strong>' + W.movieName + '</strong>: ' + W.movieDur + ' phút + ' + W.cleanMin + 'p dòn phong = <strong>' + tot + ' phút/suất</strong> &mdash; Tối đa <strong>' + Math.floor(840/tot) + ' suất/ngày</strong>';
+    box.classList.remove('d-none');
+  } else box.classList.add('d-none');
+  updS2sum();
+}
+function toggleRoom(lbl) {
+  const cb = lbl.querySelector('input');
+  cb.checked = !cb.checked;
+  lbl.classList.toggle('checked', cb.checked);
+  W.rooms = [];
+  document.querySelectorAll('.room-chip input:checked').forEach(c => W.rooms.push({id:parseInt(c.value), name:c.getAttribute('data-name')}));
+  updS2sum();
+}
+function v1() {
+  if (!W.movieId) { alert('Vui lòng chọn phim!'); return false; }
+  if (!document.getElementById('s1Date').value) { alert('Vui lòng chọn ngày chiếu!'); return false; }
+  if (W.rooms.length === 0) { alert('Vui lòng chọn ít nhất 1 phòng!'); return false; }
+  if (!document.getElementById('s1Price').value) { alert('Vui lòng nhập giá vé!'); return false; }
+  W.date = document.getElementById('s1Date').value;
+  W.price = parseFloat(document.getElementById('s1Price').value);
+  W.lang = document.getElementById('s1Lang').value;
+  W.cleanMin = parseInt(document.getElementById('s1Clean').value) || 15;
+  const dStr = new Date(W.date + 'T00:00').toLocaleDateString('vi-VN', {weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
+  document.getElementById('s2Sub').textContent = W.movieName + ' — ' + dStr + ' — ' + W.rooms.map(r=>r.name).join(', ');
+  return true;
+}
+
+// ── STEP 2 ──
+function updS2sum() {
+  const n = W.slots.length, r = W.rooms.length;
+  document.getElementById('s2Cnt').textContent = n + ' khung giờ';
+  document.getElementById('s2Calc').textContent = n > 0 && r > 0 ? '× ' + r + ' phòng' : '';
+  document.getElementById('s2Total').textContent = n * r > 0 ? '→ ' + (n * r) + ' suất sẽ tạo' : '';
+}
+function switchTab(t) {
+  document.getElementById('tabManual').classList.toggle('d-none', t !== 'manual');
+  document.getElementById('tabAuto').classList.toggle('d-none', t !== 'auto');
+  document.getElementById('tabManualBtn').classList.toggle('active', t === 'manual');
+  document.getElementById('tabAutoBtn').classList.toggle('active', t === 'auto');
+}
+function refreshSlots() {
+  const c = document.getElementById('sortableSlots');
+  c.innerHTML = '';
+  if (W.slots.length === 0) {
+    c.innerHTML = '<span class="text-muted small">Chưa có khung giờ nào...</span>';
+  } else {
+    W.slots.forEach(t => {
+      const el = document.createElement('div');
+      el.className = 's-item'; el.dataset.time = t;
+      el.innerHTML = '<i class="bi bi-grip-vertical" style="opacity:.5;font-size:.85rem;"></i>' + t + '<span class="rm" onclick="removeSlot(\'' + t + '\')" title="Xóa">&#x2715;</span>';
+      c.appendChild(el);
+    });
+    if (sortInst) sortInst.destroy();
+    sortInst = new Sortable(c, {animation:150, onEnd:e=>{const x=W.slots.splice(e.oldIndex,1)[0];W.slots.splice(e.newIndex,0,x);}});
+  }
+  document.querySelectorAll('#presetChips .ts-chip').forEach(c => c.classList.toggle('selected', W.slots.includes(c.dataset.time)));
+  updS2sum();
+}
+function togglePreset(btn) {
+  const t = btn.dataset.time;
+  W.slots.includes(t) ? W.slots = W.slots.filter(s=>s!==t) : (W.slots.push(t), W.slots.sort());
+  refreshSlots();
+}
+function removeSlot(t) { W.slots = W.slots.filter(s=>s!==t); refreshSlots(); }
+function clearSlots() { W.slots = []; refreshSlots(); }
+function addManual() {
+  const t = document.getElementById('manualTime').value;
+  if (!t || W.slots.includes(t)) return;
+  W.slots.push(t); W.slots.sort(); refreshSlots();
+  document.getElementById('manualTime').value = '';
+}
+async function autoGen() {
+  const start = document.getElementById('autoStart').value, end = document.getElementById('autoEnd').value;
+  if (!start || !end) { alert('Vui lòng nhập giờ bắt đầu và kết thúc!'); return; }
+  if (!W.movieDur) { alert('Vui lòng chọn phim trước!'); return; }
+  const tot = W.movieDur + (parseInt(document.getElementById('s1Clean').value) || 15);
+  const sMin = toMin(start), eMin = toMin(end);
+  let busy = [];
+  if (document.getElementById('autoAvoid').checked && W.date) {
+    try {
+      const r = await fetch('/Showtime/GetScheduleByDate?date=' + W.date);
+      const ex = await r.json();
+      busy = ex.map(e => ({s:toMin(e.startTime), e:toMin(e.endTime)}));
+    } catch(e){}
+  }
+  const gen = []; let cur = sMin;
+  while (cur + W.movieDur <= eMin + 30) {
+    const endSlot = cur + tot;
+    if (!busy.some(b => cur < b.e && endSlot > b.s)) gen.push(minToT(cur));
+    cur += tot;
+  }
+  document.getElementById('autoChips').innerHTML = gen.map(t=>'<span class="auto-chip">' + t + '</span>').join('');
+  document.getElementById('autoInfo').textContent = gen.length + ' suất từ ' + start + ' đến ' + end + ' (' + tot + 'p/suất' + (document.getElementById('autoAvoid').checked?' — đã tránh trùng lịch':'') + ')';
+  W.slots = gen; refreshSlots();
+}
+function v2() { if (W.slots.length===0){alert('Vui lòng chọn ít nhất 1 khung giờ!');return false;} return true; }
+
+// ── TIME UTILS ──
+function toMin(t) { if(!t)return 0; const[h,m]=t.split(':').map(Number); return h*60+m; }
+function minToT(m) { const h=Math.floor(m/60)%24,mm=m%60; return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0'); }
+// FIX: dùng giờ địa phương thay vì UTC (toISOString bị lệch múi giờ)
+function addMin(iso, mins) {
+  const d = new Date(iso);
+  d.setMinutes(d.getMinutes() + mins);
+  const pad = n => String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function fmtT(localISO) {
+  // localISO dạng 'YYYY-MM-DDTHH:mm' — lấy phần HH:mm trực tiếp
+  return localISO.slice(11,16);
+}
+
+
+// ── PREVIEW ──
+function buildPreview() {
+  W.items = [];
+  const tot = W.movieDur + W.cleanMin;
+  W.rooms.forEach(room => {
+    W.slots.forEach(slot => {
+      const startISO = W.date + 'T' + slot + ':00';
+      const endISO = addMin(startISO, tot);
+      W.items.push({roomId:room.id, roomName:room.name, startISO, endISO, startStr:slot, endStr:fmtT(endISO), price:W.price, lang:W.lang, hasConflict:null, conflictWith:null, selected:true});
+    });
+  });
+  renderGrid(true); updStats();
+  checkConflicts();
+}
+function renderGrid(chk) {
+  const g = document.getElementById('previewGrid');
+  g.innerHTML = '';
+  W.items.forEach((item, i) => {
+    const div = document.createElement('div'); div.className = 'col-md-4';
+    let badge = chk || item.hasConflict===null
+      ? '<span class="badge bg-secondary"><i class="bi bi-hourglass me-1"></i>Đang kiểm tra...</span>'
+      : item.hasConflict
+        ? '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Trùng lịch</span>'
+        : '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Hợp lệ</span>';
+    const cls = chk || item.hasConflict===null ? 'preview-card checking' : item.hasConflict ? 'preview-card conflict' : 'preview-card valid';
+    const conf = item.hasConflict && item.conflictWith ? '<div class="conf-detail"><i class="bi bi-exclamation-triangle me-1"></i>' + item.conflictWith + '</div>' : '';
+    const disabled = item.hasConflict ? 'disabled' : '';
+    div.innerHTML = '<div class="' + cls + '" id="pc-'+i+'">' +
+      '<div class="card-cb"><input type="checkbox" class="form-check-input" ' + (item.selected?'checked':'') + ' ' + disabled + ' onchange="onCB(' + i + ',this.checked)" /></div>' +
+      '<div class="fw-semibold text-truncate pe-4">' + W.movieName + '</div>' +
+      '<div class="small text-muted mt-1"><i class="bi bi-building me-1"></i>' + item.roomName + '</div>' +
+      '<div class="mt-2 fs-5 fw-bold text-primary">' + item.startStr + ' <i class="bi bi-arrow-right small"></i> ' + item.endStr + '</div>' +
+      '<div class="small text-muted mt-1">' + item.price.toLocaleString('vi-VN') + ' d &bull; ' + item.lang + '</div>' +
+      '<div class="mt-2">' + badge + '</div>' + conf + '</div>';
+    g.appendChild(div);
+  });
+}
+async function checkConflicts() {
+  const reqs = W.items.map((item,i) => ({index:i, auditoriumId:item.roomId, startTime:item.startISO, endTime:item.endISO}));
+  try {
+    const r = await fetch('/Showtime/CheckConflicts', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(reqs)});
+    const res = await r.json();
+    res.forEach(r => { W.items[r.index].hasConflict = r.hasConflict; W.items[r.index].conflictWith = r.conflictWith; if(r.hasConflict) W.items[r.index].selected = false; });
+  } catch(e) { W.items.forEach(i=>i.hasConflict=false); }
+  renderGrid(false); updStats();
+}
+function recheck() { renderGrid(true); checkConflicts(); }
+function updStats() {
+  const tot=W.items.length, val=W.items.filter(i=>i.hasConflict===false).length, con=W.items.filter(i=>i.hasConflict===true).length, sel=W.items.filter(i=>i.selected&&!i.hasConflict).length;
+  document.getElementById('sTot').textContent=tot; document.getElementById('sVal').textContent=tot>0?val:'-'; document.getElementById('sCon').textContent=tot>0?con:'-'; document.getElementById('sSave').textContent=tot>0?sel:'-';
+  document.getElementById('btnLbl').textContent='Luu ' + sel + ' suat hop le';
+}
+function onCB(i, checked) { W.items[i].selected = checked; updStats(); updBulk(); }
+function toggleAll() { const a=W.items.filter(i=>!i.hasConflict).every(i=>i.selected); W.items.forEach(i=>{if(!i.hasConflict)i.selected=!a;}); renderGrid(false); updStats(); }
+function autoRemoveConflicts() { W.items.forEach(i=>{if(i.hasConflict)i.selected=false;}); renderGrid(false); updStats(); }
+function clearSel() { W.items.forEach(i=>i.selected=false); renderGrid(false); updStats(); updBulk(); }
+
+// ── BULK EDIT ──
+function updBulk() { const s=W.items.filter(i=>i.selected&&!i.hasConflict); document.getElementById('bulkBar').classList.toggle('on',s.length>0); document.getElementById('bulkCnt').textContent=s.length; }
+function applyBulk() {
+  const p=document.getElementById('bulkPrice').value, l=document.getElementById('bulkLang').value;
+  W.items.forEach(i=>{ if(i.selected&&!i.hasConflict){if(p)i.price=parseFloat(p);if(l)i.lang=l;} });
+  renderGrid(false); updStats();
+}
+
+// ── SUBMIT ──
+async function doSubmit() {
+  const valid = W.items.filter(i=>i.selected&&!i.hasConflict);
+  if (valid.length===0){alert('Không có suất nào hợp lệ!');return;}
+  
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...');
+
+  const payload = valid.map(item => ({
+    movieId: parseInt(W.movieId),
+    auditoriumId: item.roomId,
+    startTime: item.startISO,
+    endTime: item.endISO,
+    basePrice: item.price,
+    language: item.lang
+  }));
+
+  try {
+    const r = await fetch('/Showtime/CreateMultipleJson', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const res = await r.json();
+    if (res.success) {
+      alert('Đã lưu thành công ' + res.count + ' suất chiếu!');
+      window.location.href = '/Showtime/Index';
+    } else {
+      alert('Lỗi:\n' + (res.errors ? res.errors.join('\n') : 'Không thể lưu.'));
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-floppy me-1"></i><span id="btnLbl">Lưu tất cả hợp lệ</span>';
+      updStats();
+    }
+  } catch(e) {
+    alert('Lỗi kết nối server.');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-floppy me-1"></i><span id="btnLbl">Lưu tất cả hợp lệ</span>';
+    updStats();
+  }
+}
+
+// ── MODAL HELPERS ──
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.v3-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
+// ── COPY SCHEDULE ──
+async function copySchedule() {
+  const date=document.getElementById('copyDate').value;
+  if(!date){alert('Vui long chon ngay!');return;}
+  const msg=document.getElementById('copyMsg'); msg.textContent='Dang tai...'; msg.classList.remove('d-none');
+  try {
+    const r=await fetch('/Showtime/GetScheduleByDate?date='+date), data=await r.json();
+    const times=[...new Set(data.map(d=>d.startTime))].sort();
+    if(times.length===0){msg.textContent='Không tìm thấy lịch chiếu nào trong ngày '+date;return;}
+    times.forEach(t=>{if(!W.slots.includes(t))W.slots.push(t);}); W.slots.sort(); refreshSlots();
+    msg.textContent='Đã thêm '+times.length+' khung giờ từ ngày '+date;
+    setTimeout(()=>closeModal('copyModal'),1200);
+  } catch(e){msg.textContent='Lỗi khi tải lịch. Vui lòng thử lại.';}
+}
+
+// ── TEMPLATES (localStorage) ──
+function saveTpl() {
+  if(W.slots.length===0){alert('Chưa có khung giờ nào để lưu!');return;}
+  const name=prompt('Đặt tên mẫu (vd: Cuối tuần, Ngày lễ):','');
+  if(!name)return;
+  const tpls=JSON.parse(localStorage.getItem('cz_tpls')||'{}');
+  tpls[name]=W.slots; localStorage.setItem('cz_tpls',JSON.stringify(tpls));
+  alert('Đã lưu mẫu "'+name+'" ('+W.slots.length+' khung giờ)!');
+}
+function openLoadTpl() {
+  const tpls=JSON.parse(localStorage.getItem('cz_tpls')||'{}'), keys=Object.keys(tpls);
+  const list=document.getElementById('tplList');
+  if(keys.length===0){list.innerHTML='<p class="text-muted small">Chưa có mẫu nào. Lưu mẫu tại bước 2.</p>';}
+  else list.innerHTML=keys.map(k=>'<div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded-3"><div><div class="fw-semibold">'+k+'</div><div class="text-muted small">'+tpls[k].join(', ')+'</div></div><div class="d-flex gap-2"><button class="btn btn-sm btn-primary" onclick="loadTpl(\''+k+'\')">Tải</button><button class="btn btn-sm btn-outline-danger" onclick="delTpl(\''+k+'\')">Xóa</button></div></div>').join('');
+  openModal('tplModal');
+}
+function loadTpl(name) {
+  const tpls=JSON.parse(localStorage.getItem('cz_tpls')||'{}');
+  if(tpls[name]){W.slots=[...tpls[name]];refreshSlots();closeModal('tplModal');alert('Đã tải mẫu "'+name+'"!');}
+}
+function delTpl(name) {
+  if(!confirm('Xóa mẫu "'+name+'"?'))return;
+  const tpls=JSON.parse(localStorage.getItem('cz_tpls')||'{}'); delete tpls[name]; localStorage.setItem('cz_tpls',JSON.stringify(tpls)); openLoadTpl();
+}
+
+// Init
+document.getElementById('s1Date').value = '@DateTime.Today.ToString("yyyy-MM-dd")';
+</script>
+}
+
