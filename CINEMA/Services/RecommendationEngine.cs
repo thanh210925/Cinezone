@@ -732,6 +732,20 @@ Chỉ trả về JSON, không giải thích gì thêm.";
                 }
             }
 
+            // D. Điểm từ thuật toán KNN
+            var knnPredictions = new Dictionary<int, double>();
+            if (customerId.HasValue)
+            {
+                try
+                {
+                    knnPredictions = GetKnnPredictions(customerId.Value, k: 5);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Lỗi tính toán KNN trong GetRecommendedMovies: " + ex.Message);
+                }
+            }
+
             var scoredMovies = new List<(Movie Movie, double Score)>();
 
             foreach (var movie in allMovies)
@@ -762,6 +776,13 @@ Chỉ trả về JSON, không giải thích gì thêm.";
                         // Phim mới và có thể loại yêu thích của người dùng -> tăng độ ưu tiên mạnh mẽ
                         score += matchingGenresCount * 5.0; 
                     }
+                }
+
+                // D. [KNN] Điểm dự đoán từ thuật toán KNN (Collaborative Filtering)
+                //    Điểm = PredictedRating × 2.0 (tối đa 10.0 điểm)
+                if (knnPredictions.TryGetValue(movie.MovieId, out double knnPredRating))
+                {
+                    score += knnPredRating * 2.0;
                 }
 
                 if (score > 0)
@@ -835,5 +856,238 @@ Chỉ trả về JSON, không giải thích gì thêm.";
                 return hash;
             }
         }
+
+        // =========================================================================
+        // ======================== THUẬT TOÁN GỢI Ý KNN ==========================
+        // =========================================================================
+
+        public Dictionary<int, double> GetKnnPredictions(int customerId, int k = 5)
+        {
+            var detail = GetKnnPredictionsDetail(customerId, k);
+            return detail.Predictions.ToDictionary(p => p.Movie.MovieId, p => p.PredictedRating);
+        }
+
+        public KnnRecommendationResult GetKnnPredictionsDetail(int customerId, int k = 5)
+        {
+            var result = new KnnRecommendationResult { CustomerId = customerId };
+
+            // 1. Lấy thông tin khách hàng mục tiêu
+            var targetCustomer = _context.Customers.FirstOrDefault(c => c.CustomerId == customerId);
+            if (targetCustomer == null) return result;
+            result.FullName = targetCustomer.FullName ?? "Khách hàng " + customerId;
+            result.AvatarUrl = targetCustomer.AvatarUrl;
+            result.Email = targetCustomer.Email;
+
+            // 2. Lấy toàn bộ reviews và views
+            var reviews = _context.Reviews
+                .Where(r => !r.IsHidden)
+                .Select(r => new { r.CustomerId, r.MovieId, r.Rating })
+                .ToList();
+
+            var views = _context.UserMovieViews
+                .Select(v => new { v.CustomerId, v.MovieId, v.ViewCount })
+                .ToList();
+
+            // 3. Xây dựng ma trận đánh giá (CustomerId -> MovieId -> Rating)
+            var userRatings = new Dictionary<int, Dictionary<int, double>>();
+            var userRatingTypes = new Dictionary<int, Dictionary<int, bool>>(); // true: explicit, false: implicit
+
+            // Thêm các đánh giá ẩn từ lượt xem
+            foreach (var v in views)
+            {
+                if (!userRatings.ContainsKey(v.CustomerId))
+                {
+                    userRatings[v.CustomerId] = new Dictionary<int, double>();
+                    userRatingTypes[v.CustomerId] = new Dictionary<int, bool>();
+                }
+                // Lượt xem quy đổi thành điểm implicit (1 view = 3★, 2 views = 4★, >=3 views = 5★)
+                double implicitRating = Math.Min(5.0, 2.0 + v.ViewCount);
+                userRatings[v.CustomerId][v.MovieId] = implicitRating;
+                userRatingTypes[v.CustomerId][v.MovieId] = false;
+            }
+
+            // Ghi đè đánh giá tường minh từ reviews (reviews có độ ưu tiên cao hơn)
+            foreach (var r in reviews)
+            {
+                if (!userRatings.ContainsKey(r.CustomerId))
+                {
+                    userRatings[r.CustomerId] = new Dictionary<int, double>();
+                    userRatingTypes[r.CustomerId] = new Dictionary<int, bool>();
+                }
+                userRatings[r.CustomerId][r.MovieId] = r.Rating;
+                userRatingTypes[r.CustomerId][r.MovieId] = true;
+            }
+
+            if (!userRatings.ContainsKey(customerId) || !userRatings[customerId].Any())
+            {
+                // Khách hàng mục tiêu chưa có hoạt động nào -> không có lịch sử
+                return result;
+            }
+
+            var targetUserRatings = userRatings[customerId];
+
+            // Nạp lịch sử đánh giá của khách hàng mục tiêu để hiển thị ở trang Admin
+            var customerMovieIds = targetUserRatings.Keys.ToList();
+            var targetCustomerMovies = _context.Movies
+                .Where(m => customerMovieIds.Contains(m.MovieId))
+                .ToDictionary(m => m.MovieId, m => new { m.Title, m.PosterUrl });
+
+            foreach (var kvp in targetUserRatings)
+            {
+                var mId = kvp.Key;
+                var rating = kvp.Value;
+                var isExplicit = userRatingTypes[customerId].ContainsKey(mId) && userRatingTypes[customerId][mId];
+                string title = targetCustomerMovies.ContainsKey(mId) ? targetCustomerMovies[mId].Title : "Phim #" + mId;
+                string? poster = targetCustomerMovies.ContainsKey(mId) ? targetCustomerMovies[mId].PosterUrl : null;
+                result.History[mId] = (rating, isExplicit, title, poster);
+            }
+
+            // 4. Tính toán độ tương đồng Centered Cosine Similarity với tất cả khách hàng khác
+            var customerInfos = _context.Customers
+                .Where(c => c.CustomerId != customerId)
+                .ToDictionary(c => c.CustomerId, c => new { c.FullName, c.AvatarUrl });
+
+            var neighborsList = new List<KnnNeighbor>();
+            foreach (var otherUser in userRatings)
+            {
+                if (otherUser.Key == customerId) continue;
+
+                double similarity = CalculateCenteredCosineSimilarity(targetUserRatings, otherUser.Value);
+                if (similarity > 0)
+                {
+                    customerInfos.TryGetValue(otherUser.Key, out var info);
+                    neighborsList.Add(new KnnNeighbor
+                    {
+                        CustomerId = otherUser.Key,
+                        FullName = info?.FullName ?? "Khách hàng " + otherUser.Key,
+                        AvatarUrl = info?.AvatarUrl,
+                        Similarity = similarity,
+                        Ratings = otherUser.Value
+                    });
+                }
+            }
+
+            // Lấy Top K lân cận gần nhất
+            result.Neighbors = neighborsList
+                .OrderByDescending(n => n.Similarity)
+                .Take(k)
+                .ToList();
+
+            if (!result.Neighbors.Any()) return result;
+
+            // 5. Dự đoán điểm số cho các phim đang chiếu chưa xem
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var activeMovies = _context.Movies
+                .Include(m => m.Genres)
+                .Where(m => m.IsActive == true && m.ReleaseDate.HasValue && m.ReleaseDate <= today && !targetUserRatings.ContainsKey(m.MovieId))
+                .ToList();
+
+            foreach (var movie in activeMovies)
+            {
+                double weightedSum = 0;
+                double similaritySum = 0;
+                var contributions = new List<KnnNeighborContribution>();
+
+                foreach (var neighbor in result.Neighbors)
+                {
+                    if (neighbor.Ratings.TryGetValue(movie.MovieId, out double neighborRating))
+                    {
+                        weightedSum += neighbor.Similarity * neighborRating;
+                        similaritySum += neighbor.Similarity;
+                        contributions.Add(new KnnNeighborContribution
+                        {
+                            NeighborName = neighbor.FullName,
+                            Similarity = neighbor.Similarity,
+                            Rating = neighborRating
+                        });
+                    }
+                }
+
+                if (similaritySum > 0)
+                {
+                    double predictedRating = weightedSum / similaritySum;
+                    result.Predictions.Add(new KnnMoviePrediction
+                    {
+                        Movie = movie,
+                        PredictedRating = Math.Round(predictedRating, 2),
+                        Contributions = contributions.OrderByDescending(c => c.Similarity).ToList()
+                    });
+                }
+            }
+
+            // Sắp xếp các đề xuất theo điểm dự đoán giảm dần
+            result.Predictions = result.Predictions
+                .OrderByDescending(p => p.PredictedRating)
+                .ToList();
+
+            return result;
+        }
+
+        private double CalculateCenteredCosineSimilarity(Dictionary<int, double> ratingsA, Dictionary<int, double> ratingsB)
+        {
+            var commonMovies = ratingsA.Keys.Intersect(ratingsB.Keys).ToList();
+            if (!commonMovies.Any()) return 0;
+
+            // Trừ 3.0 (trung vị của 1-5 sao) để chuẩn hóa độ lệch rating
+            double dotProduct = 0;
+            double normA = 0;
+            double normB = 0;
+
+            foreach (var movieId in commonMovies)
+            {
+                double ratingCentA = ratingsA[movieId] - 3.0;
+                double ratingCentB = ratingsB[movieId] - 3.0;
+                dotProduct += ratingCentA * ratingCentB;
+            }
+
+            foreach (var kvp in ratingsA)
+            {
+                double val = kvp.Value - 3.0;
+                normA += val * val;
+            }
+
+            foreach (var kvp in ratingsB)
+            {
+                double val = kvp.Value - 3.0;
+                normB += val * val;
+            }
+
+            if (normA == 0 || normB == 0) return 0;
+            return dotProduct / (Math.Sqrt(normA) * Math.Sqrt(normB));
+        }
+    }
+
+    public class KnnNeighbor
+    {
+        public int CustomerId { get; set; }
+        public string FullName { get; set; } = null!;
+        public string? AvatarUrl { get; set; }
+        public double Similarity { get; set; }
+        public Dictionary<int, double> Ratings { get; set; } = new Dictionary<int, double>();
+    }
+
+    public class KnnMoviePrediction
+    {
+        public Movie Movie { get; set; } = null!;
+        public double PredictedRating { get; set; }
+        public List<KnnNeighborContribution> Contributions { get; set; } = new List<KnnNeighborContribution>();
+    }
+
+    public class KnnNeighborContribution
+    {
+        public string NeighborName { get; set; } = null!;
+        public double Similarity { get; set; }
+        public double Rating { get; set; }
+    }
+
+    public class KnnRecommendationResult
+    {
+        public int CustomerId { get; set; }
+        public string FullName { get; set; } = null!;
+        public string? AvatarUrl { get; set; }
+        public string? Email { get; set; }
+        public Dictionary<int, (double Rating, bool IsExplicit, string MovieTitle, string? PosterUrl)> History { get; set; } = new();
+        public List<KnnNeighbor> Neighbors { get; set; } = new();
+        public List<KnnMoviePrediction> Predictions { get; set; } = new();
     }
 }

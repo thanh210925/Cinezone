@@ -779,5 +779,36 @@ namespace CINEMA.Controllers
 
             return View(rules);
         }
+
+        [HttpGet]
+        public IActionResult KnnRecommendation(int? customerId)
+        {
+            // Lấy danh sách khách hàng có tương tác (đã đánh giá hoặc đã xem phim)
+            var activeCustomerIds = _context.Reviews.Select(r => r.CustomerId)
+                .Union(_context.UserMovieViews.Select(v => v.CustomerId))
+                .Distinct()
+                .ToList();
+
+            var customers = _context.Customers
+                .Where(c => activeCustomerIds.Contains(c.CustomerId))
+                .Select(c => new { c.CustomerId, c.FullName, c.Email })
+                .ToList();
+
+            ViewBag.Customers = customers;
+
+            // Mặc định chọn khách hàng đầu tiên nếu chưa chọn
+            if (!customerId.HasValue && customers.Any())
+            {
+                customerId = customers.First().CustomerId;
+            }
+
+            KnnRecommendationResult? knnResult = null;
+            if (customerId.HasValue)
+            {
+                knnResult = _recommendationEngine.GetKnnPredictionsDetail(customerId.Value, k: 5);
+            }
+
+            return View(knnResult);
+        }
     }
 }

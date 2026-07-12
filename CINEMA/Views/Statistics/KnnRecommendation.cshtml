@@ -1,0 +1,505 @@
+@model CINEMA.Services.KnnRecommendationResult
+@{
+    ViewData["Title"] = "Gợi ý phim - KNN Collaborative Filtering";
+    Layout = "_AdminLayout";
+
+    var customersList = ViewBag.Customers as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+}
+
+<div class="container-fluid py-4 bg-light-gray" style="min-height: 100vh; font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;">
+    <!-- AI Dashboard Header -->
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4 position-relative" style="background: linear-gradient(135deg, #0f172a, #1e1b4b);">
+        <div class="position-absolute top-0 start-0 w-100 h-100 bg-grid opacity-10"></div>
+        <div class="position-absolute top-0 end-0 bg-primary opacity-20 rounded-circle" style="width: 300px; height: 300px; transform: translate(100px, -100px); filter: blur(80px);"></div>
+        <div class="position-absolute bottom-0 start-0 bg-info opacity-15 rounded-circle" style="width: 250px; height: 250px; transform: translate(-100px, 100px); filter: blur(60px);"></div>
+        
+        <div class="card-body p-4 p-md-5 position-relative z-1 text-white">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <span class="badge bg-primary bg-opacity-25 text-info border border-info border-opacity-25 px-3 py-2 rounded-pill fw-bold mb-3 small d-inline-flex align-items-center gap-2">
+                        <span class="pulse-dot-green"></span> THUẬT TOÁN HỌC MÁY (MACHINE LEARNING)
+                    </span>
+                    <h1 class="fw-extrabold tracking-tight mb-2 text-white" style="font-size: 2.25rem;">Hệ Thống Gợi Ý Phim KNN</h1>
+                    <p class="lead text-white text-opacity-75 mb-0" style="max-width: 700px; font-size: 1rem;">
+                        Sử dụng giải thuật <strong>Lọc cộng tác dựa trên người dùng (User-Based Collaborative Filtering)</strong> và độ tương đồng <strong>Centered Cosine</strong> để dự báo điểm số và đề xuất phim cá nhân hóa.
+                    </p>
+                </div>
+                <div class="d-flex flex-column align-items-end text-md-end">
+                    <div class="d-flex align-items-center gap-2 text-info mb-1">
+                        <i class="bi bi-cpu-fill fs-4"></i>
+                        <span class="fw-bold tracking-wider">CINEZONE AI</span>
+                    </div>
+                    <span class="text-white text-opacity-50 small">Trạng thái: Trực tuyến & Sẵn sàng</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hộp chọn Khách hàng & Giải thích thuật toán -->
+    <div class="row g-4 mb-4">
+        <!-- Bộ lọc chọn khách hàng -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="fw-bold text-dark mb-2 d-flex align-items-center">
+                        <i class="bi bi-person-check-fill me-2 text-primary"></i>Chọn Khách Hàng Mô Phỏng
+                    </h5>
+                    <p class="text-muted small mb-4">Chọn một khách hàng trong hệ thống đã có hoạt động xem phim hoặc đánh giá để bắt đầu chạy mô hình KNN.</p>
+                </div>
+                
+                <form method="get" asp-action="KnnRecommendation" class="w-100">
+                    <div class="mb-3 position-relative">
+                        <label class="form-label text-muted small fw-bold">Danh sách khách hàng hoạt động</label>
+                        <div class="input-group shadow-sm rounded-pill overflow-hidden border">
+                            <span class="input-group-text bg-white border-0 ps-3 text-muted"><i class="bi bi-people-fill"></i></span>
+                            <select name="customerId" class="form-select border-0 ps-2" onchange="this.form.submit()" style="height: 50px; font-size: 0.95rem; cursor: pointer; font-family: 'Be Vietnam Pro', sans-serif;">
+                                <option value="">-- Chọn khách hàng --</option>
+                                @foreach (var c in customersList)
+                                {
+                                    bool isSelected = Model != null && c.CustomerId == Model.CustomerId;
+                                    if (isSelected)
+                                    {
+                                        <option value="@c.CustomerId" selected="selected">@c.FullName (@c.Email)</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@c.CustomerId">@c.FullName (@c.Email)</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-2 hover-scale" style="height: 50px; font-weight: 600;">
+                        <i class="bi bi-play-circle-fill"></i> Chạy Thuật Toán & Phân Tích
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Bảng thuyết minh giải thuật KNN -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-white h-100" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+                <h5 class="fw-bold text-info mb-3 d-flex align-items-center">
+                    <i class="bi bi-book-half me-2"></i>Bản Đồ Cơ Chế Tính Toán KNN
+                </h5>
+                <div class="row g-3 small">
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3 border border-white border-opacity-10 h-100" style="background-color: rgba(255, 255, 255, 0.08) !important;">
+                            <span class="badge bg-info text-dark fw-bold mb-2">BƯỚC 1</span>
+                            <h6 class="fw-bold text-white mb-1">Đo độ tương đồng sở thích</h6>
+                            <p class="text-white text-opacity-75 mb-0" style="font-size: 0.75rem; text-align: justify; line-height: 1.5;">
+                                Đánh giá R được chuẩn hóa bằng cách lấy R - 3.0 (trừ đi mức trung vị 3 sao). Độ tương đồng giữa khách hàng A và B được tính bằng công thức Cosine chuẩn hóa dựa trên các phim cả hai cùng tương tác.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3 border border-white border-opacity-10 h-100" style="background-color: rgba(255, 255, 255, 0.08) !important;">
+                            <span class="badge bg-primary text-white fw-bold mb-2">BƯỚC 2</span>
+                            <h6 class="fw-bold text-white mb-1">Dự đoán điểm trọng số</h6>
+                            <p class="text-white text-opacity-75 mb-0" style="font-size: 0.75rem; text-align: justify; line-height: 1.5;">
+                                Hệ thống chọn ra Top 5 khách hàng lân cận có gu giống nhất. Điểm số cho các bộ phim chưa xem sẽ được dự đoán theo công thức trung bình điểm số của lân cận nhân với trọng số tương đồng.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3 p-2 rounded-3 border border-white border-opacity-5 text-center text-info small" style="background-color: rgba(255, 255, 255, 0.08) !important; font-size: 0.75rem;">
+                    <i class="bi bi-shield-check me-1"></i> Tích hợp điểm số ẩn (Implicit Rating) từ tần suất lượt xem giúp vượt qua vấn đề thiếu hụt dữ liệu (cold start).
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model == null)
+    {
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+            <div class="py-4">
+                <div class="icon-shape bg-warning bg-opacity-10 text-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px;">
+                    <i class="bi bi-cpu fs-1"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-2">Yêu Cầu Lựa Chọn Khách Hàng</h4>
+                <p class="text-muted mx-auto" style="max-width: 480px;">Vui lòng chọn một khách hàng có hoạt động tương tác từ dropdown phía trên để hệ thống bắt đầu dựng ma trận người dùng và tính toán.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Khách hàng Mục Tiêu (Target User Highlight Card) -->
+        <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4 text-white" style="background: linear-gradient(135deg, #6366f1, #3b82f6);">
+            <div class="card-body p-4 position-relative">
+                <div class="d-flex align-items-center flex-wrap gap-4 z-2 position-relative">
+                    <div class="avatar-wrapper position-relative">
+                        <div class="avatar-glow"></div>
+                        <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=@Model.FullName" 
+                             class="rounded-circle border border-4 border-white shadow-lg bg-white position-relative" 
+                             style="width: 85px; height: 85px; object-fit: cover; z-index: 2;" />
+                    </div>
+                    <div>
+                        <span class="badge bg-white text-primary px-3 py-1.5 rounded-pill fw-bold mb-2 shadow-sm text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Khách hàng đang phân tích</span>
+                        <h3 class="fw-extrabold mb-1 m-0 text-white">@Model.FullName</h3>
+                        <div class="d-flex align-items-center gap-3 mt-1 text-white text-opacity-90 small">
+                            <span><i class="bi bi-envelope-fill me-1"></i>@Model.Email</span>
+                            <span>|</span>
+                            <span>ID: <code class="text-white bg-dark bg-opacity-25 px-2 py-0.5 rounded">@Model.CustomerId</code></span>
+                        </div>
+                    </div>
+                    <div class="ms-md-auto d-flex gap-4 text-center">
+                        <div class="rounded-4 px-4 py-3 border border-white border-opacity-10 backdrop-blur" style="background-color: rgba(255, 255, 255, 0.15) !important;">
+                            <span class="small d-block text-white text-opacity-75 mb-0" style="font-size: 0.75rem; font-weight: 500;">TỔNG TƯƠNG TÁC</span>
+                            <h3 class="fw-bold m-0 mt-1">@Model.History.Count <span style="font-size: 0.9rem; font-weight: normal;">phim</span></h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- CỘT TRÁI: LỊCH SỬ ĐÁNH GIÁ (R) -->
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                    <div class="card-header bg-white border-0 py-3 ps-4 border-bottom border-light d-flex align-items-center justify-content-between">
+                        <h5 class="fw-bold text-dark m-0 d-flex align-items-center">
+                            <i class="bi bi-clock-history me-2 text-warning"></i>Lịch Sử Tương Tác & Điểm Số
+                        </h5>
+                        <span class="badge bg-light text-dark rounded-pill border px-2 py-1">@Model.History.Count hoạt động</span>
+                    </div>
+                    <div class="card-body p-4 pt-3">
+                        @if (!Model.History.Any())
+                        {
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-folder2-open fs-1 d-block mb-3 opacity-50"></i>
+                                Khách hàng chưa có hoạt động nào trong hệ thống.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive border rounded-3 custom-scrollbar" style="max-height: 480px; overflow-y: auto;">
+                                <table class="table table-hover align-middle m-0 table-borderless">
+                                    <thead class="table-light border-bottom sticky-top">
+                                        <tr>
+                                            <th class="ps-3">Phim Đã Tương Tác</th>
+                                            <th class="text-center">Loại Tín Hiệu</th>
+                                            <th class="text-end pe-3">Điểm Số (R)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var h in Model.History)
+                                        {
+                                            <tr class="border-bottom border-light">
+                                                <td class="ps-3 py-3">
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="@(string.IsNullOrEmpty(h.Value.PosterUrl) ? "https://placehold.co/40x60?text=No+Poster" : h.Value.PosterUrl)" 
+                                                             class="rounded shadow-sm me-3" 
+                                                             style="width: 42px; height: 58px; object-fit: cover;" />
+                                                        <div>
+                                                            <span class="fw-bold text-dark text-truncate d-block" style="max-width: 140px; font-size: 0.88rem;" title="@h.Value.MovieTitle">@h.Value.MovieTitle</span>
+                                                            <span class="text-muted small" style="font-size: 0.75rem;">Phim ID: @h.Key</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="text-center py-3">
+                                                    @if (h.Value.IsExplicit)
+                                                    {
+                                                        <span class="badge bg-warning bg-opacity-10 text-warning px-2.5 py-1.5 rounded-pill border border-warning border-opacity-25" style="font-size: 0.75rem; font-weight: 600;">
+                                                            <i class="bi bi-chat-left-heart me-1"></i>Đánh giá
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-cyan-soft text-cyan px-2.5 py-1.5 rounded-pill border border-cyan border-opacity-25" style="font-size: 0.75rem; font-weight: 600;">
+                                                            <i class="bi bi-eye me-1"></i>Xem chi tiết
+                                                        </span>
+                                                    }
+                                                </td>
+                                                <td class="text-end pe-3 py-3">
+                                                    <div class="fw-bold @(h.Value.Rating >= 4 ? "text-success" : (h.Value.Rating >= 3 ? "text-warning" : "text-danger"))" style="font-size: 0.95rem;">
+                                                        @h.Value.Rating.ToString("F1") <i class="bi bi-star-fill text-warning ms-0.5" style="font-size: 0.8rem;"></i>
+                                                    </div>
+                                                    <span class="text-muted small" style="font-size: 0.7rem;">Chuẩn hóa: @((h.Value.Rating - 3.0).ToString("+0.0;-0.0;0"))</span>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- CỘT PHẢI: LÂN CẬN TƯƠNG ĐỒNG (NEIGHBORS) -->
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                    <div class="card-header bg-white border-0 py-3 ps-4 border-bottom border-light">
+                        <h5 class="fw-bold text-dark m-0 d-flex align-items-center">
+                            <i class="bi bi-people-fill me-2 text-danger"></i>Các Hàng Xóm Có Sở Thích Gần Nhất
+                        </h5>
+                    </div>
+                    <div class="card-body p-4 pt-3">
+                        @if (!Model.Neighbors.Any())
+                        {
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-emoji-frown fs-1 d-block mb-3 opacity-50"></i>
+                                Không tìm thấy khách hàng nào có sở thích tương đồng (Cosine > 0).
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row g-3 custom-scrollbar" style="max-height: 480px; overflow-y: auto; padding-right: 4px;">
+                                @foreach (var n in Model.Neighbors)
+                                {
+                                    double simPercent = n.Similarity * 100;
+                                    string progressColor = simPercent >= 70 ? "bg-success" : (simPercent >= 40 ? "bg-info" : "bg-warning");
+                                    var commonMovies = Model.History.Keys.Intersect(n.Ratings.Keys).ToList();
+
+                                    <div class="col-12">
+                                        <div class="p-3 rounded-4 border border-light bg-light bg-opacity-50 hover-scale-sm" style="transition: all 0.2s;">
+                                            <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="position-relative me-2.5">
+                                                        <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=@n.FullName" 
+                                                             class="rounded-circle border bg-white" 
+                                                             style="width: 40px; height: 40px; object-fit: cover;" />
+                                                        <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-white rounded-circle" style="transform: translate(2px, 2px);"></span>
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold text-dark" style="font-size: 0.9rem;">@n.FullName</div>
+                                                        <span class="text-muted small" style="font-size: 0.72rem;">ID: @n.CustomerId | Lịch sử chung: @commonMovies.Count phim</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Độ tương đồng lớn -->
+                                                <div class="text-end">
+                                                    <span class="text-muted small d-block" style="font-size: 0.7rem; font-weight: 500;">Độ tương đồng Cosine</span>
+                                                    <span class="fw-extrabold text-dark" style="font-size: 1.1rem;">@n.Similarity.ToString("P1")</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Thanh tiến trình tương đồng -->
+                                            <div class="progress mb-2.5" style="height: 6px;">
+                                                <div class="progress-bar @progressColor rounded-pill" role="progressbar" style="width: @simPercent%" aria-valuenow="@simPercent" aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+
+                                            <!-- Phim chung -->
+                                            @if (commonMovies.Any())
+                                            {
+                                                <div class="d-flex align-items-center flex-wrap gap-1.5">
+                                                    <span class="text-muted small me-1" style="font-size: 0.72rem;">Đối chiếu điểm:</span>
+                                                    @foreach (var mId in commonMovies.Take(3))
+                                                    {
+                                                        string title = Model.History[mId].MovieTitle;
+                                                        double targetScore = Model.History[mId].Rating;
+                                                        double neighborScore = n.Ratings[mId];
+                                                        <span class="badge bg-white text-dark border small px-2 py-1" style="font-size: 0.72rem; font-weight: 500;">
+                                                            @title (@targetScore★ vs @neighborScore★)
+                                                        </span>
+                                                    }
+                                                    @if (commonMovies.Count > 3)
+                                                    {
+                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border-0 px-2 py-1" style="font-size: 0.72rem;">+@(commonMovies.Count - 3)</span>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHẦN DƯỚI: KẾT QUẢ GỢI Ý & ĐỀ XUẤT PHIM DỰ ĐOÁN -->
+        <div class="card border-0 shadow-sm rounded-4 mt-4 bg-white">
+            <div class="card-header bg-white border-0 py-3.5 ps-4 border-bottom border-light">
+                <h5 class="fw-bold text-dark m-0 d-flex align-items-center">
+                    <i class="bi bi-stars me-2 text-primary"></i>Phim Được Đề Xuất Dự Đoán Điểm Số Cao Nhất (KNN)
+                </h5>
+            </div>
+            <div class="card-body p-4 pt-3">
+                @if (!Model.Predictions.Any())
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-box-arrow-in-right fs-1 d-block mb-3 opacity-50"></i>
+                        Không tìm thấy đề xuất thích hợp. Người dùng này có thể đã xem tất cả các phim đang hoạt động của rạp.
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info bg-opacity-10 border-0 text-primary p-3 mb-4 rounded-3 small">
+                        <i class="bi bi-lightbulb-fill me-1"></i> 
+                        <strong>Công thức dự đoán:</strong> Điểm của phim được tính bằng điểm đánh giá có trọng số (weighted rating) của những người lân cận đã đánh giá phim đó: 
+                        <code>Điểm dự đoán = [Tổng (Similarity * Điểm lân cận)] / [Tổng Similarity]</code>.
+                    </div>
+
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+                        @foreach (var pred in Model.Predictions.Take(6))
+                        {
+                            <div class="col">
+                                <div class="card border border-light shadow-sm rounded-4 h-100 overflow-hidden bg-white hover-shadow position-relative" style="transition: all 0.3s ease;">
+                                    <div class="d-flex h-100">
+                                        <!-- Poster Phim -->
+                                        <div class="position-relative overflow-hidden" style="width: 125px; flex-shrink: 0;">
+                                            <img src="@(string.IsNullOrEmpty(pred.Movie.PosterUrl) ? "https://placehold.co/125x185?text=No+Poster" : pred.Movie.PosterUrl)" 
+                                                 class="h-100 w-100 movie-poster-zoom" 
+                                                 style="object-fit: cover; min-height: 185px; transition: transform 0.3s;" />
+                                            @if (pred.Movie.AgeRating != null)
+                                            {
+                                                <span class="badge bg-danger position-absolute top-0 start-0 m-2 shadow" style="font-size: 0.72rem; border-radius: 4px; padding: 4px 6px;">@pred.Movie.AgeRating</span>
+                                            }
+                                        </div>
+                                        
+                                        <!-- Chi tiết gợi ý phim -->
+                                        <div class="p-3.5 d-flex flex-column justify-content-between w-100">
+                                            <div>
+                                                <h6 class="fw-extrabold text-dark text-truncate mb-1" style="font-size: 0.95rem;" title="@pred.Movie.Title">@pred.Movie.Title</h6>
+                                                <span class="text-muted small d-block mb-2" style="font-size: 0.78rem;">
+                                                    <i class="bi bi-hourglass-split me-1"></i>@pred.Movie.Duration phút | @pred.Movie.Language
+                                                </span>
+                                                
+                                                <!-- Điểm dự đoán đẹp mắt -->
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <span class="badge bg-primary bg-opacity-10 text-primary fw-extrabold px-2.5 py-1.5 rounded-3 d-inline-flex align-items-center gap-1" style="font-size: 0.85rem;">
+                                                        Dự đoán: <span class="fs-6 text-primary">@pred.PredictedRating.ToString("F2")</span> ★
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Các lân cận đóng góp điểm số -->
+                                            <div class="pt-2 border-top border-secondary border-opacity-10">
+                                                <span class="text-muted small d-block mb-1.5" style="font-size: 0.72rem; font-weight: 500;">Phân tích lân cận:</span>
+                                                <div class="d-flex flex-wrap gap-1">
+                                                    @foreach (var c in pred.Contributions.Take(2))
+                                                    {
+                                                        <span class="badge bg-light text-dark border px-2 py-1 text-truncate" style="font-size: 0.7rem; font-weight: 500; max-width: 100px;" title="Láng giềng: @c.NeighborName, Similarity: @c.Similarity.ToString("P1")">
+                                                            @c.NeighborName: @c.Rating.ToString("F0")★
+                                                        </span>
+                                                    }
+                                                    @if (pred.Contributions.Count > 2)
+                                                    {
+                                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border-0 px-2 py-1" style="font-size: 0.7rem;">+@(pred.Contributions.Count - 2) người</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    /* Pulse Green Dot */
+    .pulse-dot-green {
+        width: 8px;
+        height: 8px;
+        background-color: #22c55e;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+        animation: pulseGreen 2s infinite;
+    }
+    
+    @@keyframes pulseGreen {
+        0% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+        }
+        70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+        }
+        100% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+        }
+    }
+
+    /* Background Grid Pattern */
+    .bg-grid {
+        background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+
+    /* Glow for target avatar */
+    .avatar-wrapper {
+        position: relative;
+        z-index: 1;
+    }
+    .avatar-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100px;
+        height: 100px;
+        background: radial-gradient(#06b6d4, transparent 70%);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1;
+        opacity: 0.7;
+    }
+
+    /* Backdrop Blur */
+    .backdrop-blur {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    /* Cyan soft colors */
+    .bg-cyan-soft {
+        background-color: rgba(6, 182, 212, 0.1) !important;
+    }
+    .text-cyan {
+        color: #06b6d4 !important;
+    }
+    .border-cyan {
+        border-color: rgba(6, 182, 212, 0.25) !important;
+    }
+
+    /* Hover scale micro-animations */
+    .hover-scale:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.25) !important;
+    }
+    .hover-scale-sm:hover {
+        transform: scale(1.015);
+        background-color: rgba(99, 102, 241, 0.03) !important;
+        border-color: rgba(99, 102, 241, 0.15) !important;
+    }
+    
+    /* Movie Card zoom poster */
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08) !important;
+        border-color: rgba(99, 102, 241, 0.25) !important;
+    }
+    .hover-shadow:hover .movie-poster-zoom {
+        transform: scale(1.08);
+    }
+
+    /* Extra bold texts */
+    .fw-extrabold {
+        font-weight: 800;
+    }
+
+    /* Custom Scrollbar for activity list & neighbors list */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.03);
+        border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.12);
+        border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 0, 0, 0.2);
+    }
+</style>
