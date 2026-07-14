@@ -47,9 +47,17 @@
                                     }
                                 </td>
                                 <td class="text-center">
-                                    <button class="btn btn-sm btn-primary" onclick="openRegisterModal(@admin.AdminId, '@admin.FullName')">
-                                        <i class="bi bi-camera-fill"></i> Quét & Đăng ký
-                                    </button>
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <button class="btn btn-sm btn-primary" onclick="openRegisterModal(@admin.AdminId, '@admin.FullName')">
+                                            <i class="bi bi-camera-fill"></i> Quét & Đăng ký
+                                        </button>
+                                        @if (!string.IsNullOrEmpty(admin.FacePhoto))
+                                        {
+                                            <button class="btn btn-sm btn-danger" onclick="deleteFace(@admin.AdminId, '@admin.FullName')">
+                                                <i class="bi bi-trash-fill"></i> Xóa
+                                            </button>
+                                        }
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -94,7 +102,7 @@
                 <div class="d-flex justify-content-center gap-2">
                     <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" onclick="stopCamera()">Hủy</button>
                     <button type="button" id="btnCapture" class="btn btn-success px-4" onclick="captureAndSave()" disabled>
-                        <i class="bi bi-save"></i> Chụp & Lưu khuôn mặt
+                        <i class="bi bi-camera-fill"></i> Chụp & Lưu khuôn mặt
                     </button>
                 </div>
             </div>
@@ -172,45 +180,58 @@
 
         // Bắt đầu nhận diện khuôn mặt liên tục để kiểm duyệt
         function startFaceDetection() {
-            video.addEventListener('play', () => {
+            const runDetection = () => {
                 const width = video.videoWidth || video.clientWidth || 400;
                 const height = video.videoHeight || video.clientHeight || 300;
                 const displaySize = { width: width, height: height };
                 faceapi.matchDimensions(canvas, displaySize);
 
+                if (faceDetectionInterval) clearInterval(faceDetectionInterval);
+
                 faceDetectionInterval = setInterval(async () => {
                     if (video.paused || video.ended) return;
 
-                    // Phát hiện khuôn mặt
-                    const detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }))
-                                              .withFaceLandmarks();
+                    try {
+                        // Phát hiện khuôn mặt
+                        const detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }))
+                                                  .withFaceLandmarks();
 
-                    const resizedDetections = faceapi.resizeResults(detections, displaySize);
-                    
-                    // Xóa vẽ cũ
-                    const context = canvas.getContext('2d');
-                    context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-                    
-                    // Chỉ vẽ nét nếu không dùng chụp thủ công để tránh rác màn hình
-                    if (!document.getElementById('chkManual').checked) {
-                        faceapi.draw.drawDetections(canvas, resizedDetections);
+                        const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                        
+                        // Xóa vẽ cũ
+                        const context = canvas.getContext('2d');
+                        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+                        
+                        // Chỉ vẽ nét nếu không dùng chụp thủ công để tránh rác màn hình
+                        if (!document.getElementById('chkManual').checked) {
+                            faceapi.draw.drawDetections(canvas, resizedDetections);
 
-                        if (detections.length === 1) {
-                            cameraStatus.className = "alert alert-success py-2 mb-3";
-                            cameraStatus.innerHTML = `<i class="bi bi-check-circle-fill"></i> Phát hiện 1 khuôn mặt hợp lệ! Có thể chụp.`;
-                            btnCapture.removeAttribute('disabled');
-                        } else if (detections.length > 1) {
-                            cameraStatus.className = "alert alert-warning py-2 mb-3";
-                            cameraStatus.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Có nhiều hơn 1 khuôn mặt trong khung hình.`;
-                            btnCapture.setAttribute('disabled', 'true');
-                        } else {
-                            cameraStatus.className = "alert alert-warning py-2 mb-3";
-                            cameraStatus.innerHTML = `<i class="bi bi-person-bounding-box"></i> Đang quét khuôn mặt... Vui lòng đứng trước camera.`;
-                            btnCapture.setAttribute('disabled', 'true');
+                            if (detections.length === 1) {
+                                cameraStatus.className = "alert alert-success py-2 mb-3";
+                                cameraStatus.innerHTML = `<i class="bi bi-check-circle-fill"></i> Phát hiện 1 khuôn mặt hợp lệ! Có thể chụp.`;
+                                btnCapture.removeAttribute('disabled');
+                            } else if (detections.length > 1) {
+                                cameraStatus.className = "alert alert-warning py-2 mb-3";
+                                cameraStatus.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Có nhiều hơn 1 khuôn mặt trong khung hình.`;
+                                btnCapture.setAttribute('disabled', 'true');
+                            } else {
+                                cameraStatus.className = "alert alert-warning py-2 mb-3";
+                                cameraStatus.innerHTML = `<i class="bi bi-person-bounding-box"></i> Đang quét khuôn mặt... Vui lòng đứng trước camera.`;
+                                btnCapture.setAttribute('disabled', 'true');
+                            }
                         }
+                    } catch (e) {
+                        console.error("Lỗi trong vòng lặp AI:", e);
                     }
                 }, 500);
-            });
+            };
+
+            // Nếu video đã sẵn sàng hoặc đang chạy thì khởi chạy ngay
+            if (video.readyState >= 2 || !video.paused) {
+                runDetection();
+            } else {
+                video.addEventListener('play', runDetection, { once: true });
+            }
         }
 
         // Tắt camera và dọn dẹp
@@ -236,7 +257,7 @@
         async function captureAndSave() {
             btnCapture.setAttribute('disabled', 'true');
             cameraStatus.className = "alert alert-info py-2 mb-3";
-            cameraStatus.innerText = "Đang lưu trữ...";
+            cameraStatus.innerText = "Đang lưu trữ khuôn mặt lên hệ thống...";
 
             // Chụp frame ảnh từ video sang canvas tạm
             const tempCanvas = document.createElement('canvas');
@@ -278,6 +299,30 @@
                 console.error(ex);
                 alert("Lỗi mạng khi kết nối server!");
                 btnCapture.removeAttribute('disabled');
+            }
+        }
+
+        // Xóa khuôn mặt
+        async function deleteFace(adminId, fullName) {
+            if (!confirm(`Bạn có chắc chắn muốn xóa khuôn mặt đã đăng ký của nhân viên ${fullName} không?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/Admin/DeleteFace?adminId=${adminId}`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert("Xóa khuôn mặt thành công!");
+                    location.reload();
+                } else {
+                    alert("Lỗi: " + result.message);
+                }
+            } catch (ex) {
+                console.error(ex);
+                alert("Lỗi mạng khi kết nối server!");
             }
         }
     </script>

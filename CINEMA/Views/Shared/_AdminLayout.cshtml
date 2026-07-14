@@ -311,6 +311,11 @@
                         </a>
                     </li>
                     <li>
+                        <a asp-controller="Admin" asp-action="MonthlyTimesheet" class="@IsActive("Admin", "MonthlyTimesheet")">
+                            <i class="bi bi-calendar-check"></i><span>Bảng công tháng</span>
+                        </a>
+                    </li>
+                    <li>
                         <a asp-controller="Branch" asp-action="Index" class="@IsActive("Branch", "")">
                             <i class="bi bi-building"></i><span>Quản lý chi nhánh</span>
                         </a>

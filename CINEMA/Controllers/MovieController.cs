@@ -32,27 +32,11 @@ namespace CINEMA.Controllers
             var modified = false;
             foreach (var m in activeMovies)
             {
-                // 1. Kiểm tra ngày kết thúc của phim (EndDate)
+                // Kiểm tra ngày kết thúc của phim (EndDate). Nếu ngày kết thúc đã qua, tự động ngưng chiếu.
                 if (m.EndDate.HasValue && m.EndDate.Value < today)
                 {
                     m.IsActive = false;
                     modified = true;
-                }
-                // 2. Hoặc kiểm tra nếu tất cả các suất chiếu đã kết thúc
-                else if (m.Showtimes.Any())
-                {
-                    bool allEnded = m.Showtimes.All(s => {
-                        if (s.EndTime.HasValue) return s.EndTime < now;
-                        if (s.StartTime.HasValue && m.Duration.HasValue)
-                            return s.StartTime.Value.AddMinutes(m.Duration.Value) < now;
-                        return s.StartTime < now;
-                    });
-
-                    if (allEnded)
-                    {
-                        m.IsActive = false;
-                        modified = true;
-                    }
                 }
             }
 
@@ -256,9 +240,18 @@ namespace CINEMA.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Edit(Movie updatedMovie, IFormFile? PosterImage)
         {
+            // Loại bỏ các trường liên kết tự động khởi tạo khỏi kiểm tra hợp lệ
+            ModelState.Remove("Showtimes");
+            ModelState.Remove("Genres");
+
             // 1. Kiểm tra tính hợp lệ
             if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                Console.WriteLine($"[Validation Errors]: {string.Join(", ", errors)}");
+                TempData["ErrorMessage"] = "Không thể lưu phim do lỗi dữ liệu: " + string.Join(" | ", errors);
                 return View(updatedMovie);
+            }
 
             // 2. Lấy bản gốc từ DB
             var movie = _context.Movies.FirstOrDefault(m => m.MovieId == updatedMovie.MovieId);

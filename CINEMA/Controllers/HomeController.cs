@@ -234,36 +234,19 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
             var today = DateOnly.FromDateTime(DateTime.Today);
             var now = DateTime.Now;
 
-            // Tự động ngưng chiếu các phim có ngày kết thúc (EndDate) đã qua, hoặc toàn bộ suất chiếu đã kết thúc
+            // Tự động ngưng chiếu các phim có ngày kết thúc (EndDate) đã qua
             var activeMovies = _context.Movies
-                .Include(m => m.Showtimes)
                 .Where(m => m.IsActive == true)
                 .ToList();
 
             var modified = false;
             foreach (var m in activeMovies)
             {
-                // 1. Kiểm tra ngày kết thúc của phim (EndDate)
+                // Kiểm tra ngày kết thúc của phim (EndDate). Nếu ngày kết thúc đã qua, tự động ngưng chiếu.
                 if (m.EndDate.HasValue && m.EndDate.Value < today)
                 {
                     m.IsActive = false;
                     modified = true;
-                }
-                // 2. Hoặc kiểm tra nếu tất cả các suất chiếu đã kết thúc
-                else if (m.Showtimes.Any())
-                {
-                    bool allEnded = m.Showtimes.All(s => {
-                        if (s.EndTime.HasValue) return s.EndTime < now;
-                        if (s.StartTime.HasValue && m.Duration.HasValue)
-                            return s.StartTime.Value.AddMinutes(m.Duration.Value) < now;
-                        return s.StartTime < now;
-                    });
-
-                    if (allEnded)
-                    {
-                        m.IsActive = false;
-                        modified = true;
-                    }
                 }
             }
 

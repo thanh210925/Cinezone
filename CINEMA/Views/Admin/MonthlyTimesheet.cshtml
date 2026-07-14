@@ -1,0 +1,335 @@
+@model IEnumerable<CINEMA.Controllers.AdminController.EmployeeTimesheetDto>
+@{
+    ViewData["Title"] = "Bảng Công Tháng Nhân Viên";
+    Layout = "_AdminLayout";
+
+    int selectedMonth = ViewBag.SelectedMonth;
+    int selectedYear = ViewBag.SelectedYear;
+    int daysInMonth = ViewBag.DaysInMonth;
+}
+
+<div class="container-fluid py-4" style="font-family: 'Be Vietnam Pro', sans-serif;">
+    
+    <!-- Header Dashboard -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+        <div class="card-body p-4 p-md-5 text-white position-relative">
+            <div class="position-absolute top-0 end-0 bg-primary opacity-10 rounded-circle" style="width: 200px; height: 200px; transform: translate(50px, -50px); filter: blur(50px);"></div>
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 position-relative z-1">
+                <div>
+                    <span class="badge bg-primary bg-opacity-25 text-info border border-info border-opacity-25 px-3 py-2 rounded-pill fw-bold mb-3 small d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-calendar-check-fill"></i> QUẢN TRỊ NHÂN SỰ
+                    </span>
+                    <h1 class="fw-extrabold text-white mb-2" style="font-size: 2rem; font-weight: 800;">Bảng Công Tháng Tự Động</h1>
+                    <p class="text-white text-opacity-75 mb-0 small">
+                        Hệ thống tự động đối chiếu phân ca lịch làm việc, dữ liệu chấm công Face AI và đơn nghỉ phép được duyệt.
+                    </p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-light rounded-pill px-4 py-2 small hover-scale" onclick="window.print()">
+                        <i class="bi bi-printer-fill me-2"></i>In Bảng Công
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bộ lọc & Chú giải -->
+    <div class="row g-4 mb-4">
+        <!-- Bộ lọc tháng năm -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <h5 class="fw-bold text-dark mb-3 d-flex align-items-center">
+                    <i class="bi bi-funnel-fill text-primary me-2"></i>Chọn Thời Gian Xem
+                </h5>
+                <form method="get" asp-action="MonthlyTimesheet" class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold">Tháng</label>
+                        <select name="month" class="form-select rounded-pill border" onchange="this.form.submit()">
+                            @for (int m = 1; m <= 12; m++)
+                            {
+                                if (m == selectedMonth)
+                                {
+                                    <option value="@m" selected="selected">Tháng @m</option>
+                                }
+                                else
+                                {
+                                    <option value="@m">Tháng @m</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small fw-bold">Năm</label>
+                        <select name="year" class="form-select rounded-pill border" onchange="this.form.submit()">
+                            @for (int y = DateTime.Now.Year - 3; y <= DateTime.Now.Year + 1; y++)
+                            {
+                                if (y == selectedYear)
+                                {
+                                    <option value="@y" selected="selected">@y</option>
+                                }
+                                else
+                                {
+                                    <option value="@y">@y</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Chú giải ký hiệu bảng công -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                <h5 class="fw-bold text-dark mb-3 d-flex align-items-center">
+                    <i class="bi bi-info-circle-fill text-info me-2"></i>Chú Giải Ký Hiệu Bảng Công
+                </h5>
+                <div class="d-flex flex-wrap gap-2.5">
+                    <div class="d-flex align-items-center gap-1.5 px-3 py-2 border rounded-pill bg-light">
+                        <span class="badge bg-success-soft text-success rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">X</span>
+                        <span class="small text-muted">Đi làm đúng giờ</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1.5 px-3 py-2 border rounded-pill bg-light">
+                        <span class="badge bg-warning-soft text-warning rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">M</span>
+                        <span class="small text-muted">Đi muộn</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1.5 px-3 py-2 border rounded-pill bg-light">
+                        <span class="badge bg-warning-soft text-warning rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">S</span>
+                        <span class="small text-muted">Về sớm</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1.5 px-3 py-2 border rounded-pill bg-light">
+                        <span class="badge bg-orange-soft text-orange rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">M/S</span>
+                        <span class="small text-muted">Muộn + Về sớm</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1.5 px-3 py-2 border rounded-pill bg-light">
+                        <span class="badge bg-primary-soft text-primary rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">P</span>
+                        <span class="small text-muted">Nghỉ phép duyệt</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1.5 px-3 py-2 border rounded-pill bg-light">
+                        <span class="badge bg-danger-soft text-danger rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">V</span>
+                        <span class="small text-muted">Vắng không phép</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1.5 px-3 py-2 border rounded-pill bg-light">
+                        <span class="badge bg-cyan-soft text-cyan rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">TC</span>
+                        <span class="small text-muted">Tăng ca/Ngoài lịch</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1.5 px-3 py-2 border rounded-pill bg-light">
+                        <span class="badge bg-dark bg-opacity-10 text-dark rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">-</span>
+                        <span class="small text-muted">Ngày nghỉ</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1.5 px-3 py-2 border border-warning rounded-pill bg-light">
+                        <span class="badge bg-warning text-white rounded-circle" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">?</span>
+                        <span class="small text-muted">Chờ Admin duyệt</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng công Spreadsheet Grid -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
+        <div class="card-header bg-white border-0 py-3.5 ps-4 border-bottom border-light">
+            <h5 class="fw-bold text-dark m-0 d-flex align-items-center">
+                <i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>Chi Tiết Công Công Nhân Viên
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 600px; overflow-x: auto; overflow-y: auto; width: 100%;">
+                <table class="table table-hover align-middle m-0 table-bordered text-center" style="font-size: 0.82rem; min-width: 1850px; border-collapse: separate;">
+                    <thead class="table-dark text-white sticky-top" style="z-index: 5;">
+                        <tr>
+                            <!-- Các cột đông lạnh bên trái -->
+                            <th class="ps-3 text-start border-bottom-0" style="position: sticky; left: 0; min-width: 160px; z-index: 6; background-color: #212529 !important; color: #fff;">Nhân Viên</th>
+                            <th class="text-start border-bottom-0" style="position: sticky; left: 160px; min-width: 110px; z-index: 6; background-color: #212529 !important; color: #fff;">Chức Vụ</th>
+                            
+                            <!-- Các cột Ngày -->
+                            @for (int day = 1; day <= daysInMonth; day++)
+                            {
+                                var date = new DateTime(selectedYear, selectedMonth, day);
+                                bool isWeekend = date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
+                                <th class="border-bottom-0 @(isWeekend ? "bg-secondary bg-opacity-25 text-dark" : "")" style="min-width: 40px; font-weight: 700;">
+                                    @day <br /> <span class="small fw-normal" style="font-size: 0.65rem;">@date.ToString("ddd")</span>
+                                </th>
+                            }
+                            
+                            <!-- Các cột Tổng kết -->
+                            <th class="bg-indigo text-white border-bottom-0" style="min-width: 50px; font-weight: 700;">Ca</th>
+                            <th class="bg-success text-white border-bottom-0" style="min-width: 50px; font-weight: 700;">Công</th>
+                            <th class="bg-warning text-dark border-bottom-0" style="min-width: 50px; font-weight: 700;">Muộn</th>
+                            <th class="bg-warning text-dark border-bottom-0" style="min-width: 50px; font-weight: 700;">Sớm</th>
+                            <th class="bg-primary text-white border-bottom-0" style="min-width: 50px; font-weight: 700;">Phép</th>
+                            <th class="bg-danger text-white border-bottom-0" style="min-width: 50px; font-weight: 700;">Vắng</th>
+                            <th class="bg-dark text-white border-bottom-0" style="min-width: 75px; font-weight: 700;">Phút Trễ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="@(daysInMonth + 9)" class="py-5 text-muted text-center fs-6">
+                                    <i class="bi bi-people fs-1 d-block mb-3 opacity-40"></i>
+                                    Không tìm thấy dữ liệu nhân viên nào trong tháng.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var emp in Model)
+                            {
+                                <tr>
+                                    <!-- Cột Đông lạnh Nhân viên -->
+                                    <td class="ps-3 text-start" style="position: sticky; left: 0; z-index: 3; font-weight: 700; border-right: 2px solid #dee2e6; background-color: #ffffff !important;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                                                <i class="bi bi-person-fill text-secondary"></i>
+                                            </div>
+                                            <span class="text-dark text-truncate d-block" style="max-width: 120px;" title="@emp.FullName">@emp.FullName</span>
+                                        </div>
+                                    </td>
+                                    
+                                    <!-- Cột Đông lạnh Vai trò -->
+                                    <td class="text-start" style="position: sticky; left: 160px; z-index: 3; border-right: 2px solid #dee2e6; background-color: #ffffff !important;">
+                                        <span class="badge bg-light text-dark border px-2 py-1 text-truncate d-block" style="max-width: 100px; font-size: 0.72rem;">@emp.Role</span>
+                                    </td>
+                                    
+                                    <!-- Hiển thị ô Trạng thái ngày -->
+                                    @for (int day = 1; day <= daysInMonth; day++)
+                                    {
+                                        string status = emp.DailyStatus.ContainsKey(day) ? emp.DailyStatus[day] : "-";
+                                        bool isPending = status.EndsWith("?");
+                                        string cleanStatus = isPending ? status.TrimEnd('?') : status;
+
+                                        string bgClass = "";
+                                        string textClass = "";
+                                        string displaySymbol = cleanStatus;
+
+                                        switch (cleanStatus)
+                                        {
+                                            case "X":
+                                                bgClass = "bg-success-soft";
+                                                textClass = "text-success fw-bold";
+                                                break;
+                                            case "M":
+                                                bgClass = "bg-warning-soft";
+                                                textClass = "text-warning fw-bold";
+                                                break;
+                                            case "S":
+                                                bgClass = "bg-warning-soft";
+                                                textClass = "text-warning fw-bold";
+                                                break;
+                                            case "M/S":
+                                                bgClass = "bg-orange-soft";
+                                                textClass = "text-orange fw-bold";
+                                                break;
+                                            case "P":
+                                                bgClass = "bg-primary-soft";
+                                                textClass = "text-primary fw-bold";
+                                                break;
+                                            case "V":
+                                                bgClass = "bg-danger-soft";
+                                                textClass = "text-danger fw-bold";
+                                                break;
+                                            case "TC":
+                                                bgClass = "bg-cyan-soft";
+                                                textClass = "text-cyan fw-bold";
+                                                break;
+                                            case "-":
+                                            default:
+                                                bgClass = "bg-light";
+                                                textClass = "text-muted opacity-50";
+                                                displaySymbol = "-";
+                                                break;
+                                        }
+
+                                        <td class="@bgClass @textClass" style="position: relative; min-width: 40px;">
+                                            @displaySymbol
+                                            @if (isPending)
+                                            {
+                                                <span class="position-absolute top-0 end-0 p-1 bg-warning rounded-circle" style="transform: translate(-1px, 1px);" title="Chờ duyệt chấm công"></span>
+                                            }
+                                        </td>
+                                    }
+                                    
+                                    <!-- Cột Tổng kết hàng ngang -->
+                                    <td class="bg-indigo-soft text-indigo fw-bold">@emp.TotalShifts</td>
+                                    <td class="bg-success-soft text-success fw-bold">@emp.TotalWorked</td>
+                                    <td class="bg-warning-soft text-warning fw-bold">@emp.TotalLateDays</td>
+                                    <td class="bg-warning-soft text-warning fw-bold">@emp.TotalEarlyDays</td>
+                                    <td class="bg-primary-soft text-primary fw-bold">@emp.TotalLeaveDays</td>
+                                    <td class="bg-danger-soft text-danger fw-bold">@emp.TotalAbsentDays</td>
+                                    <td class="bg-dark bg-opacity-5 text-dark fw-bold">@Math.Round(emp.TotalLateMinutes, 0)</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom Soft Background Colors for Cells */
+    .bg-success-soft {
+        background-color: rgba(25, 135, 84, 0.08) !important;
+    }
+    .bg-warning-soft {
+        background-color: rgba(255, 193, 7, 0.08) !important;
+    }
+    .bg-danger-soft {
+        background-color: rgba(220, 53, 69, 0.08) !important;
+    }
+    .bg-primary-soft {
+        background-color: rgba(13, 110, 253, 0.08) !important;
+    }
+    .bg-cyan-soft {
+        background-color: rgba(13, 202, 240, 0.08) !important;
+    }
+    .bg-orange-soft {
+        background-color: rgba(253, 126, 20, 0.08) !important;
+    }
+    .bg-indigo-soft {
+        background-color: rgba(102, 16, 242, 0.08) !important;
+    }
+
+    .text-orange {
+        color: #fd7e14 !important;
+    }
+    .text-indigo {
+        color: #6610f2 !important;
+    }
+    .bg-indigo {
+        background-color: #6610f2 !important;
+    }
+
+    /* Print styles to hide sidebar and header on printing */
+    @@media print {
+        .sidebar, .logo, .navbar, .footer, .btn, form {
+            display: none !important;
+        }
+        .main-content {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        .table-responsive {
+            overflow: visible !important;
+            max-height: none !important;
+        }
+        table {
+            min-width: 100% !important;
+            font-size: 0.7rem !important;
+        }
+        th, td {
+            position: static !important;
+            background-color: #fff !important;
+            color: #000 !important;
+        }
+    }
+
+    /* Hover Scale Micro-animation */
+    .hover-scale:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+    }
+</style>

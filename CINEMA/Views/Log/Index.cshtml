@@ -1,0 +1,55 @@
+﻿@model IEnumerable<CINEMA.Models.ActivityLog>
+@{
+    ViewData["Title"] = "Nhật ký hệ thống";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid py-4">
+    <h4 class="fw-bold mb-4 text-primary">📜 Nhật ký hoạt động hệ thống</h4>
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Admin thực hiện</th>
+                            <th>Hành động</th>
+                            <th>Đối tượng</th>
+                            <th>ID đối tượng</th>
+                            <th>Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model)
+                        {
+                            <tr>
+                                <td class="ps-4">@log.Admin.FullName</td>
+                                <td>
+                                    @if (log.Action == "THÊM")
+                                    {
+                                        <span class="badge bg-success">@log.Action</span>
+                                    }
+                                    else if (log.Action == "SỬA")
+                                    {
+
+                                        <span class="badge bg-warning text-dark">@log.Action</span>
+                                    }
+                                    else
+                                    {
+
+                                        <span class="badge bg-danger">@log.Action</span>
+                                    }
+                                </td>
+                                <td>@log.Entity</td>
+                                <td>#@log.EntityId</td>
+                                <td class="text-muted">@log.LogDate.ToString("HH:mm dd/MM/yyyy")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+

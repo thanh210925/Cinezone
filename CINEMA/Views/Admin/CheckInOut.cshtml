@@ -387,49 +387,60 @@
         }
 
         function startTrackingFace() {
-            video.addEventListener('play', () => {
-                const displaySize = { width: video.clientWidth, height: video.clientHeight };
+            const runTracking = () => {
+                const width = video.videoWidth || video.clientWidth || 400;
+                const height = video.videoHeight || video.clientHeight || 300;
+                const displaySize = { width: width, height: height };
                 faceapi.matchDimensions(canvasOverlay, displaySize);
+
+                if (faceDetectionInterval) clearInterval(faceDetectionInterval);
 
                 faceDetectionInterval = setInterval(async () => {
                     if (video.paused || video.ended || !refDescriptor) return;
 
-                    const detection = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
-                                                 .withFaceLandmarks()
-                                                 .withFaceDescriptor();
+                    try {
+                        const detection = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+                                                     .withFaceLandmarks()
+                                                     .withFaceDescriptor();
 
-                    const context = canvasOverlay.getContext('2d');
-                    context.clearRect(0, 0, canvasOverlay.width, canvasOverlay.height);
+                        const context = canvasOverlay.getContext('2d');
+                        context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
-                    if (detection) {
-                        // Vẽ khung
-                        const resizedDetections = faceapi.resizeResults([detection], displaySize);
-                        faceapi.draw.drawDetections(canvasOverlay, resizedDetections);
+                        if (detection) {
+                            // Vẽ khung
+                            const resizedDetections = faceapi.resizeResults([detection], displaySize);
+                            faceapi.draw.drawDetections(canvasOverlay, resizedDetections);
 
-                        // So khớp khoảng cách Euclidean
-                        const distance = faceapi.euclideanDistance(detection.descriptor, refDescriptor);
-                        const threshold = 0.55; // Ngưỡng nhận diện chính xác
+                            // So khớp khoảng cách Euclidean
+                            const distance = faceapi.euclideanDistance(detection.descriptor, refDescriptor);
+                            const threshold = 0.55; // Ngưỡng nhận diện chính xác
 
-                        if (distance < threshold) {
-                            status.innerHTML = `<span class="text-success"><i class="bi bi-patch-check-fill"></i> Đã nhận diện đúng khuôn mặt! (Độ sai lệch: ${distance.toFixed(3)})</span>`;
-                            isFaceMatched = true;
-                            aiStatusMsg.className = "alert alert-success py-2 mb-2";
-                            aiStatusMsg.innerHTML = `<i class="bi bi-check-circle-fill"></i> Xác thực khuôn mặt khớp. Chấm công sẽ được duyệt tự động.`;
+                            if (distance < threshold) {
+                                status.innerHTML = `<span class="text-success"><i class="bi bi-patch-check-fill"></i> Đã nhận diện đúng khuôn mặt! (Độ sai lệch: ${distance.toFixed(3)})</span>`;
+                                isFaceMatched = true;
+                                aiStatusMsg.className = "alert alert-success py-2 mb-2";
+                                aiStatusMsg.innerHTML = `<i class="bi bi-check-circle-fill"></i> Xác thực khuôn mặt khớp. Chấm công sẽ được duyệt tự động.`;
+                            } else {
+                                status.innerHTML = `<span class="text-danger"><i class="bi bi-patch-exclamation-fill"></i> Khuôn mặt không khớp! (Độ sai lệch: ${distance.toFixed(3)})</span>`;
+                                isFaceMatched = false;
+                                aiStatusMsg.className = "alert alert-danger py-2 mb-2";
+                                aiStatusMsg.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Khuôn mặt không khớp. Chấm công sẽ ở trạng thái chờ duyệt.`;
+                            }
                         } else {
-                            status.innerHTML = `<span class="text-danger"><i class="bi bi-patch-exclamation-fill"></i> Khuôn mặt không khớp! (Độ sai lệch: ${distance.toFixed(3)})</span>`;
+                            status.innerHTML = `<span class="text-warning"><i class="bi bi-person-bounding-box"></i> Đang tìm khuôn mặt...</span>`;
                             isFaceMatched = false;
-                            aiStatusMsg.className = "alert alert-danger py-2 mb-2";
-                            aiStatusMsg.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Khuôn mặt không khớp. Chấm công sẽ ở trạng thái chờ duyệt.`;
                         }
-                    } else {
-                        status.innerHTML = `<span class="text-warning"><i class="bi bi-person-bounding-box"></i> Đang tìm khuôn mặt...</span>`;
-                        isFaceMatched = false;
+                    } catch (e) {
+                        console.error("Lỗi trong vòng quét so khớp:", e);
                     }
                 }, 500);
-            });
-            // Kích hoạt lại sự kiện play nếu video đang chạy sẵn
-            if (!video.paused) {
-                video.dispatchEvent(new Event('play'));
+            };
+
+            // Khởi chạy ngay nếu video đã sẵn sàng hoặc đang chạy
+            if (video.readyState >= 2 || !video.paused) {
+                runTracking();
+            } else {
+                video.addEventListener('play', runTracking, { once: true });
             }
         }
 

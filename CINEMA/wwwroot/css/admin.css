@@ -1,4 +1,4 @@
-﻿* {
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -143,11 +143,12 @@ body {
     margin-left: 280px;
     padding: 25px;
     transition: all 0.3s ease;
-    width: 100%;
+    width: calc(100% - 280px);
 }
 
     .main-content.expanded {
         margin-left: 80px;
+        width: calc(100% - 80px);
     }
 
 .content-box {
@@ -194,6 +195,7 @@ body {
     .main-content, .main-content.expanded {
         margin-left: 0;
         padding: 15px; /* Giảm padding cho mobile bớt chật */
+        width: 100%;
     }
 }
 

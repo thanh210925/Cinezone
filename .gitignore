@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Do not ignore MVC Views/Log directory
+!**/Views/Log/
+!**/Views/Log/**

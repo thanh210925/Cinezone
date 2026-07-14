@@ -1,189 +1,351 @@
 @model CINEMA.Models.Movie
 @{
-    ViewData["Title"] = "Sửa phim";
+    ViewData["Title"] = "Sửa thông tin phim";
     Layout = "_AdminLayout";
 }
 
-<div class="container-fluid py-4">
-    <!-- Header -->
-    <div class="d-flex align-items-center mb-4">
-        <h2 class="fw-bold mb-0 text-primary">
-            <i class="bi bi-pencil-square me-2"></i> Sửa thông tin phim
-        </h2>
+<div class="container-fluid py-4" style="font-family: 'Be Vietnam Pro', sans-serif;">
+    <!-- Breadcrumb & Back Button -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <a asp-action="Index" class="btn btn-sm btn-light border rounded-circle d-flex align-items-center justify-content-center hover-scale" style="width: 40px; height: 40px;">
+                <i class="bi bi-arrow-left fs-5"></i>
+            </a>
+            <div>
+                <nav aria-label="breadcrumb" class="mb-0">
+                    <ol class="breadcrumb mb-1" style="font-size: 0.8rem;">
+                        <li class="breadcrumb-item"><a asp-controller="Admin" asp-action="Dashboard">Quản trị</a></li>
+                        <li class="breadcrumb-item"><a asp-action="Index">Quản lý Phim</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Sửa phim</li>
+                    </ol>
+                </nav>
+                <h3 class="fw-extrabold text-dark mb-0" style="font-weight: 800;">Chỉnh Sửa Bộ Phim</h3>
+            </div>
+        </div>
+        <div>
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill fw-bold">
+                <i class="bi bi-shield-lock-fill me-1"></i> Mode: Administrator
+            </span>
+        </div>
     </div>
 
-    <form asp-action="Edit" method="post">
+    <form asp-action="Edit" method="post" enctype="multipart/form-data">
         <input type="hidden" asp-for="MovieId" />
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger mb-4 p-3 rounded-4 shadow-sm border-0 d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-danger"></i>
+            <div>
+                <h6 class="fw-bold mb-1 text-danger">Không thể lưu thay đổi</h6>
+                <p class="mb-0 small text-danger">@TempData["ErrorMessage"]</p>
+            </div>
+        </div>
+    }
 
-        <div class="row">
-            <!-- Left Column: Thông tin -->
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger mb-4 p-3 rounded-4 shadow-sm border-0">
+            <h6 class="fw-bold mb-2 text-danger"><i class="bi bi-exclamation-octagon-fill me-2"></i>Vui lòng sửa các lỗi sau:</h6>
+            <ul class="mb-0 ps-3 text-danger small">
+                @foreach (var modelState in ViewData.ModelState.Values)
+                {
+                    foreach (var error in modelState.Errors)
+                    {
+                        <li>@error.ErrorMessage</li>
+                    }
+                }
+            </ul>
+        </div>
+    }
+
+        <div class="row g-4">
+            <!-- Cột trái: Form thông tin chính -->
             <div class="col-lg-8">
-                <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-semibold text-dark">
-                            <i class="bi bi-info-circle text-primary me-2"></i> Thông tin cơ bản
-                        </h5>
+                <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mb-4">
+                    <h5 class="fw-bold text-dark mb-4 d-flex align-items-center">
+                        <i class="bi bi-info-circle-fill text-primary me-2.5"></i> Thông tin cơ bản bộ phim
+                    </h5>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-muted small">TÊN PHIM <span class="text-danger">*</span></label>
+                        <div class="input-group border rounded-3 overflow-hidden shadow-sm">
+                            <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-film"></i></span>
+                            <input asp-for="Title" class="form-control border-0 px-3 py-2.5 fw-bold" placeholder="Ví dụ: Lật Mặt 7: Một Điều Ước" style="font-size: 1.05rem;" required />
+                        </div>
+                        <span asp-validation-for="Title" class="text-danger small mt-1 d-block"></span>
                     </div>
-                    <div class="card-body p-4">
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Tên phim</label>
-                            <input asp-for="Title" class="form-control form-control-lg" placeholder="Nhập tên phim..." />
+
+                    <div class="row g-3">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold text-muted small">THỜI LƯỢNG (PHÚT) <span class="text-danger">*</span></label>
+                            <div class="input-group border rounded-3 overflow-hidden shadow-sm">
+                                <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-hourglass-split"></i></span>
+                                <input asp-for="Duration" type="number" class="form-control border-0 px-3" placeholder="120" required min="1" />
+                            </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-4 mb-4">
-                                <label class="form-label fw-semibold">Thời lượng (phút)</label>
-                                <input asp-for="Duration" type="number" class="form-control" placeholder="120" />
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold text-muted small">NGÀY KHỞI CHIẾU <span class="text-danger">*</span></label>
+                            <div class="input-group border rounded-3 overflow-hidden shadow-sm">
+                                <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-calendar-play"></i></span>
+                                <input asp-for="ReleaseDate" type="date" class="form-control border-0 px-3"
+                                       value="@(Model.ReleaseDate.HasValue? Model.ReleaseDate.Value.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) : "")" required />
                             </div>
-                            <div class="col-md-4 mb-4">
-                                <label class="form-label fw-semibold">Ngày khởi chiếu</label>
-                                <input asp-for="ReleaseDate" type="date" class="form-control"
-                                       value="@(Model.ReleaseDate.HasValue? Model.ReleaseDate.Value.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) : "")" />
-                            </div>
-                            <div class="col-md-4 mb-4">
-                                <label class="form-label fw-semibold">Ngày kết thúc chiếu</label>
-                                <input asp-for="EndDate" type="date" class="form-control"
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold text-muted small">NGÀY KẾT THÚC CHIẾU</label>
+                            <div class="input-group border rounded-3 overflow-hidden shadow-sm">
+                                <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-calendar-x"></i></span>
+                                <input asp-for="EndDate" type="date" class="form-control border-0 px-3"
                                        value="@(Model.EndDate.HasValue? Model.EndDate.Value.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) : "")" />
                             </div>
                         </div>
+                    </div>
 
-                        <div class="row">
-                            <div class="col-md-4 mb-4">
-                                <label class="form-label fw-semibold">Quốc gia</label>
-                                <input asp-for="Country" class="form-control" placeholder="Việt Nam" />
-                            </div>
-                            <div class="col-md-4 mb-4">
-                                <label class="form-label fw-semibold">Ngôn ngữ</label>
-                                <input asp-for="Language" class="form-control" placeholder="Tiếng Việt" />
-                            </div>
-                            <div class="col-md-4 mb-4">
-                                <label class="form-label fw-semibold">Giới hạn tuổi</label>
-                                <input asp-for="AgeRating" class="form-control" placeholder="T13, T16, T18..." />
+                    <div class="row g-3">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold text-muted small">QUỐC GIA</label>
+                            <div class="input-group border rounded-3 overflow-hidden shadow-sm">
+                                <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-globe-americas"></i></span>
+                                <input asp-for="Country" class="form-control border-0 px-3" placeholder="Việt Nam, USA..." />
                             </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Mô tả</label>
-                            <textarea asp-for="Description" class="form-control" rows="5" placeholder="Nhập mô tả nội dung phim..."></textarea>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold text-muted small">NGÔN NGỮ</label>
+                            <div class="input-group border rounded-3 overflow-hidden shadow-sm">
+                                <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-translate"></i></span>
+                                <input asp-for="Language" class="form-control border-0 px-3" placeholder="Phụ đề Tiếng Việt..." />
+                            </div>
                         </div>
 
-                        <div>
-                            <label class="form-label fw-semibold">Trạng thái</label>
-                            <select asp-for="IsActive" class="form-select">
-                                <option value="true" selected="@(Model.IsActive == true)">Đang chiếu</option>
-                                <option value="false" selected="@(Model.IsActive == false)">Ngưng chiếu</option>
-                            </select>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold text-muted small">PHÂN LOẠI ĐỘ TUỔI</label>
+                            <div class="input-group border rounded-3 overflow-hidden shadow-sm">
+                                <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-18-circle"></i></span>
+                                <input asp-for="AgeRating" class="form-control border-0 px-3" placeholder="T18, T16, P..." />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-muted small">TÓM TẮT NỘI DUNG PHIM</label>
+                        <textarea asp-for="Description" class="form-control border rounded-3 px-3 py-2" rows="6" placeholder="Nhập tóm tắt kịch bản bộ phim..."></textarea>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-bold text-muted small d-block">TRẠNG THÁI CHIẾU</label>
+                        <div class="d-flex align-items-center gap-4 mt-2">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="IsActive" id="statusActive" value="true" checked="@(Model.IsActive == true)">
+                                <label class="form-check-label text-success fw-bold" for="statusActive">
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2.5 py-1.5 rounded">ĐANG HOẠT ĐỘNG (ĐANG CHIẾU)</span>
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="IsActive" id="statusInactive" value="false" checked="@(Model.IsActive == false)">
+                                <label class="form-check-label text-danger fw-bold" for="statusInactive">
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2.5 py-1.5 rounded">TẠM NGƯNG CHIẾU</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column: Poster & Trailer -->
+            <!-- Cột phải: Media & Previews -->
             <div class="col-lg-4">
-                <!-- Poster -->
-                <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-semibold text-dark">
-                            <i class="bi bi-image text-success me-2"></i> Poster phim
-                        </h5>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">URL Poster</label>
-                            <input asp-for="PosterUrl" class="form-control" placeholder="https://..." />
-                        </div>
+                <!-- Poster Upload & Link -->
+                <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mb-4">
+                    <h5 class="fw-bold text-dark mb-4 d-flex align-items-center">
+                        <i class="bi bi-image-fill text-success me-2.5"></i> Poster truyền thông
+                    </h5>
 
-                        @if (!string.IsNullOrEmpty(Model.PosterUrl))
-                        {
-                            <div class="text-center">
-                                <div class="border rounded bg-light p-2">
-                                    <img src="@Model.PosterUrl" alt="@Model.Title"
-                                         class="img-fluid rounded shadow-sm"
-                                         style="max-height:400px; width:100%; object-fit:cover;" />
-                                </div>
-                                <small class="text-muted d-block mt-2">Preview poster hiện tại</small>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="text-center py-5 bg-light rounded border border-dashed">
-                                <div class="text-muted">
-                                    <i class="bi bi-image fs-1 mb-2"></i>
-                                    <p class="mb-0">Chưa có poster</p>
-                                </div>
-                            </div>
-                        }
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted small">TẢI LÊN FILE ẢNH MỚI</label>
+                        <input type="file" name="PosterImage" id="PosterImage" class="form-control rounded-3 border" accept="image/*" onchange="previewImageFromFile(this)" />
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-muted small">HOẶC DÙNG LIÊN KẾT ẢNH (URL)</label>
+                        <input asp-for="PosterUrl" class="form-control rounded-3 border" placeholder="https://domain.com/image.jpg" oninput="previewImageFromUrl(this.value)" />
+                    </div>
+
+                    <div class="text-center">
+                        <span class="small d-block text-muted mb-2 fw-semibold">Hình ảnh Xem trước</span>
+                        <div class="border rounded-4 bg-light p-2 overflow-hidden d-inline-block shadow-sm w-100" style="max-height: 380px;">
+                            <img id="poster-preview" src="@(string.IsNullOrEmpty(Model.PosterUrl) ? "https://placehold.co/300x450?text=No+Poster" : Model.PosterUrl)" 
+                                 class="img-fluid rounded-3" 
+                                 style="max-height: 360px; object-fit: cover; width: 100%; display: block;" />
+                        </div>
                     </div>
                 </div>
 
-                <!-- Trailer -->
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-semibold text-dark">
-                            <i class="bi bi-camera-reels text-danger me-2"></i> Trailer phim
-                        </h5>
+                <!-- Trailer Video -->
+                <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+                    <h5 class="fw-bold text-dark mb-4 d-flex align-items-center">
+                        <i class="bi bi-play-btn-fill text-danger me-2.5"></i> Trailer quảng bá
+                    </h5>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-muted small">LIÊN KẾT VIDEO TRAILER (YOUTUBE)</label>
+                        <input asp-for="TrailerUrl" class="form-control rounded-3 border" placeholder="https://www.youtube.com/watch?v=..." oninput="previewTrailer(this.value)" />
+                        <small class="text-muted fst-italic mt-1 d-block" style="font-size: 0.72rem;">Chấp nhận liên kết YouTube hoặc tệp tin .mp4</small>
                     </div>
-                    <div class="card-body p-4">
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">URL Trailer</label>
-                            <input asp-for="TrailerUrl" class="form-control" placeholder="https://www.youtube.com/watch?v=..." />
-                            <small class="text-muted fst-italic">Hỗ trợ YouTube hoặc link .mp4</small>
+
+                    <div id="trailer-preview-section">
+                        <span class="small d-block text-muted mb-2 text-center fw-semibold">Video Xem trước</span>
+                        
+                        <div id="trailer-no-preview" class="text-center py-5 bg-light rounded-4 border border-dashed @(string.IsNullOrEmpty(Model.TrailerUrl) ? "" : "d-none")">
+                            <i class="bi bi-camera-video text-muted fs-2"></i>
+                            <p class="mb-0 small text-muted mt-2">Chưa có liên kết trailer</p>
                         </div>
 
-                        @if (!string.IsNullOrEmpty(Model.TrailerUrl))
-                        {
-                            <div class="mt-3">
-                                <div class="ratio ratio-16x9 rounded overflow-hidden shadow-sm border">
-                                    @{
-                                        string embedUrl = "";
-                                        if (Model.TrailerUrl.Contains("youtube.com") || Model.TrailerUrl.Contains("youtu.be"))
+                        <div id="trailer-video-wrapper" class="ratio ratio-16x9 rounded-4 overflow-hidden border shadow-sm @(string.IsNullOrEmpty(Model.TrailerUrl) ? "d-none" : "")">
+                            @{
+                                string embedUrl = "";
+                                if (!string.IsNullOrEmpty(Model.TrailerUrl))
+                                {
+                                    if (Model.TrailerUrl.Contains("youtube.com") || Model.TrailerUrl.Contains("youtu.be"))
+                                    {
+                                        string videoId = "";
+                                        if (Model.TrailerUrl.Contains("v="))
                                         {
-                                            string videoId = "";
-                                            if (Model.TrailerUrl.Contains("v="))
-                                            {
-                                                videoId = Model.TrailerUrl.Split("v=")[1].Split("&")[0];
-                                            }
-                                            else if (Model.TrailerUrl.Contains("youtu.be/"))
-                                            {
-                                                videoId = Model.TrailerUrl.Split("youtu.be/")[1].Split("?")[0];
-                                            }
-                                            embedUrl = $"https://www.youtube.com/embed/{videoId}";
+                                            videoId = Model.TrailerUrl.Split("v=")[1].Split("&")[0];
                                         }
-                                        else
+                                        else if (Model.TrailerUrl.Contains("youtu.be/"))
                                         {
-                                            embedUrl = Model.TrailerUrl;
+                                            videoId = Model.TrailerUrl.Split("youtu.be/")[1].Split("?")[0];
                                         }
+                                        embedUrl = $"https://www.youtube.com/embed/{videoId}";
                                     }
-
-                                    <iframe src="@embedUrl" allowfullscreen class="border-0"></iframe>
-                                </div>
-                                <small class="text-muted d-block mt-2 text-center">Preview trailer hiện tại</small>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="text-center py-5 bg-light rounded border border-dashed">
-                                <div class="text-muted">
-                                    <i class="bi bi-camera-video fs-1 mb-2"></i>
-                                    <p class="mb-0">Chưa có trailer</p>
-                                </div>
-                            </div>
-                        }
+                                    else
+                                    {
+                                        embedUrl = Model.TrailerUrl;
+                                    }
+                                }
+                            }
+                            <iframe id="trailer-iframe" src="@embedUrl" allowfullscreen class="border-0"></iframe>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Buttons -->
-        <div class="card shadow-sm border-0 mt-4">
-            <div class="card-body p-4 text-end">
-                <button type="submit" class="btn btn-primary btn-lg px-4 me-2 shadow">
-                    <i class="bi bi-save me-2"></i>Lưu thay đổi
-                </button>
-                <a asp-action="Index" class="btn btn-outline-secondary btn-lg px-4">
-                    <i class="bi bi-arrow-left-circle me-2"></i>Hủy
+        <!-- Buttons Bottom Bar -->
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-3.5 mt-4">
+            <div class="d-flex align-items-center justify-content-end gap-2.5">
+                <a asp-action="Index" class="btn btn-light border px-4 py-2.5 rounded-pill fw-semibold hover-scale">
+                    <i class="bi bi-x-circle me-1.5"></i> Hủy Bỏ
                 </a>
+                <button type="submit" class="btn btn-primary px-5 py-2.5 rounded-pill fw-bold hover-scale shadow-sm">
+                    <i class="bi bi-check-circle-fill me-1.5"></i> Lưu Thông Tin Phim
+                </button>
             </div>
         </div>
     </form>
 </div>
+
+<style>
+    /* Styling form controls to look cohesive and premium */
+    .input-group:focus-within {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
+    }
+    
+    .form-control:focus, .form-select:focus, .form-check-input:focus {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
+    }
+    
+    /* Background gradients / colors for layout */
+    .bg-success-soft {
+        background-color: rgba(25, 135, 84, 0.08) !important;
+    }
+
+    .hover-scale {
+        transition: all 0.2s ease-in-out;
+    }
+    .hover-scale:hover {
+        transform: translateY(-2px);
+    }
+    
+    .fw-extrabold {
+        font-weight: 800;
+    }
+
+    /* Dashed border for empty states */
+    .border-dashed {
+        border-style: dashed !important;
+        border-width: 2px !important;
+        border-color: #cbd5e1 !important;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        // Hàm hiển thị ảnh xem trước khi tải lên từ tệp tin cục bộ
+        function previewImageFromFile(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const posterPreview = document.getElementById('poster-preview');
+                    posterPreview.src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Hàm cập nhật ảnh xem trước khi nhập liên kết URL
+        function previewImageFromUrl(url) {
+            const posterPreview = document.getElementById('poster-preview');
+            const trimmedUrl = url.trim();
+            if (trimmedUrl) {
+                posterPreview.src = trimmedUrl;
+            } else {
+                posterPreview.src = "https://placehold.co/300x450?text=No+Poster";
+            }
+        }
+
+        // Hàm phân tích và tải trước video trailer thời gian thực
+        function previewTrailer(url) {
+            const trimmedUrl = url.trim();
+            const iframe = document.getElementById('trailer-iframe');
+            const wrapper = document.getElementById('trailer-video-wrapper');
+            const noPreview = document.getElementById('trailer-no-preview');
+
+            if (!trimmedUrl) {
+                wrapper.classList.add('d-none');
+                noPreview.classList.remove('d-none');
+                iframe.src = "";
+                return;
+            }
+
+            let embedUrl = "";
+            if (trimmedUrl.includes("youtube.com") || trimmedUrl.includes("youtu.be")) {
+                let videoId = "";
+                if (trimmedUrl.includes("v=")) {
+                    videoId = trimmedUrl.split("v=")[1].split("&")[0];
+                } else if (trimmedUrl.includes("youtu.be/")) {
+                    videoId = trimmedUrl.split("youtu.be/")[1].split("?")[0];
+                }
+                if (videoId) {
+                    embedUrl = "https://www.youtube.com/embed/" + videoId;
+                }
+            } else {
+                embedUrl = trimmedUrl; // Direct file or other embeds
+            }
+
+            if (embedUrl) {
+                iframe.src = embedUrl;
+                wrapper.classList.remove('d-none');
+                noPreview.classList.add('d-none');
+            } else {
+                wrapper.classList.add('d-none');
+                noPreview.classList.remove('d-none');
+                iframe.src = "";
+            }
+        }
+    </script>
+}

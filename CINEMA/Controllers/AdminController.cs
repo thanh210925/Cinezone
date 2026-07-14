@@ -613,6 +613,188 @@ namespace CINEMA.Controllers
             return View(dailyData); // Phải đảm bảo View tương ứng là DailyAttendanceReport.cshtml
         }
 
+        public class EmployeeTimesheetDto
+        {
+            public int AdminId { get; set; }
+            public string FullName { get; set; } = null!;
+            public string Role { get; set; } = null!;
+            public Dictionary<int, string> DailyStatus { get; set; } = new();
+            public int TotalShifts { get; set; }
+            public int TotalWorked { get; set; }
+            public int TotalLateDays { get; set; }
+            public int TotalEarlyDays { get; set; }
+            public int TotalLeaveDays { get; set; }
+            public int TotalAbsentDays { get; set; }
+            public double TotalLateMinutes { get; set; }
+            public double TotalEarlyMinutes { get; set; }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> MonthlyTimesheet(int? month, int? year)
+        {
+            if (!IsSuperAdmin())
+            {
+                TempData["Error"] = "Bạn không có quyền truy cập!";
+                return RedirectToAction("Dashboard");
+            }
+
+            int targetMonth = month ?? DateTime.Now.Month;
+            int targetYear = year ?? DateTime.Now.Year;
+
+            // Lấy tất cả nhân viên
+            var admins = await _context.Admins.ToListAsync();
+
+            // Số ngày trong tháng
+            int daysInMonth = DateTime.DaysInMonth(targetYear, targetMonth);
+            var startDate = new DateTime(targetYear, targetMonth, 1);
+            var endDate = new DateTime(targetYear, targetMonth, daysInMonth);
+
+            // Lấy tất cả lịch phân ca (WorkSchedules) trong tháng này
+            var schedules = await _context.WorkSchedules
+                .Include(ws => ws.Shift)
+                .Where(ws => ws.WorkDate >= startDate && ws.WorkDate <= endDate)
+                .ToListAsync();
+
+            // Lấy tất cả dữ liệu chấm công (Attendance) trong tháng này
+            var attendances = await _context.Attendance
+                .Where(a => a.Date >= startDate && a.Date <= endDate)
+                .ToListAsync();
+
+            // Lấy tất cả đơn xin nghỉ phép (LeaveRequests) đã phê duyệt và giao thoa với tháng này
+            var leaves = await _context.LeaveRequests
+                .Where(l => l.Status == "Đã duyệt" && l.StartDate <= endDate && l.EndDate >= startDate)
+                .ToListAsync();
+
+            var timesheetData = new List<EmployeeTimesheetDto>();
+
+            foreach (var emp in admins)
+            {
+                var dto = new EmployeeTimesheetDto
+                {
+                    AdminId = emp.AdminId ?? 0,
+                    FullName = emp.FullName ?? "Nhân viên #" + emp.AdminId,
+                    Role = emp.Role ?? "N/A"
+                };
+
+                for (int day = 1; day <= daysInMonth; day++)
+                {
+                    var currentDate = new DateTime(targetYear, targetMonth, day);
+
+                    // 1. Kiểm tra lịch phân ca ngày hôm nay
+                    var empSchedules = schedules.Where(s => s.AdminId == emp.AdminId && s.WorkDate.Date == currentDate.Date).ToList();
+                    bool isScheduled = empSchedules.Any();
+
+                    // 2. Kiểm tra nghỉ phép ngày hôm nay
+                    bool isOnLeave = leaves.Any(l => l.AdminId == emp.AdminId && currentDate.Date >= l.StartDate.Date && currentDate.Date <= l.EndDate.Date);
+
+                    // 3. Kiểm tra chấm công ngày hôm nay
+                    var att = attendances.FirstOrDefault(a => a.AdminId == emp.AdminId && a.Date.Date == currentDate.Date);
+
+                    string statusSymbol = "-"; // Mặc định là ngày nghỉ (không phân ca)
+
+                    if (isScheduled)
+                    {
+                        dto.TotalShifts += empSchedules.Count;
+
+                        if (isOnLeave)
+                        {
+                            statusSymbol = "P"; // Nghỉ phép
+                            dto.TotalLeaveDays++;
+                        }
+                        else if (att == null || (!att.CheckInTime.HasValue && !att.CheckOutTime.HasValue))
+                        {
+                            statusSymbol = "V"; // Vắng không phép
+                            dto.TotalAbsentDays++;
+                        }
+                        else
+                        {
+                            dto.TotalWorked++;
+                            bool isLate = false;
+                            bool isEarly = false;
+
+                            var sortedShifts = empSchedules.Select(s => s.Shift).OrderBy(s => s.StartTime).ToList();
+                            var firstShift = sortedShifts.First();
+                            var lastShift = sortedShifts.Last();
+
+                            if (att.CheckInTime.HasValue)
+                            {
+                                var checkInTimeOfDay = att.CheckInTime.Value.TimeOfDay;
+                                if (checkInTimeOfDay > firstShift.StartTime)
+                                {
+                                    isLate = true;
+                                    double diff = (checkInTimeOfDay - firstShift.StartTime).TotalMinutes;
+                                    dto.TotalLateMinutes += diff;
+                                }
+                            }
+                            else
+                            {
+                                isLate = true;
+                            }
+
+                            if (att.CheckOutTime.HasValue)
+                            {
+                                var checkOutTimeOfDay = att.CheckOutTime.Value.TimeOfDay;
+                                if (checkOutTimeOfDay < lastShift.EndTime)
+                                {
+                                    isEarly = true;
+                                    double diff = (lastShift.EndTime - checkOutTimeOfDay).TotalMinutes;
+                                    dto.TotalEarlyMinutes += diff;
+                                }
+                            }
+                            else
+                            {
+                                isEarly = true;
+                            }
+
+                            if (isLate && isEarly)
+                            {
+                                statusSymbol = "M/S";
+                                dto.TotalLateDays++;
+                                dto.TotalEarlyDays++;
+                            }
+                            else if (isLate)
+                            {
+                                statusSymbol = "M";
+                                dto.TotalLateDays++;
+                            }
+                            else if (isEarly)
+                            {
+                                statusSymbol = "S";
+                                dto.TotalEarlyDays++;
+                            }
+                            else
+                            {
+                                statusSymbol = "X";
+                            }
+
+                            if (!att.IsApproved)
+                            {
+                                statusSymbol += "?";
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (att != null && (att.CheckInTime.HasValue || att.CheckOutTime.HasValue))
+                        {
+                            statusSymbol = "TC";
+                            dto.TotalWorked++;
+                        }
+                    }
+
+                    dto.DailyStatus[day] = statusSymbol;
+                }
+
+                timesheetData.Add(dto);
+            }
+
+            ViewBag.SelectedMonth = targetMonth;
+            ViewBag.SelectedYear = targetYear;
+            ViewBag.DaysInMonth = daysInMonth;
+
+            return View(timesheetData);
+        }
+
         public IActionResult GetAttendanceDetail(int adminId, int month, int year)
         {
             // Lấy dữ liệu chi tiết, bao gồm cả loại nghỉ phép nếu cần
@@ -925,6 +1107,38 @@ namespace CINEMA.Controllers
                 return Json(new { success = false, message = "Lỗi khi lưu khuôn mặt: " + ex.Message });
             }
         }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteFace(int adminId)
+        {
+            if (!IsSuperAdmin()) return Unauthorized();
+
+            var admin = await _context.Admins.FindAsync(adminId);
+            if (admin == null) return NotFound();
+
+            try
+            {
+                if (!string.IsNullOrEmpty(admin.FacePhoto))
+                {
+                    string oldPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", admin.FacePhoto.TrimStart('/'));
+                    if (System.IO.File.Exists(oldPath))
+                    {
+                        System.IO.File.Delete(oldPath);
+                    }
+                }
+
+                admin.FacePhoto = null;
+                _context.Admins.Update(admin);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Xóa khuôn mặt thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi xóa khuôn mặt: " + ex.Message });
+            }
+        }
+
         [HttpGet]
         public IActionResult AttendanceHistory(DateTime? date)
         {
