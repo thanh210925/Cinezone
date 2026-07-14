@@ -214,7 +214,11 @@
                     <h5 class="mb-0"><i class="bi bi-camera"></i> Chấm công Camera</h5>
                 </div>
                 <div class="card-body text-center">
-                    <video id="video" width="100%" height="auto" autoplay class="border rounded shadow-sm bg-dark mb-3" style="max-width: 400px; transform: scaleX(-1);"></video>
+                    <div id="ai-status-msg" class="alert alert-info py-2" style="font-size: 0.85rem; display: none;"></div>
+                    <div class="position-relative d-inline-block mx-auto mb-3" style="max-width: 400px; width: 100%;">
+                        <video id="video" width="100%" height="auto" autoplay class="border rounded bg-dark shadow-sm" style="transform: scaleX(-1); display: block;"></video>
+                        <canvas id="overlay" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none; transform: scaleX(-1);"></canvas>
+                    </div>
                     <canvas id="canvas" width="400" height="300" style="display:none;"></canvas>
                     <div>
                         <button class="btn btn-success btn-lg px-4 me-2" onclick="takeSnapshot('in')">
@@ -311,28 +315,148 @@
 </div>
 
 @section Scripts {
+    <!-- Tải thư viện face-api.js -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    
     <script>
         const video = document.getElementById('video');
         const status = document.getElementById('status');
+        const canvasOverlay = document.getElementById('overlay');
+        const aiStatusMsg = document.getElementById('ai-status-msg');
 
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => { video.srcObject = stream; })
-            .catch(err => { status.innerText = "Lỗi Camera!"; status.style.color = "red"; });
+        let isFaceMatched = false;
+        let isModelLoaded = false;
+        let refDescriptor = null;
+        let faceDetectionInterval = null;
+        let localStream = null;
+
+        // Bắt đầu Camera
+        navigator.mediaDevices.getUserMedia({ video: { width: 400, height: 300 } })
+            .then(stream => { 
+                localStream = stream;
+                video.srcObject = stream;
+                initFaceApi();
+            })
+            .catch(err => { 
+                status.innerText = "Lỗi Camera!"; 
+                status.style.color = "red"; 
+            });
+
+        async function initFaceApi() {
+            const registeredFace = '@ViewBag.FacePhoto';
+
+            if (!registeredFace) {
+                aiStatusMsg.className = "alert alert-warning py-2 mb-2";
+                aiStatusMsg.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Bạn chưa đăng ký khuôn mặt! Chấm công sẽ ở trạng thái <b>Chờ duyệt</b>.`;
+                aiStatusMsg.style.display = 'block';
+                return;
+            }
+
+            try {
+                aiStatusMsg.className = "alert alert-info py-2 mb-2";
+                aiStatusMsg.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> Đang tải mô hình nhận diện khuôn mặt AI...`;
+                aiStatusMsg.style.display = 'block';
+
+                // Tải mô hình weights từ server cục bộ
+                const MODEL_URL = '@Url.Content("~/models/")';
+                await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+                await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+                isModelLoaded = true;
+
+                // Tải ảnh chuẩn từ Server và trích xuất descriptor
+                const refImg = await faceapi.fetchImage(registeredFace);
+                const refDetection = await faceapi.detectSingleFace(refImg).withFaceLandmarks().withFaceDescriptor();
+                
+                if (!refDetection) {
+                    aiStatusMsg.className = "alert alert-danger py-2 mb-2";
+                    aiStatusMsg.innerHTML = `<i class="bi bi-x-circle-fill"></i> Ảnh mẫu đăng ký không hợp lệ (không tìm thấy khuôn mặt).`;
+                    return;
+                }
+                
+                refDescriptor = refDetection.descriptor;
+                aiStatusMsg.className = "alert alert-success py-2 mb-2";
+                aiStatusMsg.innerHTML = `<i class="bi bi-check-circle-fill"></i> Mô hình AI sẵn sàng. Đang quét khuôn mặt...`;
+
+                startTrackingFace();
+            } catch (ex) {
+                console.error("Lỗi khởi tạo AI:", ex);
+                aiStatusMsg.className = "alert alert-danger py-2 mb-2";
+                aiStatusMsg.innerHTML = `<i class="bi bi-exclamation-octagon-fill"></i> Lỗi hệ thống AI: ${ex.message}`;
+            }
+        }
+
+        function startTrackingFace() {
+            video.addEventListener('play', () => {
+                const displaySize = { width: video.clientWidth, height: video.clientHeight };
+                faceapi.matchDimensions(canvasOverlay, displaySize);
+
+                faceDetectionInterval = setInterval(async () => {
+                    if (video.paused || video.ended || !refDescriptor) return;
+
+                    const detection = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+                                                 .withFaceLandmarks()
+                                                 .withFaceDescriptor();
+
+                    const context = canvasOverlay.getContext('2d');
+                    context.clearRect(0, 0, canvasOverlay.width, canvasOverlay.height);
+
+                    if (detection) {
+                        // Vẽ khung
+                        const resizedDetections = faceapi.resizeResults([detection], displaySize);
+                        faceapi.draw.drawDetections(canvasOverlay, resizedDetections);
+
+                        // So khớp khoảng cách Euclidean
+                        const distance = faceapi.euclideanDistance(detection.descriptor, refDescriptor);
+                        const threshold = 0.55; // Ngưỡng nhận diện chính xác
+
+                        if (distance < threshold) {
+                            status.innerHTML = `<span class="text-success"><i class="bi bi-patch-check-fill"></i> Đã nhận diện đúng khuôn mặt! (Độ sai lệch: ${distance.toFixed(3)})</span>`;
+                            isFaceMatched = true;
+                            aiStatusMsg.className = "alert alert-success py-2 mb-2";
+                            aiStatusMsg.innerHTML = `<i class="bi bi-check-circle-fill"></i> Xác thực khuôn mặt khớp. Chấm công sẽ được duyệt tự động.`;
+                        } else {
+                            status.innerHTML = `<span class="text-danger"><i class="bi bi-patch-exclamation-fill"></i> Khuôn mặt không khớp! (Độ sai lệch: ${distance.toFixed(3)})</span>`;
+                            isFaceMatched = false;
+                            aiStatusMsg.className = "alert alert-danger py-2 mb-2";
+                            aiStatusMsg.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Khuôn mặt không khớp. Chấm công sẽ ở trạng thái chờ duyệt.`;
+                        }
+                    } else {
+                        status.innerHTML = `<span class="text-warning"><i class="bi bi-person-bounding-box"></i> Đang tìm khuôn mặt...</span>`;
+                        isFaceMatched = false;
+                    }
+                }, 500);
+            });
+            // Kích hoạt lại sự kiện play nếu video đang chạy sẵn
+            if (!video.paused) {
+                video.dispatchEvent(new Event('play'));
+            }
+        }
 
         function takeSnapshot(type) {
+            const hasRegisteredFace = '@ViewBag.FacePhoto' !== '';
+
+            if (hasRegisteredFace && !isFaceMatched) {
+                const confirmCheck = confirm("Nhận diện khuôn mặt chưa khớp. Bạn có muốn tiếp tục chấm công và chờ Admin duyệt thủ công không?");
+                if (!confirmCheck) return;
+            }
+
             status.innerText = "Đang xử lý...";
-            let canvas = document.getElementById('canvas');
-            canvas.getContext('2d').drawImage(video, 0, 0, 400, 300);
-            let imageData = canvas.toDataURL('image/png');
+            let canvasTemp = document.getElementById('canvas');
+            canvasTemp.getContext('2d').drawImage(video, 0, 0, 400, 300);
+            let imageData = canvasTemp.toDataURL('image/png');
 
             fetch('/Admin/ProcessCheck', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: type, imageBase64: imageData })
+                body: JSON.stringify({ type: type, imageBase64: imageData, isFaceMatched: isFaceMatched })
             })
             .then(res => res.json())
             .then(data => {
-                if(data.success) location.reload();
+                if(data.success) {
+                    alert(data.message);
+                    location.reload();
+                }
                 else alert(data.message);
             });
         }

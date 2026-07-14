@@ -519,6 +519,9 @@ namespace CINEMA.Controllers
             int myAdminId = int.Parse(adminIdStr);
             bool isSuperAdmin = HttpContext.Session.GetString("Role") == "SuperAdmin";
 
+            var currentAdmin = _context.Admins.FirstOrDefault(a => a.AdminId == myAdminId);
+            ViewBag.FacePhoto = currentAdmin?.FacePhoto;
+
             DateTime targetDate = date ?? DateTime.Now.Date;
             ViewBag.SelectedDate = targetDate;
 
@@ -719,6 +722,13 @@ namespace CINEMA.Controllers
         {
             public string type { get; set; }
             public string imageBase64 { get; set; }
+            public bool? isFaceMatched { get; set; }
+        }
+
+        public class SaveFaceDto
+        {
+            public int AdminId { get; set; }
+            public string imageBase64 { get; set; }
         }
 
         [HttpPost]
@@ -730,6 +740,7 @@ namespace CINEMA.Controllers
             var adminId = int.Parse(adminIdString);
             DateTime today = DateTime.Now.Date;
             DateTime currentTime = DateTime.Now;
+            bool shouldApprove = model.isFaceMatched == true;
 
             // --- BƯỚC 1: KIỂM TRA ĐIỀU KIỆN PHÂN CA ---
             var schedules = await _context.WorkSchedules
@@ -810,6 +821,7 @@ namespace CINEMA.Controllers
                 {
                     existingRecord.CheckInTime = currentTime;
                     existingRecord.CheckInPhoto = "/uploads/attendance/" + fileName;
+                    if (shouldApprove) existingRecord.IsApproved = true;
                     _context.Attendance.Update(existingRecord);
                 }
                 else
@@ -819,7 +831,8 @@ namespace CINEMA.Controllers
                         AdminId = adminId,
                         Date = today,
                         CheckInTime = currentTime,
-                        CheckInPhoto = "/uploads/attendance/" + fileName
+                        CheckInPhoto = "/uploads/attendance/" + fileName,
+                        IsApproved = shouldApprove
                     };
                     _context.Attendance.Add(record);
                 }
@@ -836,6 +849,7 @@ namespace CINEMA.Controllers
                     {
                         existingRecord.CheckOutTime = currentTime;
                         existingRecord.CheckOutPhoto = "/uploads/attendance/" + fileName;
+                        if (shouldApprove) existingRecord.IsApproved = true;
                         _context.Attendance.Update(existingRecord);
                     }
                 }
@@ -846,7 +860,8 @@ namespace CINEMA.Controllers
                         AdminId = adminId,
                         Date = today,
                         CheckOutTime = currentTime,
-                        CheckOutPhoto = "/uploads/attendance/" + fileName
+                        CheckOutPhoto = "/uploads/attendance/" + fileName,
+                        IsApproved = shouldApprove
                     };
                     _context.Attendance.Add(record);
                 }
@@ -854,6 +869,61 @@ namespace CINEMA.Controllers
 
             await _context.SaveChangesAsync();
             return Json(new { success = true, message = "Chấm công thành công!" });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> RegisterFace()
+        {
+            if (!IsSuperAdmin())
+            {
+                TempData["Error"] = "Bạn không có quyền truy cập!";
+                return RedirectToAction("Dashboard");
+            }
+            var admins = await _context.Admins
+                .Include(a => a.Position)
+                .ToListAsync();
+            return View(admins);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SaveFace([FromBody] SaveFaceDto model)
+        {
+            if (!IsSuperAdmin()) return Unauthorized();
+
+            var admin = await _context.Admins.FindAsync(model.AdminId);
+            if (admin == null) return NotFound();
+
+            string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/faces");
+            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
+            string fileName = $"face_{model.AdminId}_{DateTime.Now:yyyyMMddHHmmss}.png";
+            string path = Path.Combine(folder, fileName);
+
+            try
+            {
+                byte[] bytes = Convert.FromBase64String(model.imageBase64.Split(',')[1]);
+                await System.IO.File.WriteAllBytesAsync(path, bytes);
+
+                // Xoá ảnh cũ nếu có
+                if (!string.IsNullOrEmpty(admin.FacePhoto))
+                {
+                    string oldPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", admin.FacePhoto.TrimStart('/'));
+                    if (System.IO.File.Exists(oldPath))
+                    {
+                        System.IO.File.Delete(oldPath);
+                    }
+                }
+
+                admin.FacePhoto = "/uploads/faces/" + fileName;
+                _context.Admins.Update(admin);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, facePhoto = admin.FacePhoto });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi lưu khuôn mặt: " + ex.Message });
+            }
         }
         [HttpGet]
         public IActionResult AttendanceHistory(DateTime? date)

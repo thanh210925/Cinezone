@@ -1,0 +1,284 @@
+@using CINEMA.Models
+@model IEnumerable<Admin>
+@{
+    ViewData["Title"] = "Đăng ký khuôn mặt";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0"><i class="bi bi-person-bounding-box"></i> Quản lý & Đăng ký khuôn mặt nhân viên</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã NV</th>
+                            <th>Họ tên</th>
+                            <th>Email</th>
+                            <th>Vai trò</th>
+                            <th>Trạng thái khuôn mặt</th>
+                            <th class="text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var admin in Model)
+                        {
+                            <tr>
+                                <td>@admin.EmployeeCode</td>
+                                <td class="fw-bold">@admin.FullName</td>
+                                <td>@admin.Email</td>
+                                <td>
+                                    <span class="badge bg-secondary">@admin.Role</span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(admin.FacePhoto))
+                                    {
+                                        <div class="d-flex align-items-center gap-2">
+                                            <img src="@admin.FacePhoto" alt="Face photo" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;" />
+                                            <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle-fill"></i> Đã đăng ký</span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Chưa đăng ký</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-primary" onclick="openRegisterModal(@admin.AdminId, '@admin.FullName')">
+                                        <i class="bi bi-camera-fill"></i> Quét & Đăng ký
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Đăng Ký Khuôn Mặt -->
+<div class="modal fade" id="registerFaceModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="registerFaceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="registerFaceModalLabel"><i class="bi bi-camera"></i> Đăng ký khuôn mặt: <span id="targetAdminName" class="text-warning"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="stopCamera()"></button>
+            </div>
+            <div class="modal-body text-center bg-light">
+                <div id="ai-loading" class="alert alert-info py-2" style="font-size: 0.9rem;">
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Đang tải mô hình nhận diện AI...
+                </div>
+                
+                <div class="position-relative d-inline-block mx-auto mb-3" style="max-width: 400px; width: 100%;">
+                    <video id="webcam" width="100%" height="auto" autoplay class="border rounded bg-dark shadow-sm" style="transform: scaleX(-1); display: block;"></video>
+                    <!-- Canvas vẽ khung nhận diện đè lên camera -->
+                    <canvas id="overlay" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none; transform: scaleX(-1);"></canvas>
+                </div>
+
+                <div id="cameraStatus" class="alert alert-warning py-2 mb-3">
+                    Vui lòng hướng khuôn mặt trực diện vào camera
+                </div>
+
+                <div class="form-check d-flex justify-content-center mb-3">
+                    <input class="form-check-input me-2" type="checkbox" id="chkManual" onchange="toggleManualMode(this)">
+                    <label class="form-check-label text-muted small" for="chkManual">
+                        Chụp thủ công (Bỏ qua kiểm duyệt khuôn mặt bằng AI)
+                    </label>
+                </div>
+
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" onclick="stopCamera()">Hủy</button>
+                    <button type="button" id="btnCapture" class="btn btn-success px-4" onclick="captureAndSave()" disabled>
+                        <i class="bi bi-save"></i> Chụp & Lưu khuôn mặt
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Tải thư viện face-api.js -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    
+    <script>
+        let currentAdminId = null;
+        let localStream = null;
+        let faceDetectionInterval = null;
+        let isModelLoaded = false;
+
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('overlay');
+        const btnCapture = document.getElementById('btnCapture');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const aiLoading = document.getElementById('ai-loading');
+
+        // Hàm mở modal và kích hoạt Camera
+        async function openRegisterModal(adminId, fullName) {
+            currentAdminId = adminId;
+            document.getElementById('targetAdminName').innerText = fullName;
+            
+            // Hiển thị modal
+            const myModal = new bootstrap.Modal(document.getElementById('registerFaceModal'));
+            myModal.show();
+
+            // Khởi động camera và AI
+            await initCamera();
+        }
+
+        // Khởi động Camera và mô hình face-api
+        async function initCamera() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: { width: 400, height: 300 } });
+                video.srcObject = localStream;
+
+                if (!isModelLoaded) {
+                    aiLoading.style.display = 'block';
+                    // Tải mô hình weights từ server cục bộ bằng đường dẫn động
+                    const MODEL_URL = '@Url.Content("~/models/")';
+                    await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+                    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+                    await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+                    isModelLoaded = true;
+                }
+                
+                aiLoading.style.display = 'none';
+                startFaceDetection();
+            } catch (err) {
+                console.error("Lỗi Camera hoặc Tải mô hình AI:", err);
+                cameraStatus.className = "alert alert-danger py-2 mb-3";
+                cameraStatus.innerText = "Lỗi: " + (err.message || err) + " (Vui lòng dừng debug Visual Studio và chạy lại nếu vừa cập nhật code)";
+                aiLoading.style.display = 'none';
+            }
+        }
+
+        // Bật tắt chế độ chụp thủ công
+        function toggleManualMode(checkbox) {
+            if (checkbox.checked) {
+                btnCapture.removeAttribute('disabled');
+                cameraStatus.className = "alert alert-info py-2 mb-3";
+                cameraStatus.innerHTML = `<i class="bi bi-info-circle-fill"></i> Chế độ chụp thủ công hoạt động. Nhấn nút để chụp.`;
+            } else {
+                btnCapture.setAttribute('disabled', 'true');
+                cameraStatus.className = "alert alert-warning py-2 mb-3";
+                cameraStatus.innerText = "Vui lòng hướng khuôn mặt trực diện vào camera";
+            }
+        }
+
+        // Bắt đầu nhận diện khuôn mặt liên tục để kiểm duyệt
+        function startFaceDetection() {
+            video.addEventListener('play', () => {
+                const width = video.videoWidth || video.clientWidth || 400;
+                const height = video.videoHeight || video.clientHeight || 300;
+                const displaySize = { width: width, height: height };
+                faceapi.matchDimensions(canvas, displaySize);
+
+                faceDetectionInterval = setInterval(async () => {
+                    if (video.paused || video.ended) return;
+
+                    // Phát hiện khuôn mặt
+                    const detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }))
+                                              .withFaceLandmarks();
+
+                    const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                    
+                    // Xóa vẽ cũ
+                    const context = canvas.getContext('2d');
+                    context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+                    
+                    // Chỉ vẽ nét nếu không dùng chụp thủ công để tránh rác màn hình
+                    if (!document.getElementById('chkManual').checked) {
+                        faceapi.draw.drawDetections(canvas, resizedDetections);
+
+                        if (detections.length === 1) {
+                            cameraStatus.className = "alert alert-success py-2 mb-3";
+                            cameraStatus.innerHTML = `<i class="bi bi-check-circle-fill"></i> Phát hiện 1 khuôn mặt hợp lệ! Có thể chụp.`;
+                            btnCapture.removeAttribute('disabled');
+                        } else if (detections.length > 1) {
+                            cameraStatus.className = "alert alert-warning py-2 mb-3";
+                            cameraStatus.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Có nhiều hơn 1 khuôn mặt trong khung hình.`;
+                            btnCapture.setAttribute('disabled', 'true');
+                        } else {
+                            cameraStatus.className = "alert alert-warning py-2 mb-3";
+                            cameraStatus.innerHTML = `<i class="bi bi-person-bounding-box"></i> Đang quét khuôn mặt... Vui lòng đứng trước camera.`;
+                            btnCapture.setAttribute('disabled', 'true');
+                        }
+                    }
+                }, 500);
+            });
+        }
+
+        // Tắt camera và dọn dẹp
+        function stopCamera() {
+            if (faceDetectionInterval) {
+                clearInterval(faceDetectionInterval);
+                faceDetectionInterval = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            video.srcObject = null;
+            const context = canvas.getContext('2d');
+            context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+            btnCapture.setAttribute('disabled', 'true');
+            document.getElementById('chkManual').checked = false;
+            cameraStatus.className = "alert alert-warning py-2 mb-3";
+            cameraStatus.innerText = "Vui lòng hướng khuôn mặt trực diện vào camera";
+        }
+
+        // Chụp ảnh, chuyển thành Base64 và gọi API lưu
+        async function captureAndSave() {
+            btnCapture.setAttribute('disabled', 'true');
+            cameraStatus.className = "alert alert-info py-2 mb-3";
+            cameraStatus.innerText = "Đang lưu trữ...";
+
+            // Chụp frame ảnh từ video sang canvas tạm
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 400;
+            tempCanvas.height = 300;
+            const ctx = tempCanvas.getContext('2d');
+            
+            // Lật ảnh theo chiều ngang để ảnh chụp đúng hướng thực tế
+            ctx.translate(tempCanvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            const base64Data = tempCanvas.toDataURL('image/png');
+
+            // Gửi dữ liệu về Server
+            try {
+                const response = await fetch('/Admin/SaveFace', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ AdminId: currentAdminId, imageBase64: base64Data })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert("Đăng ký khuôn mặt thành công!");
+                    stopCamera();
+                    // Đóng modal
+                    const modalEl = document.getElementById('registerFaceModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    modal.hide();
+                    location.reload();
+                } else {
+                    alert("Lỗi: " + result.message);
+                    btnCapture.removeAttribute('disabled');
+                    cameraStatus.className = "alert alert-danger py-2 mb-3";
+                    cameraStatus.innerText = "Lỗi khi lưu khuôn mặt!";
+                }
+            } catch (ex) {
+                console.error(ex);
+                alert("Lỗi mạng khi kết nối server!");
+                btnCapture.removeAttribute('disabled');
+            }
+        }
+    </script>
+}

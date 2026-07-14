@@ -65,6 +65,8 @@ namespace CINEMA.Models
 
         public string? Avatar { get; set; }
 
+        public string? FacePhoto { get; set; }
+
         // Mã nhân viên
         [StringLength(50)]
         public string? EmployeeCode { get; set; }
