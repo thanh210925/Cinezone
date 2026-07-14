@@ -435,16 +435,58 @@ namespace CINEMA.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ResetPassword(int id, string newPassword)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(int id, string newPassword, string superAdminPassword)
         {
             if (!IsSuperAdmin()) return RedirectToAction("Dashboard");
 
             var admin = _context.Admins.Find(id);
             if (admin == null) return NotFound();
 
+            if (string.IsNullOrEmpty(newPassword) || string.IsNullOrEmpty(superAdminPassword))
+            {
+                ViewBag.Error = "Vui lòng điền đầy đủ các thông tin bắt buộc!";
+                return View(admin);
+            }
+
+            var superAdminIdStr = HttpContext.Session.GetString("AdminId");
+            if (string.IsNullOrEmpty(superAdminIdStr)) return RedirectToAction("Login");
+            
+            int superAdminId = int.Parse(superAdminIdStr);
+            var superAdmin = await _context.Admins.FindAsync(superAdminId);
+            if (superAdmin == null) return NotFound();
+
+            bool isPasswordCorrect = false;
+            try
+            {
+                isPasswordCorrect = BCrypt.Net.BCrypt.Verify(superAdminPassword, superAdmin.PasswordHash);
+            }
+            catch
+            {
+                isPasswordCorrect = (superAdmin.PasswordHash == superAdminPassword);
+            }
+
+            if (!isPasswordCorrect)
+            {
+                ViewBag.Error = "Mật khẩu Superadmin xác nhận không chính xác!";
+                return View(admin);
+            }
+
             admin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+            // Ghi nhật ký hoạt động (log)
+            var log = new ActivityLog
+            {
+                AdminId = superAdminId,
+                Action = "RESET_PASSWORD",
+                Entity = "Admin",
+                EntityId = id,
+                LogDate = DateTime.Now
+            };
+            _context.ActivityLogs.Add(log);
+
             await _context.SaveChangesAsync();
-            TempData["Success"] = "Đặt lại mật khẩu thành công";
+            TempData["Success"] = "Đặt lại mật khẩu nhân viên thành công!";
 
             return RedirectToAction(nameof(StaffList));
         }

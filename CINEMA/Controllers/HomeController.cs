@@ -497,6 +497,18 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
                 .Take(4)
                 .ToList();
 
+            if (relatedMovies.Count < 4)
+            {
+                var needed = 4 - relatedMovies.Count;
+                var existingIds = relatedMovies.Select(rm => rm.MovieId).Concat(new[] { id }).ToList();
+                var fallbackMovies = _context.Movies
+                    .Include(m => m.Genres)
+                    .Where(m => m.IsActive == true && !existingIds.Contains(m.MovieId))
+                    .Take(needed)
+                    .ToList();
+                relatedMovies.AddRange(fallbackMovies);
+            }
+
             ViewBag.CanComment = canComment;
             ViewBag.ValidOrderId = validOrderId;
             ViewBag.Reviews = reviews;

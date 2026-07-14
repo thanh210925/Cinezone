@@ -75,11 +75,11 @@ namespace CINEMA.Controllers
         // POST: Payroll/Calculate
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Calculate(int month, int year, decimal baseSalaryPerHour)
+        public async Task<IActionResult> Calculate(int month, int year, decimal baseSalaryManager, decimal baseSalaryStaff)
         {
-            if (baseSalaryPerHour <= 0)
+            if (baseSalaryManager <= 0 || baseSalaryStaff <= 0)
             {
-                ModelState.AddModelError("BaseSalaryPerHour", "Mức lương cơ bản mỗi giờ công phải lớn hơn 0");
+                ModelState.AddModelError("", "Mức lương cơ bản mỗi giờ công phải lớn hơn 0");
                 ViewBag.Month = month;
                 ViewBag.Year = year;
                 return View();
@@ -149,6 +149,12 @@ namespace CINEMA.Controllers
                 // 3. Hệ số lương
                 decimal coeff = admin.Position?.SalaryCoefficient ?? 1.0m;
 
+                // Phân loại Quản lý vs Nhân viên để áp lương cơ bản
+                bool isManager = (admin.Role == "SuperAdmin") || 
+                                 (admin.Position != null && (admin.Position.PositionName.Contains("Quản lý") || admin.Position.PositionName.Contains("Admin")));
+                
+                decimal currentBaseSalary = isManager ? baseSalaryManager : baseSalaryStaff;
+
                 // 4. Khởi tạo/Cập nhật bản ghi lương
                 var payroll = existingPayrolls.FirstOrDefault(p => p.AdminId == admin.AdminId);
                 bool isNew = false;
@@ -171,8 +177,8 @@ namespace CINEMA.Controllers
                 payroll.WorkingHours = workingHours;
                 payroll.PaidLeaveHours = paidLeaveHours;
                 payroll.SalaryCoefficient = coeff;
-                payroll.BaseSalaryPerHour = baseSalaryPerHour;
-                payroll.TotalSalary = (workingHours + paidLeaveHours) * baseSalaryPerHour * coeff + payroll.Bonus - payroll.Deductions;
+                payroll.BaseSalaryPerHour = currentBaseSalary;
+                payroll.TotalSalary = (workingHours + paidLeaveHours) * currentBaseSalary * coeff + payroll.Bonus - payroll.Deductions;
                 
                 if (isNew)
                 {

@@ -56,13 +56,23 @@
                             </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold text-dark">Lương cơ bản mỗi giờ công (VND)</label>
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-light text-muted border-end-0">đ</span>
-                                <input type="number" name="baseSalaryPerHour" class="form-control border-start-0" placeholder="Ví dụ: 25000" value="25000" step="500" min="1000" required />
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark">Lương cơ bản Quản lý mỗi giờ (VND)</label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-light text-muted border-end-0">đ</span>
+                                    <input type="number" name="baseSalaryManager" class="form-control border-start-0" placeholder="Ví dụ: 40000" value="40000" step="500" min="1000" required />
+                                </div>
+                                <div class="form-text text-muted small">Dành cho vị trí Super Admin, Quản lý rạp...</div>
                             </div>
-                            <div class="form-text text-muted">Mức lương này sẽ được dùng làm mức lương cơ sở cho 1 giờ làm việc thực tế, sau đó nhân với Hệ số chức vụ của mỗi nhân viên.</div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark">Lương cơ bản Nhân viên mỗi giờ (VND)</label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-light text-muted border-end-0">đ</span>
+                                    <input type="number" name="baseSalaryStaff" class="form-control border-start-0" placeholder="Ví dụ: 25000" value="25000" step="500" min="1000" required />
+                                </div>
+                                <div class="form-text text-muted small">Dành cho nhân viên bán vé, nhân viên quầy...</div>
+                            </div>
                         </div>
 
                         <!-- Info Card -->
