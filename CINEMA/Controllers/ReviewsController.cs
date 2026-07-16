@@ -48,20 +48,22 @@ namespace CINEMA.Controllers
 
         // 🔒 DUYỆT / HIỆN ĐÁNH GIÁ (Set IsHidden = false)
         [HttpPost]
-        public async Task<IActionResult> Approve(int id) // Đổi thành async
+        public async Task<IActionResult> Approve(int id)
         {
             var review = await _context.Reviews.FindAsync(id);
             if (review == null) return NotFound();
 
             review.IsHidden = false;
-            // Xóa cờ báo cáo khi được duyệt
             review.HasReport = false;
             review.ReportReason = null;
 
             await _context.SaveChangesAsync();
 
-            // Cập nhật lại điểm: Review hiện lại thì phải tính gộp vào điểm trung bình
+            // 1. Cập nhật điểm phim
             await _movieService.UpdateMovieBayesianRatingAsync(review.MovieId);
+
+            // 2. Cập nhật lại uy tín của người dùng (vì đã được giải oan/hiển thị lại)
+            await _movieService.UpdateUserReputationAsync(review.CustomerId);
 
             TempData["SuccessMessage"] = "Đã duyệt và hiển thị lại đánh giá.";
             return RedirectToAction(nameof(Index));
@@ -69,7 +71,7 @@ namespace CINEMA.Controllers
 
         // 👁️ ẨN ĐÁNH GIÁ (Set IsHidden = true)
         [HttpPost]
-        public async Task<IActionResult> Hide(int id) // Đổi thành async
+        public async Task<IActionResult> Hide(int id)
         {
             var review = await _context.Reviews.FindAsync(id);
             if (review == null) return NotFound();
@@ -77,8 +79,11 @@ namespace CINEMA.Controllers
             review.IsHidden = true;
             await _context.SaveChangesAsync();
 
-            // Cập nhật lại điểm: Review bị ẩn đi phải trừ ra khỏi điểm trung bình
+            // 1. Cập nhật điểm phim
             await _movieService.UpdateMovieBayesianRatingAsync(review.MovieId);
+
+            // 2. Cập nhật uy tín của người dùng (vì review bị ẩn)
+            await _movieService.UpdateUserReputationAsync(review.CustomerId);
 
             TempData["SuccessMessage"] = "Đã ẩn đánh giá khỏi giao diện người dùng.";
             return RedirectToAction(nameof(Index));
@@ -163,18 +168,22 @@ namespace CINEMA.Controllers
 
         // 🗑️ XÓA ĐÁNH GIÁ
         [HttpPost]
-        public async Task<IActionResult> Delete(int id) // Đổi thành async
+        public async Task<IActionResult> Delete(int id)
         {
             var review = await _context.Reviews.FindAsync(id);
             if (review == null) return NotFound();
 
-            int movieId = review.MovieId; // Lấy ra MovieId trước khi đối tượng review bị xóa khỏi database
+            int movieId = review.MovieId;
+            int customerId = review.CustomerId;
 
             _context.Reviews.Remove(review);
             await _context.SaveChangesAsync();
 
-            // Cập nhật lại điểm sau khi xóa vĩnh viễn
+            // 1. Cập nhật lại điểm phim
             await _movieService.UpdateMovieBayesianRatingAsync(movieId);
+
+            // 2. Tính toán lại uy tín của user (bình luận biến mất hoàn toàn)
+            await _movieService.UpdateUserReputationAsync(customerId);
 
             TempData["SuccessMessage"] = "Đã xóa đánh giá vĩnh viễn.";
             return RedirectToAction(nameof(Index));

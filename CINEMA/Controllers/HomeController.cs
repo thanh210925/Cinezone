@@ -1120,6 +1120,7 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
         // ================ QUẢN LÝ BÌNH LUẬN & ĐÁNH GIÁ ====================
         // =====================================================
 
+        // 📝 THÊM ĐÁNH GIÁ MỚI (Luôn luôn tạo mới, cho phép bình luận nhiều lần)
         [HttpPost]
         public async Task<IActionResult> AddReview(int movieId, int rating, string comment, int? orderId)
         {
@@ -1153,36 +1154,16 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
                 finalCustomerId = customerId.Value;
             }
 
-            // Kiểm tra số sao hợp lệ
+            // 2. Kiểm tra số sao hợp lệ
             if (rating < 1 || rating > 5)
             {
                 return Json(new { success = false, message = "Đánh giá sao phải từ 1 đến 5." });
             }
 
-            // 2. PHÂN LUỒNG: Nếu là THÀNH VIÊN ĐÃ ĐĂNG NHẬP -> Tiến hành kiểm tra để CẬP NHẬT
-            if (!isGuest)
-            {
-                var existingReview = _context.Reviews.FirstOrDefault(r => r.MovieId == movieId && r.CustomerId == finalCustomerId);
-                if (existingReview != null)
-                {
-                    // Tiến hành ghi đè dữ liệu cũ
-                    existingReview.Rating = rating;
-                    existingReview.Comment = comment;
-                    existingReview.CreatedAt = DateTime.Now;
-
-                    await _context.SaveChangesAsync();
-
-                    // Tính lại điểm uy tín Bayesian sau khi sửa số sao
-                    await _movieService.UpdateMovieBayesianRatingAsync(movieId);
-
-                    return Json(new { success = true, message = "Đã cập nhật lại đánh giá trước đó của bạn!" });
-                }
-            }
-
-            // 3. Nếu là KHÁCH ẨN DANH hoặc THÀNH VIÊN CHƯA TỪNG ĐÁNH GIÁ -> LUÔN LUÔN TẠO MỚI
+            // 3. LUÔN LUÔN TẠO MỚI (Đã xóa bỏ hoàn toàn đoạn logic "existingReview" cũ)
             var review = new Review
             {
-                MovieId = movieId, // Đã xóa chữ 's' lỗi cú pháp ở đây
+                MovieId = movieId,
                 CustomerId = finalCustomerId,
                 OrderId = orderId,
                 Rating = rating,
@@ -1195,12 +1176,13 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
             _context.Reviews.Add(review);
             await _context.SaveChangesAsync();
 
-            // Tính gộp lượt vote mới vào điểm Bayesian hệ thống
+            // 4. Tính gộp lượt vote mới vào điểm Bayesian hệ thống
             await _movieService.UpdateMovieBayesianRatingAsync(movieId);
 
             return Json(new { success = true, message = "Đã gửi đánh giá mới thành công!" });
         }
 
+        // 🚩 BÁO CÁO VI PHẠM
         [HttpPost]
         public async Task<IActionResult> ReportReview(int reviewId, string reason)
         {
@@ -1216,6 +1198,9 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
                 : review.ReportReason + "; " + reason;
 
             await _context.SaveChangesAsync();
+
+            // Cập nhật uy tín người dùng sau khi bị báo cáo (bị trừ 5%)
+            await _movieService.UpdateUserReputationAsync(review.CustomerId);
 
             return Json(new { success = true, message = "Đã gửi báo cáo vi phạm thành công. Ban quản lý sẽ sớm kiểm duyệt." });
         }

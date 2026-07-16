@@ -34,6 +34,7 @@ public partial class Customer
     public string? Avatar { get; set; }
     public decimal TotalSpent { get; set; } = 0;
     public string MembershipLevel { get; set; } = "Đồng";
+    public int ReputationScore { get; set; } = 100;
     public string CalculateMembershipLevel()
     {
         if (TotalSpent > 10000000) return "Kim cương";

@@ -37,4 +37,5 @@ public partial class Movie
     public int VoteCount { get; set; }
     public double RatingAverage { get; set; }
     public double BayesianRating { get; set; }
+    public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
 }

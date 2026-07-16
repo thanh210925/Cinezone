@@ -52,11 +52,23 @@ namespace CINEMA.Controllers
             return View(movies);
         }
 
-        // ==================== CHI TIẾT PHIM ====================
-        public IActionResult Details(int id)
+        // Trong MoviesController.cs
+        public async Task<IActionResult> Details(int? id)
         {
-            var movie = _context.Movies.FirstOrDefault(m => m.MovieId == id);
-            if (movie == null) return NotFound();
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var movie = await _context.Movies
+                .Include(m => m.Reviews)             // 1. Kéo theo danh sách Review của phim
+                    .ThenInclude(r => r.Customer)    // 2. Kéo theo Customer của mỗi Review để lấy Điểm uy tín
+                .FirstOrDefaultAsync(m => m.MovieId == id);
+
+            if (movie == null)
+            {
+                return NotFound();
+            }
 
             return View(movie);
         }

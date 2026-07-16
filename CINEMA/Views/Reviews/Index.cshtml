@@ -66,7 +66,20 @@
                                         <div class="fw-bold text-dark text-truncate" style="max-width: 150px;">@r.Movie?.Title</div>
                                     </td>
                                     <td>
-                                        <div class="fw-bold">@r.Customer?.FullName</div>
+                                        <div class="fw-bold d-flex align-items-center gap-2">
+                                            <span>@r.Customer?.FullName</span>
+
+                                            @if (r.Customer != null && r.Customer.Email != "anonymous@cinezone.com")
+                                            {
+                                                int score = r.Customer.ReputationScore;
+                                                string badgeClass = score >= 80 ? "bg-success" : (score >= 50 ? "bg-warning text-dark" : "bg-danger");
+                                                <span class="badge @badgeClass fw-normal" style="font-size: 0.65rem;" title="Điểm uy tín: @score%">Uy tín: @score%</span>
+                                            }
+                                            else if (r.Customer != null && r.Customer.Email == "anonymous@cinezone.com")
+                                            {
+                                                <span class="badge bg-secondary fw-normal" style="font-size: 0.65rem;">Khách</span>
+                                            }
+                                        </div>
                                         <small class="text-muted text-truncate d-block" style="max-width: 150px;">@r.Customer?.Email</small>
                                     </td>
                                     <td class="text-center text-warning">

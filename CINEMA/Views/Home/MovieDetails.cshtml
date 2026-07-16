@@ -177,7 +177,19 @@
                                     @(string.IsNullOrEmpty(r.Customer?.FullName) ? "U" : r.Customer.FullName.Substring(0, 1).ToUpper())
                                 </div>
                                 <div>
-                                    <div class="fw-bold text-dark" style="font-size: 0.95rem;">@(r.Customer?.FullName ?? "Người dùng CineZone")</div>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <div class="fw-bold text-dark" style="font-size: 0.95rem;">@(r.Customer?.FullName ?? "Người dùng CineZone")</div>
+
+                                        @if (r.Customer != null && r.Customer.Email != "anonymous@cinezone.com")
+                                        {
+                                            int score = r.Customer.ReputationScore;
+                                            string badgeClass = score >= 80 ? "bg-success" : (score >= 50 ? "bg-warning text-dark" : "bg-danger");
+
+                                            <span class="badge @badgeClass" style="font-size: 0.7rem;" title="Điểm uy tín của thành viên này">
+                                                Uy tín: @score%
+                                            </span>
+                                        }
+                                    </div>
                                     <div class="text-warning small">
                                         @for (int i = 1; i <= 5; i++) {
                                             if (i <= r.Rating) {
