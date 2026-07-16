@@ -14,7 +14,7 @@
     // Lấy danh sách chấm công trong tháng từ ViewBag
     var monthAttendanceList = (IEnumerable<Attendance>)ViewBag.MonthAttendance ?? new List<Attendance>();
 }
-
+<script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
 <style>
     .calendar-grid {
         display: grid;
@@ -385,7 +385,31 @@
                 aiStatusMsg.innerHTML = `<i class="bi bi-exclamation-octagon-fill"></i> Lỗi hệ thống AI: ${ex.message}`;
             }
         }
+        Promise.all([
+        faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
+        faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+        faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+    ]).then(startVideo);
+    function startVideo() {
+        navigator.getUserMedia({ video: {} }, stream => video.srcObject = stream, err => console.error(err));
+    }
 
+    // Sự kiện khi bấm nút Chấm công
+    document.getElementById('btnCheckIn').addEventListener('click', async () => {
+        // Lấy dữ liệu khuôn mặt đã đăng ký từ DB (Bạn cần truyền nó từ ViewBag hoặc một API)
+        const registeredDescriptor = JSON.parse('@Html.Raw(ViewBag.FaceDescriptorJson)'); 
+
+        // Gọi hàm xác thực
+        const result = await verifyFace(video, registeredDescriptor);
+
+        if (result.match) {
+            alert("Khuôn mặt khớp! Đang thực hiện chấm công...");
+            // Ở đây bạn mới gọi hàm fetch gửi dữ liệu lên Controller ProcessCheck
+            sendAttendanceToServer('in'); 
+        } else {
+            alert("Khuôn mặt không khớp! Vui lòng thử lại.");
+        }
+    });
         function startTrackingFace() {
             const runTracking = () => {
                 const width = video.videoWidth || video.clientWidth || 400;
@@ -399,7 +423,16 @@
                     if (video.paused || video.ended || !refDescriptor) return;
 
                     try {
-                        const detection = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+                        // Vẽ nhân số mirror canvas để detect đồng hướng với ảnh đăng ký (cả hai đều bị lật)
+                        const mirrorCanvas = document.createElement('canvas');
+                        mirrorCanvas.width = width;
+                        mirrorCanvas.height = height;
+                        const mCtx = mirrorCanvas.getContext('2d');
+                        mCtx.translate(width, 0);
+                        mCtx.scale(-1, 1);
+                        mCtx.drawImage(video, 0, 0, width, height);
+
+                        const detection = await faceapi.detectSingleFace(mirrorCanvas, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
                                                      .withFaceLandmarks()
                                                      .withFaceDescriptor();
 
@@ -413,18 +446,18 @@
 
                             // So khớp khoảng cách Euclidean
                             const distance = faceapi.euclideanDistance(detection.descriptor, refDescriptor);
-                            const threshold = 0.55; // Ngưỡng nhận diện chính xác
+                            const threshold = 0.45; // Cả hai phía đều cùng hướng → có thể dùng ngưỡng chặt hơn
 
                             if (distance < threshold) {
                                 status.innerHTML = `<span class="text-success"><i class="bi bi-patch-check-fill"></i> Đã nhận diện đúng khuôn mặt! (Độ sai lệch: ${distance.toFixed(3)})</span>`;
                                 isFaceMatched = true;
                                 aiStatusMsg.className = "alert alert-success py-2 mb-2";
-                                aiStatusMsg.innerHTML = `<i class="bi bi-check-circle-fill"></i> Xác thực khuôn mặt khớp. Chấm công sẽ được duyệt tự động.`;
+                                aiStatusMsg.innerHTML = `<i class="bi bi-check-circle-fill"></i> Khuôn mặt khớp (${distance.toFixed(3)}). Chấm công sẽ được <b>tự động duyệt</b>.`;
                             } else {
                                 status.innerHTML = `<span class="text-danger"><i class="bi bi-patch-exclamation-fill"></i> Khuôn mặt không khớp! (Độ sai lệch: ${distance.toFixed(3)})</span>`;
                                 isFaceMatched = false;
                                 aiStatusMsg.className = "alert alert-danger py-2 mb-2";
-                                aiStatusMsg.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Khuôn mặt không khớp. Chấm công sẽ ở trạng thái chờ duyệt.`;
+                                aiStatusMsg.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Khuôn mặt không khớp. Chấm công sẽ <b>chờ Admin duyệt thủ công</b>.`;
                             }
                         } else {
                             status.innerHTML = `<span class="text-warning"><i class="bi bi-person-bounding-box"></i> Đang tìm khuôn mặt...</span>`;
@@ -432,6 +465,7 @@
                         }
                     } catch (e) {
                         console.error("Lỗi trong vòng quét so khớp:", e);
+                        isFaceMatched = false; // Reset khi có lỗi, tránh false positive
                     }
                 }, 500);
             };
@@ -447,9 +481,10 @@
         function takeSnapshot(type) {
             const hasRegisteredFace = '@ViewBag.FacePhoto' !== '';
 
+            // Nếu đã đăng ký khuôn mặt nhưng AI chưa nhận diện khớp → CHẶN hoàn toàn
             if (hasRegisteredFace && !isFaceMatched) {
-                const confirmCheck = confirm("Nhận diện khuôn mặt chưa khớp. Bạn có muốn tiếp tục chấm công và chờ Admin duyệt thủ công không?");
-                if (!confirmCheck) return;
+                alert('⚠️ Khuôn mặt không khớp với khuôn mặt đã đăng ký. Không thể chấm công!');
+                return; // Dừng, không gửi dữ liệu
             }
 
             status.innerText = "Đang xử lý...";

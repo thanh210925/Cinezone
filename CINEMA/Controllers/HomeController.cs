@@ -15,20 +15,27 @@ namespace CINEMA.Controllers
         private readonly RecommendationEngine _recommendationEngine;
         private readonly Services.GeminiService _geminiService;
         private readonly IEmailService _emailService;
+        private IMovieService _movieService;
 
-        public HomeController(ILogger<HomeController> logger, CinemaContext context, RecommendationEngine recommendationEngine, Services.GeminiService geminiService, IEmailService emailService)
+        public HomeController(
+            ILogger<HomeController> logger,
+            CinemaContext context,
+            RecommendationEngine recommendationEngine,
+            Services.GeminiService geminiService,
+            IEmailService emailService,
+            IMovieService movieService)
         {
             _logger = logger;
             _context = context;
             _recommendationEngine = recommendationEngine;
             _geminiService = geminiService;
             _emailService = emailService;
+            _movieService = movieService;
         }
 
         // =====================================================
         // ====================== TRANG CHỦ ====================
         // =====================================================
-        [HttpGet]
         [HttpGet]
         public async Task<IActionResult> Search(string keyword)
         {
@@ -1105,57 +1112,78 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
         // =====================================================
         // ================ QUẢN LÝ BÌNH LUẬN & ĐÁNH GIÁ ====================
         // =====================================================
+        // =====================================================
+        // ================ QUẢN LÝ BÌNH LUẬN & ĐÁNH GIÁ ====================
+        // =====================================================
+
+        // =====================================================
+        // ================ QUẢN LÝ BÌNH LUẬN & ĐÁNH GIÁ ====================
+        // =====================================================
 
         [HttpPost]
-        public IActionResult AddReview(int movieId, int rating, string comment, int? orderId)
+        public async Task<IActionResult> AddReview(int movieId, int rating, string comment, int? orderId)
         {
+            // 1. Xử lý ID người dùng (Đã đăng nhập hoặc Khách ẩn danh)
             var customerId = GetCurrentCustomerId();
-            if (!customerId.HasValue)
+            int finalCustomerId;
+            bool isGuest = !customerId.HasValue;
+
+            if (isGuest)
             {
-                return Json(new { success = false, message = "Bạn cần đăng nhập để đánh giá phim." });
+                // Nếu chưa đăng nhập: Gom vào tài khoản "Khách ẩn danh" chung
+                var guestAccount = _context.Customers.FirstOrDefault(c => c.Email == "anonymous@cinezone.com");
+                if (guestAccount == null)
+                {
+                    guestAccount = new Customer
+                    {
+                        FullName = "Khách ẩn danh",
+                        Email = "anonymous@cinezone.com",
+                        PasswordHash = "GUEST_NONE",
+                        CreatedAt = DateTime.Now,
+                        MembershipLevel = "Đồng",
+                        TotalSpent = 0
+                    };
+                    _context.Customers.Add(guestAccount);
+                    await _context.SaveChangesAsync();
+                }
+                finalCustomerId = guestAccount.CustomerId;
+            }
+            else
+            {
+                finalCustomerId = customerId.Value;
             }
 
+            // Kiểm tra số sao hợp lệ
             if (rating < 1 || rating > 5)
             {
                 return Json(new { success = false, message = "Đánh giá sao phải từ 1 đến 5." });
             }
 
-            // MỞ ĐỂ TEST: Bất kỳ ai đăng nhập đều được bình luận
-            var hasWatched = true;
-            /*
-            var now = DateTime.Now;
-            var hasWatched = _context.Tickets
-                .Include(t => t.Order)
-                .Include(t => t.Showtime)
-                .Any(t => 
-                    t.Order != null && 
-                    t.Order.CustomerId == customerId.Value &&
-                    (t.Order.Status == "Paid" || t.Order.Status == "Completed" || t.Order.Status == "Đã thanh toán") &&
-                    t.Showtime != null && 
-                    t.Showtime.MovieId == movieId &&
-                    t.Showtime.StartTime < now
-                );
-            */
-            if (!hasWatched)
+            // 2. PHÂN LUỒNG: Nếu là THÀNH VIÊN ĐÃ ĐĂNG NHẬP -> Tiến hành kiểm tra để CẬP NHẬT
+            if (!isGuest)
             {
-                return Json(new { success = false, message = "Bạn cần xem phim (suất chiếu đã diễn ra) trước khi đánh giá." });
+                var existingReview = _context.Reviews.FirstOrDefault(r => r.MovieId == movieId && r.CustomerId == finalCustomerId);
+                if (existingReview != null)
+                {
+                    // Tiến hành ghi đè dữ liệu cũ
+                    existingReview.Rating = rating;
+                    existingReview.Comment = comment;
+                    existingReview.CreatedAt = DateTime.Now;
+
+                    await _context.SaveChangesAsync();
+
+                    // Tính lại điểm uy tín Bayesian sau khi sửa số sao
+                    await _movieService.UpdateMovieBayesianRatingAsync(movieId);
+
+                    return Json(new { success = true, message = "Đã cập nhật lại đánh giá trước đó của bạn!" });
+                }
             }
 
-            // Check if user already reviewed this movie
-            var existingReview = _context.Reviews.FirstOrDefault(r => r.MovieId == movieId && r.CustomerId == customerId.Value);
-            if (existingReview != null)
-            {
-                existingReview.Rating = rating;
-                existingReview.Comment = comment;
-                existingReview.CreatedAt = DateTime.Now;
-                _context.SaveChanges();
-                return Json(new { success = true, message = "Đã cập nhật đánh giá của bạn!" });
-            }
-
+            // 3. Nếu là KHÁCH ẨN DANH hoặc THÀNH VIÊN CHƯA TỪNG ĐÁNH GIÁ -> LUÔN LUÔN TẠO MỚI
             var review = new Review
             {
-                MovieId = movieId,
-                CustomerId = customerId.Value,
+                MovieId = movieId, // Đã xóa chữ 's' lỗi cú pháp ở đây
+                CustomerId = finalCustomerId,
                 OrderId = orderId,
                 Rating = rating,
                 Comment = comment,
@@ -1165,38 +1193,32 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
             };
 
             _context.Reviews.Add(review);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
-            return Json(new { success = true, message = "Cảm ơn bạn đã đánh giá phim!" });
+            // Tính gộp lượt vote mới vào điểm Bayesian hệ thống
+            await _movieService.UpdateMovieBayesianRatingAsync(movieId);
+
+            return Json(new { success = true, message = "Đã gửi đánh giá mới thành công!" });
         }
 
         [HttpPost]
-        public IActionResult LikeReview(int reviewId)
+        public async Task<IActionResult> ReportReview(int reviewId, string reason)
         {
-            var review = _context.Reviews.Find(reviewId);
-            if (review == null) return Json(new { success = false, message = "Đánh giá không tồn tại." });
-
-            review.LikesCount++;
-            _context.SaveChanges();
-
-            return Json(new { success = true, likesCount = review.LikesCount });
-        }
-
-        [HttpPost]
-        public IActionResult ReportReview(int reviewId, string reason)
-        {
-            var review = _context.Reviews.Find(reviewId);
-            if (review == null) return Json(new { success = false, message = "Đánh giá không tồn tại." });
+            var review = await _context.Reviews.FindAsync(reviewId);
+            if (review == null)
+            {
+                return Json(new { success = false, message = "Bình luận này không tồn tại hoặc đã bị xóa." });
+            }
 
             review.HasReport = true;
-            review.ReportReason = string.IsNullOrEmpty(review.ReportReason) 
-                ? reason 
+            review.ReportReason = string.IsNullOrEmpty(review.ReportReason)
+                ? reason
                 : review.ReportReason + "; " + reason;
-            _context.SaveChanges();
 
-            return Json(new { success = true, message = "Đã gửi báo cáo vi phạm thành công." });
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Đã gửi báo cáo vi phạm thành công. Ban quản lý sẽ sớm kiểm duyệt." });
         }
-
         // =====================================================
         // 🍿 ĐẶT BẮP NƯỚC LẺ (STANDALONE CONCESSIONS)
         // =====================================================

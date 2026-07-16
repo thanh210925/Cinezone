@@ -614,9 +614,8 @@ public partial class CinemaContext : DbContext
 
 
     public virtual DbSet<Attendance> Attendance { get; set; }
+    public DbSet<FaceEmbedding> FaceEmbeddings { get; set; }
     public virtual DbSet<LeaveRequest> LeaveRequests { get; set; }
     public virtual DbSet<LeaveType> LeaveTypes { get; set; }
     public virtual DbSet<Payroll> Payrolls { get; set; }
 }
-
-

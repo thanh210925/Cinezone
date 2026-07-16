@@ -958,27 +958,27 @@ namespace CINEMA.Controllers
         [HttpPost]
         public async Task<IActionResult> ProcessCheck([FromBody] AttendanceDto model)
         {
+            if (model == null) return Json(new { success = false, message = "Dữ liệu không hợp lệ." });
+
             var adminIdString = HttpContext.Session.GetString("AdminId");
             if (string.IsNullOrEmpty(adminIdString)) return Unauthorized();
 
             var adminId = int.Parse(adminIdString);
-            DateTime today = DateTime.Now.Date;
-            DateTime currentTime = DateTime.Now;
-            bool shouldApprove = model.isFaceMatched == true;
+            var today = DateTime.Now.Date;
+            var currentTime = DateTime.Now;
+            var shouldApprove = model.isFaceMatched == true;
 
-            // --- BƯỚC 1: KIỂM TRA ĐIỀU KIỆN PHÂN CA ---
+            // Retrieve today's work schedules for the admin
             var schedules = await _context.WorkSchedules
                 .Include(ws => ws.Shift)
                 .Where(ws => ws.AdminId == adminId && ws.WorkDate.Date == today)
                 .ToListAsync();
 
             if (!schedules.Any())
-            {
                 return Json(new { success = false, message = "Bạn không có ca làm việc hôm nay!" });
-            }
 
-            // --- BƯỚC 2: LƯU FILE ẢNH (Chỉ thực hiện khi đã qua được bước kiểm tra) ---
-            string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/attendance");
+            // Prepare folder for saving attendance photos
+            var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "attendance");
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
             string fileName = $"{adminId}_{currentTime:yyyyMMddHHmmss}.png";
@@ -987,89 +987,75 @@ namespace CINEMA.Controllers
             try
             {
                 byte[] bytes = Convert.FromBase64String(model.imageBase64.Split(',')[1]);
-                System.IO.File.WriteAllBytes(path, bytes);
+                await System.IO.File.WriteAllBytesAsync(path, bytes);
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Lỗi khi lưu ảnh chấm công: " + ex.Message });
+                Console.WriteLine($"Error saving attendance photo: {ex.Message}");
+                return Json(new { success = false, message = "Lỗi khi lưu ảnh chấm công." });
             }
 
-            // --- BƯỚC 3: XỬ LÝ LOGIC CHECK-IN / CHECK-OUT (Tối đa 1 bản ghi mỗi ngày & Khung giờ ca làm) ---
             var existingRecord = await _context.Attendance
                 .FirstOrDefaultAsync(a => a.AdminId == adminId && a.Date.Date == today);
 
             var currentTimeOfDay = currentTime.TimeOfDay;
 
-            if (model.type == "in")
+            try
             {
-                // Giới hạn 1 lần Check-in/ngày
-                if (existingRecord != null && existingRecord.CheckInTime.HasValue)
+                if (model.type == "in")
                 {
-                    return Json(new { success = false, message = "Bạn đã thực hiện Check-in ngày hôm nay rồi!" });
-                }
-
-                // Kiểm tra thời gian check-in: Sớm tối đa 30 phút, trễ tối đa 15 phút
-                bool isWithinWindow = false;
-                var sortedShifts = schedules.Select(s => s.Shift).OrderBy(s => s.StartTime).ToList();
-
-                foreach (var shift in sortedShifts)
-                {
-                    var checkInStart = shift.StartTime.Subtract(TimeSpan.FromMinutes(30));
-                    var checkInEnd = shift.StartTime.Add(TimeSpan.FromMinutes(15));
-
-                    if (currentTimeOfDay >= checkInStart && currentTimeOfDay <= checkInEnd)
+                    if (existingRecord != null && existingRecord.CheckInTime.HasValue)
                     {
-                        isWithinWindow = true;
-                        break;
-                    }
-                }
-
-                if (!isWithinWindow)
-                {
-                    var earliestShift = sortedShifts.First();
-                    if (currentTimeOfDay < earliestShift.StartTime.Subtract(TimeSpan.FromMinutes(30)))
-                    {
-                        return Json(new { success = false, message = $"Bạn đi làm quá sớm! Ca làm sớm nhất bắt đầu lúc {earliestShift.StartTime:hh\\:mm}. Chỉ được check-in trước tối đa 30 phút." });
+                        return Json(new { success = false, message = "Bạn đã thực hiện Check-in ngày hôm nay rồi!" });
                     }
 
-                    var latestShift = sortedShifts.Last();
-                    if (currentTimeOfDay > latestShift.StartTime.Add(TimeSpan.FromMinutes(15)))
+                    bool isWithinWindow = false;
+                    var sortedShifts = schedules.Select(s => s.Shift).OrderBy(s => s.StartTime).ToList();
+
+                    foreach (var shift in sortedShifts)
                     {
-                        return Json(new { success = false, message = $"Bạn đã trễ quá 15 phút so với giờ bắt đầu ca làm ({latestShift.StartTime:hh\\:mm}). Không thể chấm công!" });
+                        var checkInStart = shift.StartTime.Subtract(TimeSpan.FromMinutes(30));
+                        var checkInEnd = shift.StartTime.Add(TimeSpan.FromMinutes(15));
+
+                        if (currentTimeOfDay >= checkInStart && currentTimeOfDay <= checkInEnd)
+                        {
+                            isWithinWindow = true;
+                            break;
+                        }
                     }
 
-                    return Json(new { success = false, message = "Thời gian hiện tại không nằm trong khung giờ check-in của bất kỳ ca làm nào hôm nay (cho phép sớm 30 phút và trễ tối đa 15 phút)." });
-                }
-
-                if (existingRecord != null)
-                {
-                    existingRecord.CheckInTime = currentTime;
-                    existingRecord.CheckInPhoto = "/uploads/attendance/" + fileName;
-                    if (shouldApprove) existingRecord.IsApproved = true;
-                    _context.Attendance.Update(existingRecord);
-                }
-                else
-                {
-                    var record = new Attendance
+                    if (!isWithinWindow)
                     {
-                        AdminId = adminId,
-                        Date = today,
-                        CheckInTime = currentTime,
-                        CheckInPhoto = "/uploads/attendance/" + fileName,
-                        IsApproved = shouldApprove
-                    };
-                    _context.Attendance.Add(record);
+                        return Json(new { success = false, message = "Thời gian hiện tại không nằm trong khung giờ check-in cho phép." });
+                    }
+
+                    if (existingRecord != null)
+                    {
+                        existingRecord.CheckInTime = currentTime;
+                        existingRecord.CheckInPhoto = "/uploads/attendance/" + fileName;
+                        if (shouldApprove) existingRecord.IsApproved = true;
+                        _context.Attendance.Update(existingRecord);
+                    }
+                    else
+                    {
+                        var record = new Attendance
+                        {
+                            AdminId = adminId,
+                            Date = today,
+                            CheckInTime = currentTime,
+                            CheckInPhoto = "/uploads/attendance/" + fileName,
+                            IsApproved = shouldApprove
+                        };
+                        _context.Attendance.Add(record);
+                    }
                 }
-            }
-            else if (model.type == "out")
-            {
-                if (existingRecord != null)
+                else if (model.type == "out")
                 {
-                    if (existingRecord.CheckOutTime.HasValue)
+                    if (existingRecord != null && existingRecord.CheckOutTime.HasValue)
                     {
                         return Json(new { success = false, message = "Bạn đã thực hiện Check-out ngày hôm nay rồi!" });
                     }
-                    else
+                    else if (existingRecord != null)
                     {
                         existingRecord.CheckOutTime = currentTime;
                         existingRecord.CheckOutPhoto = "/uploads/attendance/" + fileName;
@@ -1090,9 +1076,16 @@ namespace CINEMA.Controllers
                     _context.Attendance.Add(record);
                 }
             }
-
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing attendance: {ex.Message}");
+                return Json(new { success = false, message = "Lỗi khi xử lý chấm công." });
+            }
+            
             await _context.SaveChangesAsync();
             return Json(new { success = true, message = "Chấm công thành công!" });
+
+            // Duplicate save and return removed
         }
 
         [HttpGet]

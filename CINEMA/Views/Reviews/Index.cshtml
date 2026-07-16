@@ -188,11 +188,21 @@
     <script>
         function openReplyModal(id, customerName, comment) {
             document.getElementById("replyReviewId").value = id;
+            
+            // Dùng innerText thay vì innerHTML để hiển thị an toàn và xuống dòng tự nhiên
             document.getElementById("customerCommentText").innerText = `"${customerName}": ${comment}`;
             document.getElementById("replyText").value = "";
             
             var modal = new bootstrap.Modal(document.getElementById('replyModal'));
             modal.show();
         }
+
+        // Kích hoạt Tooltip hiển thị lý do báo cáo của Bootstrap
+        document.addEventListener("DOMContentLoaded", function () {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+        });
     </script>
 }

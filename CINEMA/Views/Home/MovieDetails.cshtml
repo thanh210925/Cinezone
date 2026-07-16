@@ -37,15 +37,12 @@
 }
 
 <div class="container py-4 bg-light">
-    <!-- 🎬 BANNER & THÔNG TIN CHÍNH -->
     <div class="card shadow-sm border-0 mb-4 rounded-4 overflow-hidden bg-white">
         <div class="row g-0">
-            <!-- Poster -->
             <div class="col-md-4 bg-dark text-center d-flex align-items-center justify-content-center">
                 <img src="@Model.PosterUrl" class="img-fluid w-100" alt="@Model.Title" style="object-fit: cover; max-height: 500px;" />
             </div>
             
-            <!-- Movie Info -->
             <div class="col-md-8">
                 <div class="card-body p-4 d-flex flex-column h-100 justify-content-between">
                     <div>
@@ -54,7 +51,6 @@
                             <span class="badge bg-danger text-white fs-6 py-2 px-3">@Model.AgeRating</span>
                         </div>
                         
-                        <!-- Metadata badges -->
                         <div class="d-flex flex-wrap gap-3 text-muted small mb-4">
                             <span><i class="bi bi-film me-1"></i> @(Model.Genres != null && Model.Genres.Any() ? string.Join(", ", Model.Genres.Select(g => g.Name)) : "Đang cập nhật")</span>
                             <span><i class="bi bi-globe me-1"></i> @Model.Country</span>
@@ -62,16 +58,22 @@
                             <span><i class="bi bi-calendar-event me-1"></i> @(Model.ReleaseDate.HasValue ? Model.ReleaseDate.Value.ToString("dd/MM/yyyy") : "Đang cập nhật")</span>
                         </div>
 
+                        @if (Model.VoteCount > 0)
+                        {
+                            <div class="d-flex align-items-center mb-3 bg-warning bg-opacity-10 p-2 rounded-3 d-inline-flex border border-warning border-opacity-25">
+                                <span class="badge bg-warning text-dark fw-bold me-2"><i class="bi bi-star-fill text-danger"></i> @Model.BayesianRating.ToString("0.0")</span>
+                                <small class="text-dark fw-medium">Điểm uy tín hệ thống (@Model.VoteCount lượt đánh giá)</small>
+                            </div>
+                        }
+
                         <hr class="text-muted" />
 
-                        <!-- Description -->
                         <h5 class="fw-bold text-secondary mb-2">Nội dung phim</h5>
                         <p class="text-dark mb-4" style="line-height: 1.6; font-size: 0.95rem; text-align: justify; white-space: pre-line;">
                             @Model.Description
                         </p>
                     </div>
 
-                    <!-- Booking action button -->
                     <div class="d-flex gap-3 align-items-center flex-wrap mt-auto">
                         <a href="/Home/BookTicket/@Model.MovieId" class="btn btn-danger btn-lg fw-bold rounded-pill px-5 py-3 shadow-lg hover-lift">
                             <i class="bi bi-ticket-perforated-fill me-2"></i> ĐẶT VÉ NGAY
@@ -86,7 +88,6 @@
         </div>
     </div>
 
-    <!-- 📺 TRAILER -->
     @if (!string.IsNullOrEmpty(Model.TrailerUrl))
     {
         <div class="card shadow-sm border-0 mb-4 rounded-4 overflow-hidden bg-white p-4">
@@ -97,29 +98,33 @@
         </div>
     }
 
-    <!-- ⭐ CỘNG ĐỒNG ĐÁNH GIÁ PHIM -->
     <div class="card shadow-sm border-0 rounded-4 mb-4 p-4 bg-white">
         <h4 class="fw-bold mb-4 text-dark"><i class="bi bi-chat-left-heart-fill text-danger me-2"></i>Cộng đồng đánh giá phim</h4>
 
         <div class="row g-4 align-items-center mb-4 pb-4 border-bottom">
             <div class="col-md-4 text-center border-end">
-                <h1 class="display-3 fw-bold text-warning mb-0">@(ViewBag.AverageRating ?? 0)</h1>
+                <h1 class="display-3 fw-bold text-warning mb-0">@Model.BayesianRating.ToString("0.0")</h1>
                 <div class="fs-5 text-warning my-1">
                     @for (int i = 1; i <= 5; i++) {
-                        if (i <= Math.Round((double)(ViewBag.AverageRating ?? 0.0))) {
+                        if (i <= Math.Round(Model.BayesianRating)) {
                             <i class="bi bi-star-fill"></i>
                         } else {
                             <i class="bi bi-star"></i>
                         }
                     }
                 </div>
-                <p class="text-muted small mb-0">(@(ViewBag.RatingsCount ?? 0) đánh giá từ người xem)</p>
+                <p class="fw-bold text-secondary mb-1" style="font-size: 0.9rem;">Điểm uy tín Bayesian</p>
+                <p class="text-muted small mb-0">(@Model.VoteCount tổng lượt đánh giá)</p>
+                @if(Model.VoteCount > 0)
+                {
+                    <small class="text-secondary d-block mt-1" style="font-size: 0.75rem;">(Điểm gốc chưa qua bộ lọc: @Model.RatingAverage.ToString("0.0"))</small>
+                }
             </div>
             
             <div class="col-md-8">
                 @if (ViewBag.CanComment == true)
                 {
-                    <h5 class="fw-bold mb-2">Viết đánh giá của bạn</h5>
+                    <h5 class="fw-bold mb-2"><i class="bi bi-pencil-fill text-primary me-2"></i>Viết đánh giá mới</h5>
                     <form id="reviewForm" onsubmit="event.preventDefault(); submitReview();">
                         <input type="hidden" id="revMovieId" value="@Model.MovieId" />
                         <input type="hidden" id="revOrderId" value="@ViewBag.ValidOrderId" />
@@ -137,7 +142,7 @@
                         </div>
                         
                         <div class="mb-3">
-                            <textarea id="revComment" class="form-control rounded-3" rows="3" placeholder="Chia sẻ suy nghĩ của bạn về bộ phim..." required></textarea>
+                            <textarea id="revComment" class="form-control rounded-3" rows="3" placeholder="Nhập thêm nhận xét mới của bạn về bộ phim này..." required></textarea>
                         </div>
                         
                         <div class="text-end">
@@ -159,8 +164,7 @@
             </div>
         </div>
 
-        <!-- DANH SÁCH BÌNH LUẬN -->
-        <h5 class="fw-bold mb-3">Đánh giá nổi bật (@(ViewBag.RatingsCount ?? 0))</h5>
+        <h5 class="fw-bold mb-3">Tất cả đánh giá (@(ViewBag.Reviews != null ? ((List<CINEMA.Models.Review>)ViewBag.Reviews).Count : 0))</h5>
         <div class="d-flex flex-column gap-3" id="reviewsContainer">
             @if (ViewBag.Reviews != null && ((List<CINEMA.Models.Review>)ViewBag.Reviews).Any())
             {
@@ -226,7 +230,6 @@
         </div>
     </div>
 
-    <!-- 🎬 PHIM CÙNG THỂ LOẠI -->
     @if (relatedMovies.Any())
     {
         <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
@@ -289,6 +292,7 @@
             document.body.removeChild(textArea);
         }
 
+        // Chọn số sao trên form thêm mới
         function setRating(val) {
             document.getElementById("revRating").value = val;
             document.querySelectorAll(".star-select").forEach(star => {
@@ -303,6 +307,7 @@
             });
         }
 
+        // Gửi đánh giá mới tinh (Chạy reload trang sau khi gửi để làm mới điểm Bayesian)
         async function submitReview() {
             const movieId = document.getElementById("revMovieId").value;
             const orderId = document.getElementById("revOrderId").value;
@@ -330,7 +335,7 @@
 
                 if (res.success) {
                     alert(res.message);
-                    location.reload();
+                    location.reload(); // Ép reload trang để cập nhật trực tiếp danh sách và cột BayesianRating mới
                 } else {
                     alert(res.message);
                     btn.disabled = false;
@@ -368,28 +373,37 @@
             }
         }
 
-        async function reportReview(reviewId, reason) {
-            if (!confirm(`Bạn muốn báo cáo bình luận này vì lý do: "${reason}"?`)) return;
+      async function reportReview(reviewId, reason) {
+    if (!confirm(`Bạn muốn báo cáo bình luận này vì lý do: "${reason}"?`)) return;
 
-            try {
-                const formData = new FormData();
-                formData.append("reviewId", reviewId);
-                formData.append("reason", reason);
+    try {
+        const formData = new FormData();
+        formData.append("reviewId", reviewId);
+        formData.append("reason", reason);
 
-                const r = await fetch('/Home/ReportReview', {
-                    method: 'POST',
-                    body: formData
-                });
-                const res = await r.json();
+        // Gọi sang HomeController
+        const r = await fetch('/Home/ReportReview', {
+            method: 'POST',
+            body: formData
+        });
 
-                if (res.success) {
-                    alert(res.message);
-                } else {
-                    alert(res.message);
-                }
-            } catch(e) {
-                alert('Lỗi kết nối.');
-            }
+        // HẾT LỖI ẨN: Kiểm tra nếu Server trả về lỗi 404 hoặc 500 thì hiện thẳng mã lỗi luôn
+        if (!r.ok) {
+            alert(`Lỗi từ Server (Mã lỗi: ${r.status}). Vui lòng kiểm tra lại hàm ReportReview trong Controller!`);
+            return;
         }
+
+        const res = await r.json();
+
+        if (res.success) {
+            alert(res.message);
+        } else {
+            alert(res.message);
+        }
+    } catch(e) {
+        console.error(e);
+        alert('Lỗi kết nối mạng hoặc không thể đọc dữ liệu.');
+    }
+}
     </script>
 }

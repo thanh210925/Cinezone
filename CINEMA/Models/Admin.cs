@@ -75,7 +75,7 @@ namespace CINEMA.Models
 
         public virtual Position? Position { get; set; }
 
-
+        public string? FaceDescriptor { get; set; } // Lưu dưới dạng chuỗi JSON của mảng 128 số
         public virtual ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
         public virtual ICollection<WorkSchedule> WorkSchedules { get; set; } = new List<WorkSchedule>();
         public virtual ICollection<Payroll> Payrolls { get; set; } = new List<Payroll>();

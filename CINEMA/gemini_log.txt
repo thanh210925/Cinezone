@@ -1294,3 +1294,651 @@ Response: {
 
 --------------------------------------------------
 
+--------------------------------------------------
+[Time: 15/07/2026 16:29:03]
+Model tried: gemini-3.5-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 16:29:04]
+Model tried: gemini-3-flash-preview
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 16:29:04]
+Model tried: gemini-2.0-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "service": "generativelanguage.googleapis.com",
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 16:51:04]
+Model tried: gemini-3.5-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 16:51:04]
+Model tried: gemini-3-flash-preview
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 16:51:04]
+Model tried: gemini-2.0-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 16:53:41]
+Model tried: gemini-3.5-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 16:53:42]
+Model tried: gemini-3-flash-preview
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "service": "generativelanguage.googleapis.com",
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 16:53:42]
+Model tried: gemini-2.0-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "service": "generativelanguage.googleapis.com",
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 16:54:57]
+Model tried: gemini-3.5-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 16:54:57]
+Model tried: gemini-3-flash-preview
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 16:54:58]
+Model tried: gemini-2.0-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:02:48]
+Model tried: gemini-3.5-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:02:48]
+Model tried: gemini-3-flash-preview
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:02:48]
+Model tried: gemini-2.0-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:03:44]
+Model tried: gemini-3.5-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:03:44]
+Model tried: gemini-3-flash-preview
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:03:45]
+Model tried: gemini-2.0-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "service": "generativelanguage.googleapis.com",
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:07:43]
+Model tried: gemini-3.5-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:07:43]
+Model tried: gemini-3-flash-preview
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:07:43]
+Model tried: gemini-2.0-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:40:22]
+Model tried: gemini-3.5-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "service": "generativelanguage.googleapis.com",
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:40:22]
+Model tried: gemini-3-flash-preview
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:40:22]
+Model tried: gemini-2.0-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "service": "generativelanguage.googleapis.com",
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:41:13]
+Model tried: gemini-3.5-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "service": "generativelanguage.googleapis.com",
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:41:13]
+Model tried: gemini-3-flash-preview
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+
+--------------------------------------------------
+[Time: 15/07/2026 17:41:14]
+Model tried: gemini-2.0-flash
+API Key: AQ.KeyAPI
+Response: {
+  "error": {
+    "code": 401,
+    "message": "Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.",
+    "status": "UNAUTHENTICATED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "ACCESS_TOKEN_TYPE_UNSUPPORTED",
+        "metadata": {
+          "method": "google.ai.generativelanguage.v1beta.GenerativeService.GenerateContent",
+          "service": "generativelanguage.googleapis.com"
+        }
+      }
+    ]
+  }
+}
+
+--------------------------------------------------
+

@@ -27,6 +27,7 @@ namespace CINEMA
             builder.Services.AddScoped<StatisticsController>();
             builder.Services.AddScoped<RecommendationEngine>();
             builder.Services.AddHttpClient<CINEMA.Services.GeminiService>();
+            builder.Services.AddScoped<IMovieService, MovieService>();
 
             // Email Notifications Configuration
             builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));

@@ -34,4 +34,7 @@ public partial class Movie
     public virtual ICollection<Showtime> Showtimes { get; set; } = new List<Showtime>();
 
     public virtual ICollection<Genre> Genres { get; set; } = new List<Genre>();
+    public int VoteCount { get; set; }
+    public double RatingAverage { get; set; }
+    public double BayesianRating { get; set; }
 }
