@@ -1404,6 +1404,8 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
                 CreatedAt = DateTime.Now,
                 Status = paymentMethod == "VNPAY" ? "Chờ thanh toán" : "Đã thanh toán",
                 TotalAmount = totalAmount,
+                ComboTotal = totalAmount,
+                TicketTotal = 0,
                 VoucherCode = string.IsNullOrEmpty(voucherCode) ? null : voucherCode.Trim(),
                 DiscountAmount = discount,
                 PaymentMethod = paymentMethod + " (Nhận tại: " + theater.Name + ")"

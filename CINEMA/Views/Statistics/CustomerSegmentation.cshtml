@@ -1,0 +1,525 @@
+@model CINEMA.Services.ClusteringResult
+@{
+    ViewData["Title"] = "Phân cụm khách hàng - K-Means Clustering";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid py-4 bg-light-gray" style="min-height: 100vh; font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;">
+    <!-- AI Dashboard Header -->
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4 position-relative" style="background: linear-gradient(135deg, #0f172a, #1e1b4b);">
+        <div class="position-absolute top-0 start-0 w-100 h-100 bg-grid opacity-10"></div>
+        <div class="position-absolute top-0 end-0 bg-primary opacity-20 rounded-circle" style="width: 300px; height: 300px; transform: translate(100px, -100px); filter: blur(80px);"></div>
+        <div class="position-absolute bottom-0 start-0 bg-info opacity-15 rounded-circle" style="width: 250px; height: 250px; transform: translate(-100px, 100px); filter: blur(60px);"></div>
+        
+        <div class="card-body p-4 p-md-5 position-relative z-1 text-white">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <span class="badge bg-primary bg-opacity-25 text-info border border-info border-opacity-25 px-3 py-2 rounded-pill fw-bold mb-3 small d-inline-flex align-items-center gap-2">
+                        <span class="pulse-dot-blue"></span> PHÂN TÍCH TIẾP THỊ (MARKETING INTELLIGENCE)
+                    </span>
+                    <h1 class="fw-extrabold tracking-tight mb-2 text-white" style="font-size: 2.25rem;">Phân Cụm Khách Hàng K-Means</h1>
+                    <p class="lead text-white text-opacity-75 mb-0" style="max-width: 750px; font-size: 1rem;">
+                        Tự động phân nhóm tập khách hàng dựa trên giải thuật <strong>K-Means Clustering</strong> với các thuộc tính: tần suất xem phim, mức chi tiêu bắp nước và thói quen xem phim cuối tuần.
+                    </p>
+                </div>
+                <div class="d-flex flex-column align-items-end text-md-end">
+                    <div class="d-flex align-items-center gap-2 text-info mb-1">
+                        <i class="bi bi-cpu-fill fs-4"></i>
+                        <span class="fw-bold tracking-wider">CINEZONE AI</span>
+                    </div>
+                    <span class="text-white text-opacity-50 small">Trực quan hóa dữ liệu đa chiều</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hộp thiết lập & Giải thích thuật toán -->
+    <div class="row g-4 mb-4">
+        <!-- Bộ lọc chọn số cụm K -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="fw-bold text-dark mb-2 d-flex align-items-center">
+                        <i class="bi bi-gear-fill me-2 text-primary"></i>Thiết Lập Số Cụm (K)
+                    </h5>
+                    <p class="text-muted small mb-4">Chọn số lượng phân nhóm khách hàng tối ưu mà bạn muốn thuật toán K-Means phân tách (Khuyến nghị: K = 3).</p>
+                </div>
+                
+                <form method="get" asp-action="CustomerSegmentation" class="w-100">
+                    <div class="mb-4">
+                        <label class="form-label text-muted small fw-bold">Số lượng cụm phân loại</label>
+                        <div class="input-group shadow-sm rounded-pill overflow-hidden border">
+                            <span class="input-group-text bg-white border-0 ps-3 text-muted"><i class="bi bi-diagram-3-fill"></i></span>
+                            <select name="k" class="form-select border-0 ps-2" onchange="this.form.submit()" style="height: 50px; font-size: 0.95rem; cursor: pointer; font-family: 'Be Vietnam Pro', sans-serif;">
+                                @for (int i = 2; i <= 5; i++)
+                                {
+                                    if (Model.K == i)
+                                    {
+                                        <option value="@i" selected="selected">K = @i (@i nhóm khách hàng)</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@i">K = @i (@i nhóm khách hàng)</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-2 hover-scale" style="height: 50px; font-weight: 600;">
+                        <i class="bi bi-lightning-charge-fill"></i> Tái Phân Cụm & Phân Tích
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Bảng thuyết minh giải thuật K-Means -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-white h-100" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+                <h5 class="fw-bold text-info mb-3 d-flex align-items-center">
+                    <i class="bi bi-book-half me-2"></i>Mô Hình Phân Tích K-Means
+                </h5>
+                <div class="row g-3 small">
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3 border border-white border-opacity-10 h-100" style="background-color: rgba(255, 255, 255, 0.08) !important;">
+                            <span class="badge bg-info text-dark fw-bold mb-2">ĐẶC TRƯNG</span>
+                            <h6 class="fw-bold text-white mb-1">Các chỉ số đầu vào</h6>
+                            <ul class="mb-0 ps-3 text-white text-opacity-75" style="font-size: 0.75rem; line-height: 1.5;">
+                                <li><strong>Tần suất vé/tháng:</strong> Tổng số vé đã mua chia cho số tháng hoạt động.</li>
+                                <li><strong>Chi tiêu Combo:</strong> Tổng tiền chi mua bắp nước.</li>
+                                <li><strong>Tỷ lệ cuối tuần:</strong> Tỷ lệ vé xem thứ Bảy/Chủ Nhật.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3 border border-white border-opacity-10 h-100" style="background-color: rgba(255, 255, 255, 0.08) !important;">
+                            <span class="badge bg-primary text-white fw-bold mb-2">QUY TRÌNH</span>
+                            <h6 class="fw-bold text-white mb-1">Chuẩn hóa & Hội tụ</h6>
+                            <p class="text-white text-opacity-75 mb-0" style="font-size: 0.75rem; text-align: justify; line-height: 1.5;">
+                                Dữ liệu được đưa về thang đo 0-1 (Min-Max) để tránh lệch trọng số do chi tiêu bắp nước quá lớn. Sau đó thuật toán gán cụm và dịch centroids tuần tự đến khi hội tụ hoàn toàn.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.Success)
+    {
+        <!-- Warning Card for Low Customer Data -->
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-warning bg-opacity-10 text-warning mb-4" style="width: 80px; height: 80px;">
+                <i class="bi bi-exclamation-triangle-fill fs-1"></i>
+            </div>
+            <h4 class="fw-bold text-dark mb-3">Chưa Đủ Dữ Liệu Phân Phép Cụm</h4>
+            <p class="text-muted mx-auto mb-4" style="max-width: 600px;">
+                @Model.ErrorMessage
+            </p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="/CustomerAdmin" class="btn btn-primary rounded-pill px-4 fw-bold">
+                    <i class="bi bi-person-plus-fill me-2"></i>Thêm Khách Hàng
+                </a>
+                <a href="/AdminOrders" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+                    <i class="bi bi-cart-fill me-2"></i>Quản lý Giao Dịch
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Visual Charts Section -->
+        <div class="row g-4 mb-4">
+            <!-- Doughnut Chart: Distribution -->
+            <div class="col-xl-4 col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                    <h5 class="fw-bold text-dark mb-3 d-flex align-items-center">
+                        <i class="bi bi-pie-chart-fill me-2 text-success"></i>Tỷ Lệ Phân Phối Cụm
+                    </h5>
+                    <div style="position: relative; height: 260px;">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scatter Plot: Clusters Visualized -->
+            <div class="col-xl-4 col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                    <h5 class="fw-bold text-dark mb-3 d-flex align-items-center">
+                        <i class="bi bi-graph-up-arrow me-2 text-danger"></i>Biểu Đồ Phân Cụm (Scatter)
+                    </h5>
+                    <div style="position: relative; height: 260px;">
+                        <canvas id="scatterChart"></canvas>
+                    </div>
+                    <div class="text-center text-muted small mt-2">
+                        <span>Trục X: Vé/Tháng | Trục Y: Chi tiêu Combo (đ)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bar Chart: Cluster Profiles -->
+            <div class="col-xl-4 col-md-12">
+                <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                    <h5 class="fw-bold text-dark mb-3 d-flex align-items-center">
+                        <i class="bi bi-sliders me-2 text-info"></i>Hồ Sơ Đặc Trưng Centroids
+                    </h5>
+                    <div style="position: relative; height: 260px;">
+                        <canvas id="profileChart"></canvas>
+                    </div>
+                    <div class="text-center text-muted small mt-2">
+                        <span class="text-info">* Combo được chuẩn hóa tỉ lệ (đã chia cho 100k VNĐ) để dễ đọc.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cluster Strategies Section -->
+        <h4 class="fw-bold text-dark mb-3 mt-5 d-flex align-items-center">
+            <i class="bi bi-lightbulb-fill text-warning me-2"></i>Đề Xuất Chiến Dịch Tiếp Thị Theo Cụm
+        </h4>
+        <div class="row g-4 mb-4">
+            @foreach (var profile in Model.ClusterProfiles)
+            {
+                var colorClass = "";
+                var borderClass = "";
+                var bgBadge = "";
+                switch (profile.ClusterId % 5)
+                {
+                    case 0:
+                        colorClass = "text-primary";
+                        borderClass = "border-primary";
+                        bgBadge = "bg-primary";
+                        break;
+                    case 1:
+                        colorClass = "text-success";
+                        borderClass = "border-success";
+                        bgBadge = "bg-success";
+                        break;
+                    case 2:
+                        colorClass = "text-warning text-dark";
+                        borderClass = "border-warning";
+                        bgBadge = "bg-warning text-dark";
+                        break;
+                    case 3:
+                        colorClass = "text-danger";
+                        borderClass = "border-danger";
+                        bgBadge = "bg-danger";
+                        break;
+                    case 4:
+                        colorClass = "text-info";
+                        borderClass = "border-info";
+                        bgBadge = "bg-info";
+                        break;
+                }
+                <div class="col-lg-4 col-md-6">
+                    <div class="card border-0 border-top border-4 @borderClass shadow-sm rounded-4 p-4 bg-white h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <span class="badge @bgBadge rounded-pill px-3 py-2 fw-bold">Cụm @(profile.ClusterId + 1)</span>
+                                <span class="text-muted small fw-bold">@profile.CustomerCount KH (@profile.Percentage%)</span>
+                            </div>
+                            <h5 class="fw-bold text-dark mb-3">@profile.Label</h5>
+                            
+                            <!-- Profile stats -->
+                            <div class="bg-light rounded-3 p-3 mb-3 small">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Tần suất xem:</span>
+                                    <span class="fw-bold">@profile.AvgTicketsPerMonth vé/tháng</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Chi tiêu Combo:</span>
+                                    <span class="fw-bold text-success">@profile.AvgComboSpending.ToString("N0") đ</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Tỷ lệ xem cuối tuần:</span>
+                                    <span class="fw-bold">@(Math.Round(profile.AvgWeekendRatio * 100, 1))%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action/Strategy -->
+                        <div class="border-top pt-3 mt-2">
+                            <span class="text-muted small fw-bold d-block mb-2 text-uppercase tracking-wider"><i class="bi bi-rocket-takeoff-fill me-1 text-danger"></i>Chiến dịch đề xuất:</span>
+                            <p class="small text-secondary mb-0" style="text-align: justify; line-height: 1.5;">
+                                @profile.MarketingStrategy
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Customer List Details Table -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
+            <div class="card-header bg-white border-0 py-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <h5 class="fw-bold text-dark m-0 d-flex align-items-center">
+                    <i class="bi bi-list-stars me-2 text-primary"></i>Danh Sách Gán Cụm Chi Tiết
+                </h5>
+                <div class="position-relative" style="width: 250px;">
+                    <span class="position-absolute top-50 start-0 translate-middle-y ps-3 text-muted"><i class="bi bi-search"></i></span>
+                    <input type="text" id="tableSearch" class="form-control rounded-pill ps-5 border" placeholder="Tìm tên khách hàng..." style="font-size: 0.9rem;">
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="segmentTable">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="ps-4">Mã KH</th>
+                            <th>Họ và Tên</th>
+                            <th>Email</th>
+                            <th class="text-center">Vé / Tháng</th>
+                            <th class="text-end">Tiền Combo (đ)</th>
+                            <th class="text-center">Tỷ lệ Cuối Tuần</th>
+                            <th class="pe-4 text-center">Phân Nhóm Gán</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Model.Customers)
+                        {
+                            var badgeClass = "";
+                            var profile = Model.ClusterProfiles.First(p => p.ClusterId == c.ClusterId);
+                            switch (c.ClusterId % 5)
+                            {
+                                case 0:
+                                    badgeClass = "bg-primary";
+                                    break;
+                                case 1:
+                                    badgeClass = "bg-success";
+                                    break;
+                                case 2:
+                                    badgeClass = "bg-warning text-dark";
+                                    break;
+                                case 3:
+                                    badgeClass = "bg-danger";
+                                    break;
+                                case 4:
+                                    badgeClass = "bg-info";
+                                    break;
+                            }
+                            <tr>
+                                <td class="ps-4 text-muted fw-bold">#@c.CustomerId</td>
+                                <td>
+                                    <div class="fw-bold text-dark">@c.FullName</div>
+                                </td>
+                                <td>@c.Email</td>
+                                <td class="text-center fw-bold">@c.TicketsPerMonth.ToString("N1")</td>
+                                <td class="text-end fw-bold text-success">@c.ComboSpending.ToString("N0") đ</td>
+                                <td class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                        <div class="progress" style="width: 60px; height: 6px;">
+                                            <div class="progress-bar @badgeClass" role="progressbar" style="width: @(c.WeekendRatio * 100)%" aria-valuenow="@(c.WeekendRatio * 100)" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <span class="small font-monospace">@(Math.Round(c.WeekendRatio * 100, 0))%</span>
+                                    </div>
+                                </td>
+                                <td class="pe-4 text-center font-monospace">
+                                    <span class="badge @badgeClass rounded-pill px-3 py-2 fw-semibold" style="font-size: 0.8rem; min-width: 140px; display: inline-block;">
+                                        @profile.Label
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <!-- Load Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    @if (Model.Success)
+    {
+        <script>
+            // Retrieve dynamic data from ASP.NET Model
+            const clusterProfiles = @Json.Serialize(Model.ClusterProfiles);
+            const customers = @Json.Serialize(Model.Customers);
+
+            // Theme colors matching cluster index
+            const clusterColors = [
+                'rgba(13, 110, 253, 0.85)', // primary
+                'rgba(25, 135, 84, 0.85)',  // success
+                'rgba(255, 193, 7, 0.95)',  // warning
+                'rgba(220, 53, 69, 0.85)',  // danger
+                'rgba(13, 202, 240, 0.85)'  // info
+            ];
+
+            const clusterBorders = [
+                '#0d6efd',
+                '#198754',
+                '#ffc107',
+                '#dc3545',
+                '#0dcaf0'
+            ];
+
+            // 1. Doughnut Chart: Cluster Distribution
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+            new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: clusterProfiles.map(p => p.label),
+                    datasets: [{
+                        data: clusterProfiles.map(p => p.customerCount),
+                        backgroundColor: clusterProfiles.map((p, idx) => clusterColors[idx % 5]),
+                        borderWidth: 1,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    family: 'Be Vietnam Pro',
+                                    size: 11
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+
+            // 2. Scatter Plot Visualizing Clusters (X: Tickets/Month, Y: ComboSpending)
+            const scatterCtx = document.getElementById('scatterChart').getContext('2d');
+            
+            // Build dataset per cluster
+            const scatterDatasets = clusterProfiles.map((p, idx) => {
+                const clusterPoints = customers
+                    .filter(c => c.clusterId === p.clusterId)
+                    .map(c => ({
+                        x: c.ticketsPerMonth,
+                        y: c.comboSpending
+                    }));
+
+                return {
+                    label: p.label,
+                    data: clusterPoints,
+                    backgroundColor: clusterColors[idx % 5],
+                    borderColor: clusterBorders[idx % 5],
+                    pointRadius: 8,
+                    pointHoverRadius: 10
+                };
+            });
+
+            new Chart(scatterCtx, {
+                type: 'scatter',
+                data: {
+                    datasets: scatterDatasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false // hide legend here to avoid cluttering, we have it on other charts
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw.x.toFixed(1)} vé/tháng, ${context.raw.y.toLocaleString()}đ Combo`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Tần suất mua vé (vé/tháng)',
+                                font: { family: 'Be Vietnam Pro', weight: 'bold' }
+                            },
+                            grid: {
+                                color: '#f1f1f1'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Chi tiêu Combo (VNĐ)',
+                                font: { family: 'Be Vietnam Pro', weight: 'bold' }
+                            },
+                            grid: {
+                                color: '#f1f1f1'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 3. Bar Chart: Cluster Profile Centroids Comparison
+            const profileCtx = document.getElementById('profileChart').getContext('2d');
+            new Chart(profileCtx, {
+                type: 'bar',
+                data: {
+                    labels: clusterProfiles.map(p => p.label),
+                    datasets: [
+                        {
+                            label: 'Vé / Tháng',
+                            data: clusterProfiles.map(p => p.avgTicketsPerMonth),
+                            backgroundColor: 'rgba(54, 162, 235, 0.75)',
+                            borderColor: '#36a2eb',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Chi tiêu Combo (x100k đ)',
+                            data: clusterProfiles.map(p => p.avgComboSpending / 100000),
+                            backgroundColor: 'rgba(75, 192, 192, 0.75)',
+                            borderColor: '#4bc0c0',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Tỷ lệ Cuối Tuần (x10)',
+                            data: clusterProfiles.map(p => p.avgWeekendRatio * 10),
+                            backgroundColor: 'rgba(255, 159, 64, 0.75)',
+                            borderColor: '#ff9f40',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: { family: 'Be Vietnam Pro', size: 10 }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#f1f1f1'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Table Search Filter Logic
+            document.getElementById('tableSearch').addEventListener('keyup', function() {
+                const query = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#segmentTable tbody tr');
+                
+                rows.forEach(row => {
+                    const name = row.cells[1].textContent.toLowerCase();
+                    const email = row.cells[2].textContent.toLowerCase();
+                    if (name.includes(query) || email.includes(query)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        </script>
+    }
+}
