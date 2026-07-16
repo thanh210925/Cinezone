@@ -163,6 +163,22 @@ namespace CINEMA.Controllers
                 .FirstOrDefault(s => s.ShowtimeId == id);
 
             if (showtime == null) return NotFound();
+
+            // Kiểm tra xem có vé nào đã thanh toán hay chưa
+            bool hasPaidTickets = _context.Tickets.Any(t =>
+                t.ShowtimeId == id && (
+                    t.PaymentStatus == "Đã thanh toán" || t.PaymentStatus == "Paid" || t.PaymentStatus == "Completed" ||
+                    t.Status == "Đã thanh toán" || t.Status == "Paid" || t.Status == "Completed" ||
+                    (t.Order != null && (t.Order.Status == "Đã thanh toán" || t.Order.Status == "Paid" || t.Order.Status == "Completed"))
+                )
+            );
+
+            ViewBag.HasPaidTickets = hasPaidTickets;
+            if (hasPaidTickets)
+            {
+                ViewBag.ErrorMessage = "Không thể xóa suất chiếu này vì đã có vé được thanh toán!";
+            }
+
             return View(showtime);
         }
 
@@ -170,6 +186,21 @@ namespace CINEMA.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult DeleteConfirmed(int id)
         {
+            // Kiểm tra xem có vé nào đã thanh toán hay chưa
+            bool hasPaidTickets = _context.Tickets.Any(t =>
+                t.ShowtimeId == id && (
+                    t.PaymentStatus == "Đã thanh toán" || t.PaymentStatus == "Paid" || t.PaymentStatus == "Completed" ||
+                    t.Status == "Đã thanh toán" || t.Status == "Paid" || t.Status == "Completed" ||
+                    (t.Order != null && (t.Order.Status == "Đã thanh toán" || t.Order.Status == "Paid" || t.Order.Status == "Completed"))
+                )
+            );
+
+            if (hasPaidTickets)
+            {
+                TempData["ErrorMessage"] = "Không thể xóa suất chiếu này vì đã có vé được thanh toán!";
+                return RedirectToAction(nameof(Delete), new { id = id });
+            }
+
             // 1. Lấy tất cả tickets của suất chiếu
             var tickets = _context.Tickets
                 .Where(t => t.ShowtimeId == id)
@@ -426,20 +457,56 @@ namespace CINEMA.Controllers
 
             foreach (var req in requests)
             {
+                // 1. Kiểm tra trùng với database
                 var overlap = _context.Showtimes
                     .Include(s => s.Movie)
                     .FirstOrDefault(s => s.AuditoriumId == req.AuditoriumId
                                       && s.IsActive == true
                                       && req.StartTime < s.EndTime
                                       && req.EndTime > s.StartTime);
-                results.Add(new ConflictCheckResult
+
+                // 2. Kiểm tra trùng với các suất chiếu khác trong chính danh sách gửi lên (chỉ so sánh khi cả hai đều được chọn)
+                ConflictCheckRequest batchOverlap = null;
+                if (req.IsSelected)
                 {
-                    Index = req.Index,
-                    HasConflict = overlap != null,
-                    ConflictWith = overlap != null
-                        ? $"{overlap.Movie?.Title} ({overlap.StartTime:HH:mm}–{overlap.EndTime:HH:mm})"
-                        : null
-                });
+                    batchOverlap = requests.FirstOrDefault(other =>
+                        other.Index != req.Index
+                        && other.IsSelected
+                        && other.AuditoriumId == req.AuditoriumId
+                        && req.StartTime < other.EndTime
+                        && req.EndTime > other.StartTime);
+                }
+
+                if (overlap != null)
+                {
+                    results.Add(new ConflictCheckResult
+                    {
+                        Index = req.Index,
+                        HasConflict = true,
+                        ConflictWith = $"{overlap.Movie?.Title} ({overlap.StartTime:HH:mm}–{overlap.EndTime:HH:mm})",
+                        IsBatchConflict = false
+                    });
+                }
+                else if (batchOverlap != null)
+                {
+                    results.Add(new ConflictCheckResult
+                    {
+                        Index = req.Index,
+                        HasConflict = true,
+                        ConflictWith = $"Trùng với một suất khác ({batchOverlap.StartTime:HH:mm}–{batchOverlap.EndTime:HH:mm}) trong danh sách đang tạo",
+                        IsBatchConflict = true
+                    });
+                }
+                else
+                {
+                    results.Add(new ConflictCheckResult
+                    {
+                        Index = req.Index,
+                        HasConflict = false,
+                        ConflictWith = null,
+                        IsBatchConflict = false
+                    });
+                }
             }
             return Json(results);
         }
@@ -488,6 +555,20 @@ namespace CINEMA.Controllers
 
             try
             {
+                // Kiểm tra xem có vé nào đã được thanh toán trong các suất chiếu này chưa
+                bool hasPaidTickets = _context.Tickets.Any(t =>
+                    t.ShowtimeId.HasValue && ids.Contains(t.ShowtimeId.Value) && (
+                        t.PaymentStatus == "Đã thanh toán" || t.PaymentStatus == "Paid" || t.PaymentStatus == "Completed" ||
+                        t.Status == "Đã thanh toán" || t.Status == "Paid" || t.Status == "Completed" ||
+                        (t.Order != null && (t.Order.Status == "Đã thanh toán" || t.Order.Status == "Paid" || t.Order.Status == "Completed"))
+                    )
+                );
+
+                if (hasPaidTickets)
+                {
+                    return Json(new { success = false, message = "Không thể xóa các suất chiếu đã chọn vì có suất chiếu đã có vé được thanh toán!" });
+                }
+
                 var showtimes = _context.Showtimes.Where(s => ids.Contains(s.ShowtimeId)).ToList();
                 foreach (var s in showtimes)
                 {

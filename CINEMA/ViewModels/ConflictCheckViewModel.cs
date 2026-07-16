@@ -6,6 +6,7 @@ namespace CINEMA.ViewModels
         public int AuditoriumId { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+        public bool IsSelected { get; set; }
     }
 
     public class ConflictCheckResult
@@ -13,6 +14,7 @@ namespace CINEMA.ViewModels
         public int Index { get; set; }
         public bool HasConflict { get; set; }
         public string? ConflictWith { get; set; }
+        public bool IsBatchConflict { get; set; }
     }
 
     /// <summary>DTO nhận từ Wizard V3 qua AJAX JSON POST</summary>

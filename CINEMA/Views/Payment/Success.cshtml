@@ -21,8 +21,8 @@
     }
 
     .receipt-container {
-        max-width: 600px;
-        margin: 4rem auto;
+        max-width: 950px;
+        margin: 2rem auto;
         position: relative;
     }
 
@@ -31,9 +31,23 @@
         border-radius: 24px;
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.06);
         border: 1px solid rgba(0,0,0,0.03);
-        padding: 3rem 2.5rem;
+        padding: 0;
         position: relative;
         overflow: hidden;
+    }
+
+    .border-end-dashed {
+        border-right: 2px dashed var(--color-border);
+        flex-shrink: 0;
+        width: 350px;
+    }
+
+    @@media (max-width: 768px) {
+        .border-end-dashed {
+            border-right: none;
+            border-bottom: 2px dashed var(--color-border);
+            width: 100%;
+        }
     }
 
     /* Jagged/Teeth Bottom Border to mimic ticket receipt */
@@ -54,14 +68,14 @@
 
     /* Glow Check Animations */
     .status-glow-icon {
-        width: 80px;
-        height: 80px;
+        width: 64px;
+        height: 64px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 1.5rem auto;
-        font-size: 3rem;
+        margin: 0 auto 1rem auto;
+        font-size: 2.2rem;
         transition: transform 0.3s ease;
     }
 
@@ -165,174 +179,220 @@
 </style>
 
 <div class="container receipt-container">
-    <div class="receipt-card text-center">
+    @{
+        var custName = !string.IsNullOrEmpty(ViewBag.CustomerName) ? ViewBag.CustomerName : (Model != null ? Model.CustomerName : "Khách vãng lai");
+        var custPhone = !string.IsNullOrEmpty(ViewBag.CustomerPhone) ? ViewBag.CustomerPhone : (Model != null ? Model.CustomerPhone : "");
+        var movieTitle = !string.IsNullOrEmpty(ViewBag.MovieTitle) ? ViewBag.MovieTitle : (Model != null ? Model.MovieTitle : "");
+        var showtime = !string.IsNullOrEmpty(ViewBag.Showtime) ? ViewBag.Showtime : (Model != null ? Model.Showtime : "");
+        var auditorium = !string.IsNullOrEmpty(ViewBag.Auditorium) ? ViewBag.Auditorium : (Model != null ? Model.Auditorium : "");
         
-        <!-- HEADER STATUS ZONE -->
-        @if (ViewBag.PaymentStatus == "Đã thanh toán" || ViewBag.PaymentStatus == "Completed" || ViewBag.PaymentStatus == "Paid")
-        {
-            <div class="status-glow-icon status-glow-success">
-                <i class="bi bi-check-circle-fill"></i>
-            </div>
-            <h2 class="fw-bold text-success m-0">Thanh toán thành công!</h2>
-            <p class="text-muted mt-2">Cảm ơn bạn đã đặt vé xem phim tại CineZone.</p>
-        }
-        else if (ViewBag.PaymentStatus == "Chờ thanh toán" || ViewBag.PaymentStatus == "Pending")
-        {
-            <div class="status-glow-icon status-glow-warning">
-                <i class="bi bi-hourglass-split"></i>
-            </div>
-            <h2 class="fw-bold text-warning m-0">Đặt vé thành công!</h2>
-            <p class="text-muted mt-2">Vui lòng đến quầy vé để hoàn tất thanh toán trước giờ chiếu.</p>
-        }
-        else
-        {
-            <div class="status-glow-icon status-glow-warning">
-                <i class="bi bi-info-circle-fill"></i>
-            </div>
-            <h2 class="fw-bold text-warning m-0">Đặt vé thành công!</h2>
-            <p class="text-muted mt-2">Hệ thống ghi nhận trạng thái đơn đặt vé của bạn.</p>
+        var seats = "";
+        if (!string.IsNullOrEmpty(ViewBag.SelectedSeats)) {
+            seats = ViewBag.SelectedSeats;
+        } else if (Model != null && Model.SelectedSeats != null && Model.SelectedSeats.Any()) {
+            seats = string.Join(", ", Model.SelectedSeats);
         }
 
-        <hr class="my-4">
-
-        <!-- BOOKING CODE SECTION -->
-        @if (!string.IsNullOrEmpty(ViewBag.BookingCode))
+        var combosToShow = ViewBag.Combos as List<ComboViewModel>;
+        if (combosToShow == null && Model?.Combos != null)
         {
-            <div>
-                <small class="text-muted d-block uppercase tracking-wider small fw-bold">Mã đặt vé của bạn</small>
-                <div class="booking-code-box user-select-all">@ViewBag.BookingCode</div>
-                <small class="text-muted d-block mt-2">Hãy lưu hoặc chụp màn hình mã đặt vé này</small>
-            </div>
+            combosToShow = Model.Combos;
         }
-
-        <!-- DETAILS COLLAPSE LIST -->
-        <div class="mt-4">
-            <div class="receipt-details-list">
-                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-file-earmark-text"></i> Thông tin giao dịch</h6>
-                
-                @* Info Khách hàng *@
-                @{
-                    var custName = !string.IsNullOrEmpty(ViewBag.CustomerName) ? ViewBag.CustomerName : (Model != null ? Model.CustomerName : "");
-                    var custPhone = !string.IsNullOrEmpty(ViewBag.CustomerPhone) ? ViewBag.CustomerPhone : (Model != null ? Model.CustomerPhone : "");
-                }
-                @if (!string.IsNullOrEmpty(custName))
+        var isConcessionOnly = string.IsNullOrEmpty(movieTitle);
+    }
+    
+    <div class="receipt-card">
+        <div class="d-flex flex-md-row flex-column align-items-stretch">
+            
+            <!-- LEFT COLUMN: STATUS & QR CODE -->
+            <div class="border-end-dashed text-center p-4 p-md-5 d-flex flex-column justify-content-center align-items-center">
+                <!-- HEADER STATUS ZONE -->
+                @if (ViewBag.PaymentStatus == "Đã thanh toán" || ViewBag.PaymentStatus == "Completed" || ViewBag.PaymentStatus == "Paid")
                 {
-                    <div class="receipt-detail-row">
-                        <span class="receipt-detail-label">Khách hàng</span>
-                        <span class="receipt-detail-val">@custName (@custPhone)</span>
+                    <div class="status-glow-icon status-glow-success mb-3">
+                        <i class="bi bi-check-circle-fill"></i>
                     </div>
+                    <h3 class="fw-bold text-success m-0 mb-1">Thanh toán thành công!</h3>
+                    <p class="text-muted small mb-0 px-2" style="font-size: 0.85rem;">
+                        @(isConcessionOnly ? "Cảm ơn bạn đã mua bắp nước tại CineZone." : "Cảm ơn bạn đã đặt vé xem phim tại CineZone.")
+                    </p>
                 }
-
-                @* Info Phim *@
-                @{
-                    var movieTitle = !string.IsNullOrEmpty(ViewBag.MovieTitle) ? ViewBag.MovieTitle : (Model != null ? Model.MovieTitle : "");
-                    var showtime = !string.IsNullOrEmpty(ViewBag.Showtime) ? ViewBag.Showtime : (Model != null ? Model.Showtime : "");
-                    var auditorium = !string.IsNullOrEmpty(ViewBag.Auditorium) ? ViewBag.Auditorium : (Model != null ? Model.Auditorium : "");
-                }
-                @if (!string.IsNullOrEmpty(movieTitle))
+                else if (ViewBag.PaymentStatus == "Chờ thanh toán" || ViewBag.PaymentStatus == "Pending")
                 {
-                    <div class="receipt-detail-row">
-                        <span class="receipt-detail-label">Phim</span>
-                        <span class="receipt-detail-val">@movieTitle</span>
+                    <div class="status-glow-icon status-glow-warning mb-3">
+                        <i class="bi bi-hourglass-split"></i>
                     </div>
-                    <div class="receipt-detail-row">
-                        <span class="receipt-detail-label">Suất chiếu</span>
-                        <span class="receipt-detail-val text-danger">@showtime</span>
-                    </div>
-                    <div class="receipt-detail-row">
-                        <span class="receipt-detail-label">Phòng chiếu</span>
-                        <span class="receipt-detail-val">@auditorium</span>
-                    </div>
+                    <h3 class="fw-bold text-warning m-0 mb-1">Đơn hàng chờ thanh toán!</h3>
+                    <p class="text-muted small mb-0 px-2" style="font-size: 0.85rem;">Vui lòng hoàn tất thanh toán trước thời hạn quy định.</p>
                 }
-
-                @* Info Ghế *@
-                @{
-                    var seats = "";
-                    if (!string.IsNullOrEmpty(ViewBag.SelectedSeats)) {
-                        seats = ViewBag.SelectedSeats;
-                    } else if (Model != null && Model.SelectedSeats != null && Model.SelectedSeats.Any()) {
-                        seats = string.Join(", ", Model.SelectedSeats);
-                    }
-                }
-                @if (!string.IsNullOrEmpty(seats))
+                else
                 {
-                    <div class="receipt-detail-row">
-                        <span class="receipt-detail-label">Ghế đã chọn</span>
-                        <span class="receipt-detail-val text-success">@seats</span>
+                    <div class="status-glow-icon status-glow-warning mb-3">
+                        <i class="bi bi-info-circle-fill"></i>
                     </div>
+                    <h3 class="fw-bold text-warning m-0 mb-1">Ghi nhận đơn hàng!</h3>
+                    <p class="text-muted small mb-0 px-2" style="font-size: 0.85rem;">Hệ thống ghi nhận trạng thái đơn hàng của bạn.</p>
                 }
 
-                @* Info Loại Vé *@
-                @{
-                    int adultTickets = ViewBag.AdultTickets ?? Model?.AdultTickets ?? 0;
-                    int childTickets = ViewBag.ChildTickets ?? Model?.ChildTickets ?? 0;
-                    int studentTickets = ViewBag.StudentTickets ?? Model?.StudentTickets ?? 0;
-                    var ticketTypes = new List<string>();
-                    if (adultTickets > 0) ticketTypes.Add($"Người lớn ({adultTickets})");
-                    if (childTickets > 0) ticketTypes.Add($"Trẻ em ({childTickets})");
-                    if (studentTickets > 0) ticketTypes.Add($"Học sinh/SV ({studentTickets})");
-                }
-                @if (ticketTypes.Any())
+                @if (!string.IsNullOrEmpty(ViewBag.BookingCode))
                 {
-                    <div class="receipt-detail-row">
-                        <span class="receipt-detail-label">Vé đã mua</span>
-                        <span class="receipt-detail-val">@string.Join(", ", ticketTypes)</span>
+                    <hr class="my-4 w-100 opacity-25">
+                    
+                    <div class="w-100">
+                        <small class="text-muted d-block uppercase tracking-wider small fw-bold mb-2" style="font-size: 0.75rem;">
+                            @(isConcessionOnly ? "Mã Nhận Bắp Nước" : "Mã Đặt Vé")
+                        </small>
+                        
+                        @{
+                            string qrContent = "";
+                            if (isConcessionOnly)
+                            {
+                                var comboListStr = combosToShow != null ? string.Join(", ", combosToShow.Select(c => $"{c.ComboName} x{c.Quantity}")) : "";
+                                qrContent = $"Mã đơn: {ViewBag.BookingCode}\n" +
+                                            $"Dịch vụ: Bắp nước / Combo\n" +
+                                            $"Chi tiết: {comboListStr}\n" +
+                                            $"Khách hàng: {custName}\n" +
+                                            $"Tổng tiền: {(((decimal?)ViewBag.Total ?? 0).ToString("N0"))} ₫\n" +
+                                            $"Trạng thái: {ViewBag.PaymentStatus}";
+                            }
+                            else
+                            {
+                                qrContent = $"Mã đơn: {ViewBag.BookingCode}\n" +
+                                            $"Phim: {movieTitle}\n" +
+                                            $"Suất chiếu: {showtime}\n" +
+                                            $"Phòng: {auditorium}\n" +
+                                            $"Ghế: {seats}\n" +
+                                            $"Khách hàng: {custName}\n" +
+                                            $"Tổng tiền: {(((decimal?)ViewBag.Total ?? 0).ToString("N0"))} ₫\n" +
+                                            $"Trạng thái: {ViewBag.PaymentStatus}";
+                            }
+                            var qrUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={Uri.EscapeDataString(qrContent)}";
+                        }
+                        
+                        <div class="d-flex flex-column align-items-center gap-3 my-2">
+                            <div class="booking-code-box user-select-all m-0 px-4 py-2" style="font-size: 1.4rem;">@ViewBag.BookingCode</div>
+                            <div class="p-2 rounded-4 bg-white border shadow-sm" style="width: 140px; height: 140px; display: flex; align-items: center; justify-content: center;">
+                                <img src="@qrUrl" alt="Mã QR giao dịch" class="img-fluid" style="width: 120px; height: 120px;" />
+                            </div>
+                        </div>
+                        
+                        <p class="text-muted small mt-2 mb-0 px-2" style="font-size: 0.75rem; line-height: 1.4;">
+                            @(isConcessionOnly ? "Đưa mã QR này cho nhân viên quầy bắp nước để nhận phần ăn uống" : "Đưa mã QR này cho nhân viên tại quầy soát vé để vào phòng chiếu")
+                        </p>
                     </div>
                 }
+            </div>
+            
+            <!-- RIGHT COLUMN: TRANSACTION DETAILS & ACTIONS -->
+            <div class="p-4 p-md-5 d-flex flex-column justify-content-between flex-grow-1 bg-light-subtle" style="background-color: #fafbfd;">
+                <div>
+                    <!-- DETAILS COLLAPSE LIST -->
+                    <div class="receipt-details-list border shadow-sm rounded-4 p-4 bg-white">
+                        <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-file-earmark-text me-1"></i> Thông tin giao dịch</h6>
+                        
+                        @* Info Khách hàng *@
+                        @if (!string.IsNullOrEmpty(custName))
+                        {
+                            <div class="receipt-detail-row">
+                                <span class="receipt-detail-label">Khách hàng</span>
+                                <span class="receipt-detail-val">
+                                    @custName @(!string.IsNullOrEmpty(custPhone) ? $"({custPhone})" : "")
+                                </span>
+                            </div>
+                        }
 
-                @* Info Combos *@
-                @{
-                    var combosToShow = ViewBag.Combos as List<ComboViewModel>;
-                    if (combosToShow == null && Model?.Combos != null)
+                        @* Info Phim *@
+                        @if (!string.IsNullOrEmpty(movieTitle))
+                        {
+                            <div class="receipt-detail-row">
+                                <span class="receipt-detail-label">Phim</span>
+                                <span class="receipt-detail-val">@movieTitle</span>
+                            </div>
+                            <div class="receipt-detail-row">
+                                <span class="receipt-detail-label">Suất chiếu</span>
+                                <span class="receipt-detail-val text-danger">@showtime</span>
+                            </div>
+                            <div class="receipt-detail-row">
+                                <span class="receipt-detail-label">Phòng chiếu</span>
+                                <span class="receipt-detail-val">@auditorium</span>
+                            </div>
+                        }
+
+                        @* Info Ghế *@
+                        @if (!string.IsNullOrEmpty(seats))
+                        {
+                            <div class="receipt-detail-row">
+                                <span class="receipt-detail-label">Ghế đã chọn</span>
+                                <span class="receipt-detail-val text-success">@seats</span>
+                            </div>
+                        }
+
+                        @* Info Loại Vé *@
+                        @{
+                            int adultTickets = ViewBag.AdultTickets ?? Model?.AdultTickets ?? 0;
+                            int childTickets = ViewBag.ChildTickets ?? Model?.ChildTickets ?? 0;
+                            int studentTickets = ViewBag.StudentTickets ?? Model?.StudentTickets ?? 0;
+                            var ticketTypes = new List<string>();
+                            if (adultTickets > 0) ticketTypes.Add($"Người lớn ({adultTickets})");
+                            if (childTickets > 0) ticketTypes.Add($"Trẻ em ({childTickets})");
+                            if (studentTickets > 0) ticketTypes.Add($"Học sinh/SV ({studentTickets})");
+                        }
+                        @if (ticketTypes.Any())
+                        {
+                            <div class="receipt-detail-row">
+                                <span class="receipt-detail-label">Vé đã mua</span>
+                                <span class="receipt-detail-val">@string.Join(", ", ticketTypes)</span>
+                            </div>
+                        }
+
+                        @* Info Combos *@
+                        @if (combosToShow != null && combosToShow.Count > 0)
+                        {
+                            var comboList = combosToShow.Select(c => $"{c.ComboName} x{c.Quantity}");
+                            <div class="receipt-detail-row">
+                                <span class="receipt-detail-label">Bắp nước</span>
+                                <span class="receipt-detail-val">@string.Join(", ", comboList)</span>
+                            </div>
+                        }
+
+                        @* Payment Info *@
+                        <div class="receipt-detail-row border-top mt-2 pt-2">
+                            <span class="receipt-detail-label text-dark fw-bold">Phương thức</span>
+                            <span class="receipt-detail-val">@ViewBag.PaymentMethod</span>
+                        </div>
+                        <div class="receipt-detail-row">
+                            <span class="receipt-detail-label text-dark fw-bold">Trạng thái</span>
+                            <span class="receipt-detail-val">@ViewBag.PaymentStatus</span>
+                        </div>
+                        <div class="receipt-detail-row">
+                            <span class="receipt-detail-label text-dark fw-bold">Tổng tiền</span>
+                            <span class="receipt-detail-val text-danger fw-bold fs-5">@(((decimal?)ViewBag.Total ?? 0).ToString("N0")) ₫</span>
+                        </div>
+                    </div>
+                    
+                    @if (!string.IsNullOrEmpty(ViewBag.Message))
                     {
-                        combosToShow = Model.Combos;
+                        <p class="mt-4 fst-italic text-muted small text-center">@ViewBag.Message</p>
                     }
-                }
-                @if (combosToShow != null && combosToShow.Count > 0)
-                {
-                    var comboList = combosToShow.Select(c => $"{c.ComboName} x{c.Quantity}");
-                    <div class="receipt-detail-row">
-                        <span class="receipt-detail-label">Bắp nước</span>
-                        <span class="receipt-detail-val">@string.Join(", ", comboList)</span>
-                    </div>
-                }
+                </div>
 
-                @* Payment Info *@
-                <div class="receipt-detail-row border-top mt-2 pt-2">
-                    <span class="receipt-detail-label text-dark fw-bold">Phương thức</span>
-                    <span class="receipt-detail-val">@ViewBag.PaymentMethod</span>
-                </div>
-                <div class="receipt-detail-row">
-                    <span class="receipt-detail-label text-dark fw-bold">Trạng thái</span>
-                    <span class="receipt-detail-val">@ViewBag.PaymentStatus</span>
-                </div>
-                <div class="receipt-detail-row">
-                    <span class="receipt-detail-label text-dark fw-bold">Tổng tiền</span>
-                    <span class="receipt-detail-val text-danger fw-bold fs-6">@(((decimal?)ViewBag.Total ?? 0).ToString("N0")) ₫</span>
+                <!-- ACTIONS BUTTONS -->
+                <div class="mt-4 d-flex gap-2 justify-content-center">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-pill-action px-4">
+                        <i class="bi bi-house-door me-1"></i> Trang chủ
+                    </a>
+                    <button onclick="window.print()" class="btn btn-primary btn-pill-action px-4 shadow-sm">
+                        <i class="bi bi-printer me-1"></i> In hóa đơn
+                    </button>
+                    @if (Context.Session.GetInt32("CustomerId") != null)
+                    {
+                        <a asp-controller="Tickets" asp-action="MyTickets" class="btn btn-success btn-pill-action px-4 shadow-sm">
+                            <i class="bi bi-ticket-perforated me-1"></i> Vé của tôi
+                        </a>
+                    }
                 </div>
             </div>
+            
         </div>
-
-        @if (!string.IsNullOrEmpty(ViewBag.Message))
-        {
-            <p class="mt-4 fst-italic text-muted small">@ViewBag.Message</p>
-        }
-
-        <!-- ACTIONS BUTTONS -->
-        <div class="mt-5 d-flex gap-2 justify-content-center">
-            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-pill-action px-4">
-                <i class="bi bi-house-door me-1"></i> Trang chủ
-            </a>
-            <button onclick="window.print()" class="btn btn-primary btn-pill-action px-4 shadow-sm">
-                <i class="bi bi-printer me-1"></i> In hóa đơn
-            </button>
-            @if (Context.Session.GetInt32("CustomerId") != null)
-            {
-                <a asp-controller="Tickets" asp-action="MyTickets" class="btn btn-success btn-pill-action px-4 shadow-sm">
-                    <i class="bi bi-ticket-perforated me-1"></i> Vé của tôi
-                </a>
-            }
-        </div>
-
     </div>
 </div>

@@ -88,13 +88,15 @@ namespace CINEMA.Controllers
         }
 
         // =================== [2] Thanh toán ===================
-        public async Task<IActionResult> Pay(int orderId)
+        public async Task<IActionResult> Pay(int orderId, string? method = null)
         {
             var customerId = HttpContext.Session.GetInt32("CustomerId");
             if (customerId == null)
                 return RedirectToAction("Login", "Customer");
 
-            var order = await _context.Orders.FindAsync(orderId);
+            var order = await _context.Orders
+                .Include(o => o.Tickets)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
 
             if (order == null)
                 return NotFound();
@@ -105,18 +107,51 @@ namespace CINEMA.Controllers
                 return RedirectToAction("MyTickets");
             }
 
-            // ❌ hết hạn → hủy luôn
-            if (order.ExpiredAt < DateTime.Now)
-            {
-                order.Status = "Đã hủy";
-                await _context.SaveChangesAsync();
+            var now = DateTime.Now;
 
-                TempData["ErrorMessage"] = "⏰ Đơn đã hết hạn 10 phút!";
-                return RedirectToAction("MyTickets");
+            // Nếu đơn hàng đã hết hạn
+            if (order.ExpiredAt < now)
+            {
+                // Kiểm tra xem ghế đã bị người khác đặt chưa
+                var seatIds = order.Tickets.Select(t => t.SeatId).ToList();
+                var showtimeId = order.Tickets.FirstOrDefault()?.ShowtimeId;
+
+                bool isSeatTaken = await _context.Tickets.AnyAsync(t =>
+                    t.ShowtimeId == showtimeId &&
+                    seatIds.Contains(t.SeatId) &&
+                    t.OrderId != order.OrderId &&
+                    t.Order != null &&
+                    (t.Order.Status == "Đã thanh toán" ||
+                     ((t.Order.Status == "Chờ thanh toán" || t.Order.Status == "Đang chờ thanh toán") && t.Order.ExpiredAt > now))
+                );
+
+                if (isSeatTaken)
+                {
+                    order.Status = "Đã hủy";
+                    foreach (var t in order.Tickets)
+                    {
+                        t.Status = "Đã hủy";
+                        t.PaymentStatus = "Đã hủy";
+                    }
+                    await _context.SaveChangesAsync();
+
+                    TempData["ErrorMessage"] = "⏰ Đơn hàng đã hết hạn và ghế của bạn đã có người khác chọn!";
+                    return RedirectToAction("MyTickets");
+                }
             }
 
-            // ✅ còn hạn → cho thanh toán
+            // ✅ Gia hạn / thiết lập thời gian hết hạn mới là 15 phút từ hiện tại
+            order.ExpiredAt = now.AddMinutes(15);
             order.Status = "Đang chờ thanh toán";
+            if (!string.IsNullOrEmpty(method))
+            {
+                order.PaymentMethod = method;
+            }
+            foreach (var t in order.Tickets)
+            {
+                t.Status = "Đã đặt";
+                t.PaymentStatus = "Chờ thanh toán";
+            }
             await _context.SaveChangesAsync();
 
             // 👉 redirect sang VNPAY hoặc Payment

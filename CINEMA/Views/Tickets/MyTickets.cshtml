@@ -302,141 +302,250 @@
             var showtimeStr = firstTicket?.Showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm") ?? "Không rõ";
             var seatsStr = string.Join(", ", order.Tickets.Select(t => $"{t.Seat?.RowLabel}{t.Seat?.SeatNumber}"));
             var quantity = order.Tickets.Count;
+            var isComboOnly = order.Tickets == null || !order.Tickets.Any();
 
-            <div class="card ticket-pass-card">
-                <!-- 1. LEFT STUB (POSTER) -->
-                <div class="ticket-poster-stub">
-                    @if (!string.IsNullOrEmpty(posterUrl))
-                    {
-                        <img class="ticket-poster-image" src="@posterUrl" alt="@movieTitle poster" />
-                    }
-                    else
-                    {
-                        <div class="ticket-poster-fallback">
-                            <i class="bi bi-film mb-2" style="font-size: 2rem;"></i>
-                            <span>CINEZONE</span>
+            @if (isComboOnly)
+            {
+                <div class="card ticket-pass-card combo-only-card">
+                    <!-- 1. LEFT STUB (FOOD ICON GRAPHIC) -->
+                    <div class="ticket-poster-stub combo-poster-stub">
+                        <div class="ticket-poster-fallback combo-fallback">
+                            <i class="bi bi-egg-fried mb-2 text-warning animate-bounce" style="font-size: 3rem;"></i>
+                            <span class="fw-bold tracking-wide">CINEZONE</span>
+                            <small class="text-white-50 mt-1">BẮP NƯỚC</small>
                         </div>
-                    }
-                </div>
+                    </div>
 
-                <!-- 2. MIDDLE CONTENT (TICKET BODY) -->
-                <div class="ticket-pass-content">
-                    <div>
-                        <!-- Header Line with Badges -->
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <!-- 2. MIDDLE CONTENT (TICKET BODY) -->
+                    <div class="ticket-pass-content">
+                        <div>
+                            <!-- Header Line with Badges -->
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <span class="ticket-custom-badge @GetCustomStatusClass(order.Status)">
+                                        @order.Status
+                                    </span>
+                                    <span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 text-uppercase fw-bold ms-1" style="font-size: 0.65rem;">🍿 Combo</span>
+                                </div>
+                                <small class="text-muted">Đặt lúc: @order.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
+                            </div>
+
+                            <!-- Title -->
+                            <h4 class="movie-title mt-2 text-primary"><i class="bi bi-cup-straw me-2"></i>Đơn hàng bắp nước riêng</h4>
+
+                            <!-- Combos details list -->
+                            <div class="mt-3 p-3 bg-light rounded-3">
+                                <span class="fw-semibold text-secondary small d-block mb-2">Sản phẩm đã chọn:</span>
+                                <ul class="list-unstyled mb-0">
+                                    @foreach (var oc in order.OrderCombos)
+                                    {
+                                        <li class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="text-dark"><i class="bi bi-check2-circle text-success me-2"></i>@oc.Combo?.Name</span>
+                                            <span class="fw-bold text-dark">x @oc.Quantity</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Payment summary footer inside body -->
+                        <div class="border-top mt-3 pt-3 d-flex justify-content-between align-items-center">
                             <div>
-                                <span class="ticket-custom-badge @GetCustomStatusClass(order.Status)">
-                                    @order.Status
+                                <span class="text-muted small d-block">Tổng tiền:</span>
+                                <span class="fw-bold text-danger fs-5">@String.Format("{0:N0} ₫", order.TotalAmount)</span>
+                            </div>
+                            <small class="text-muted font-monospace">@order.PaymentMethod</small>
+                        </div>
+                    </div>
+
+                    <!-- 3. RIGHT STUB (ACTIONS / DYNAMIC QR ZONE) -->
+                    <div class="ticket-qr-stub">
+                        @if (order.Status == "Đã thanh toán" || order.Status == "Completed" || order.Status == "Paid")
+                        {
+                            <!-- Active QR Button -->
+                            <button type="button" class="btn btn-action-qr w-100 mb-2 py-2" data-bs-toggle="modal" data-bs-target="#qrModal-@order.OrderId">
+                                <i class="bi bi-qr-code"></i> Nhận bắp nước
+                            </button>
+                            <small class="text-muted d-block mb-3">Đưa mã QR cho quầy bắp nước</small>
+                        }
+                        else if (order.Status == "Chờ thanh toán" || order.Status == "Đang chờ thanh toán" || order.Status == "Thanh toán thất bại")
+                        {
+                            <!-- Expired countdown -->
+                            <div class="countdown-box mb-2">
+                                <i class="bi bi-hourglass-split"></i> Còn lại: 
+                                <span class="countdown text-danger fw-bold" data-expired="@order.ExpiredAt?.ToString("yyyy-MM-ddTHH:mm:ss")">
+                                    ...
                                 </span>
                             </div>
-                            <small class="text-muted">Đặt lúc: @order.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
-                        </div>
 
-                        <!-- Movie Title -->
-                        <h4 class="movie-title">@movieTitle</h4>
+                            <!-- Payment button -->
+                            <button type="button" class="btn btn-warning w-100 mb-2 py-2 rounded-pill fw-bold pay-btn pulse-amber text-dark"
+                                    data-bs-toggle="modal" data-bs-target="#paymentMethodModal-@order.OrderId">
+                                💳 Tiếp tục thanh toán
+                            </button>
 
-                        <!-- Movie Info Badges -->
-                        <div>
-                            @if (firstTicket?.Showtime?.Movie?.AgeRating != null)
-                            {
-                                <span class="badge bg-dark text-white rounded-pill px-2.5 py-1 text-uppercase fw-bold" style="font-size: 0.7rem;">@firstTicket.Showtime.Movie.AgeRating</span>
-                            }
-                            @if (firstTicket?.Showtime?.Movie?.Duration != null)
-                            {
-                                <span class="text-muted small ms-2"><i class="bi bi-clock"></i> @firstTicket.Showtime.Movie.Duration phút</span>
-                            }
-                        </div>
-
-                        <!-- Information Details Grid -->
-                        <div class="ticket-details-grid">
-                            <div class="ticket-detail-item">
-                                <span class="ticket-detail-label">Mã đơn vé</span>
-                                <span class="ticket-detail-value font-monospace text-primary">@("CZ" + order.OrderId.ToString("D6"))</span>
-                            </div>
-                            <div class="ticket-detail-item">
-                                <span class="ticket-detail-label">Suất chiếu</span>
-                                <span class="ticket-detail-value text-danger">@showtimeStr</span>
-                            </div>
-                            <div class="ticket-detail-item">
-                                <span class="ticket-detail-label">Phòng chiếu</span>
-                                <span class="ticket-detail-value">@roomName</span>
-                            </div>
-                            <div class="ticket-detail-item">
-                                <span class="ticket-detail-label">Vị trí ghế (@quantity vé)</span>
-                                <span class="ticket-detail-value text-success">@seatsStr</span>
-                            </div>
-                        </div>
-
-                        <!-- Combo Indicator if any -->
-                        @if (order.OrderCombos != null && order.OrderCombos.Any())
+                            <!-- Cancel order -->
+                            <form asp-controller="Tickets" asp-action="CancelOrder" method="post" class="w-100">
+                                <input type="hidden" name="orderId" value="@order.OrderId" />
+                                <button type="submit" class="btn btn-link text-danger text-decoration-none small py-1 w-100"
+                                        onclick="return confirm('Bạn có chắc muốn hủy đơn bắp nước này không?');">
+                                    <i class="bi bi-x-circle"></i> Hủy đơn hàng
+                                </button>
+                            </form>
+                        }
+                        else
                         {
-                            var comboCount = order.OrderCombos.Sum(oc => oc.Quantity ?? 0);
-                            <div class="combo-badge-summary">
-                                <i class="bi bi-egg-fried"></i> Kèm @comboCount phần bắp nước
+                            <!-- Cancelled state -->
+                            <div class="text-muted mb-2">
+                                <i class="bi bi-x-circle-fill" style="font-size: 2rem;"></i>
+                            </div>
+                            <span class="fw-bold text-muted d-block mb-2">ĐƠN ĐÃ HỦY</span>
+                        }
+
+                        <a asp-controller="Tickets" asp-action="Details" asp-route-id="@order.OrderId"
+                           class="btn btn-outline-secondary btn-action-detail w-100 mt-2 py-1.5">
+                            <i class="bi bi-eye"></i> Xem chi tiết
+                        </a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card ticket-pass-card">
+                    <!-- 1. LEFT STUB (POSTER) -->
+                    <div class="ticket-poster-stub">
+                        @if (!string.IsNullOrEmpty(posterUrl))
+                        {
+                            <img class="ticket-poster-image" src="@posterUrl" alt="@movieTitle poster" />
+                        }
+                        else
+                        {
+                            <div class="ticket-poster-fallback">
+                                <i class="bi bi-film mb-2" style="font-size: 2rem;"></i>
+                                <span>CINEZONE</span>
                             </div>
                         }
                     </div>
 
-                    <!-- Payment summary footer inside body -->
-                    <div class="border-top mt-3 pt-3 d-flex justify-content-between align-items-center">
+                    <!-- 2. MIDDLE CONTENT (TICKET BODY) -->
+                    <div class="ticket-pass-content">
                         <div>
-                            <span class="text-muted small d-block">Tổng tiền:</span>
-                            <span class="fw-bold text-danger fs-5">@String.Format("{0:N0} ₫", order.TotalAmount)</span>
+                            <!-- Header Line with Badges -->
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <span class="ticket-custom-badge @GetCustomStatusClass(order.Status)">
+                                        @order.Status
+                                    </span>
+                                </div>
+                                <small class="text-muted">Đặt lúc: @order.CreatedAt?.ToString("dd/MM/yyyy HH:mm")</small>
+                            </div>
+
+                            <!-- Movie Title -->
+                            <h4 class="movie-title">@movieTitle</h4>
+
+                            <!-- Movie Info Badges -->
+                            <div>
+                                @if (firstTicket?.Showtime?.Movie?.AgeRating != null)
+                                {
+                                    <span class="badge bg-dark text-white rounded-pill px-2.5 py-1 text-uppercase fw-bold" style="font-size: 0.7rem;">@firstTicket.Showtime.Movie.AgeRating</span>
+                                }
+                                @if (firstTicket?.Showtime?.Movie?.Duration != null)
+                                {
+                                    <span class="text-muted small ms-2"><i class="bi bi-clock"></i> @firstTicket.Showtime.Movie.Duration phút</span>
+                                }
+                            </div>
+
+                            <!-- Information Details Grid -->
+                            <div class="ticket-details-grid">
+                                <div class="ticket-detail-item">
+                                    <span class="ticket-detail-label">Mã đơn vé</span>
+                                    <span class="ticket-detail-value font-monospace text-primary">@("CZ" + order.OrderId.ToString("D6"))</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <span class="ticket-detail-label">Suất chiếu</span>
+                                    <span class="ticket-detail-value text-danger">@showtimeStr</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <span class="ticket-detail-label">Phòng chiếu</span>
+                                    <span class="ticket-detail-value">@roomName</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <span class="ticket-detail-label">Vị trí ghế (@quantity vé)</span>
+                                    <span class="ticket-detail-value text-success">@seatsStr</span>
+                                </div>
+                            </div>
+
+                            <!-- Combo Indicator if any -->
+                            @if (order.OrderCombos != null && order.OrderCombos.Any())
+                            {
+                                var comboCount = order.OrderCombos.Sum(oc => oc.Quantity ?? 0);
+                                <div class="combo-badge-summary">
+                                    <i class="bi bi-egg-fried"></i> Kèm @comboCount phần bắp nước
+                                </div>
+                            }
                         </div>
-                        <small class="text-muted font-monospace">@order.PaymentMethod</small>
+
+                        <!-- Payment summary footer inside body -->
+                        <div class="border-top mt-3 pt-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="text-muted small d-block">Tổng tiền:</span>
+                                <span class="fw-bold text-danger fs-5">@String.Format("{0:N0} ₫", order.TotalAmount)</span>
+                            </div>
+                            <small class="text-muted font-monospace">@order.PaymentMethod</small>
+                        </div>
+                    </div>
+
+                    <!-- 3. RIGHT STUB (ACTIONS / DYNAMIC QR ZONE) -->
+                    <div class="ticket-qr-stub">
+                        @if (order.Status == "Đã thanh toán" || order.Status == "Completed" || order.Status == "Paid")
+                        {
+                            <!-- Active QR Button -->
+                            <button type="button" class="btn btn-action-qr w-100 mb-2 py-2" data-bs-toggle="modal" data-bs-target="#qrModal-@order.OrderId">
+                                <i class="bi bi-qr-code"></i> Xem mã QR
+                            </button>
+                            <small class="text-muted d-block mb-3">Dùng soát vé vào rạp</small>
+                        }
+                        else if (order.Status == "Chờ thanh toán" || order.Status == "Đang chờ thanh toán" || order.Status == "Thanh toán thất bại")
+                        {
+                            <!-- Expired countdown -->
+                            <div class="countdown-box mb-2">
+                                <i class="bi bi-hourglass-split"></i> Còn lại: 
+                                <span class="countdown text-danger fw-bold" data-expired="@order.ExpiredAt?.ToString("yyyy-MM-ddTHH:mm:ss")">
+                                    ...
+                                </span>
+                            </div>
+
+                            <!-- Payment button -->
+                            <button type="button" class="btn btn-warning w-100 mb-2 py-2 rounded-pill fw-bold pay-btn pulse-amber text-dark"
+                                    data-bs-toggle="modal" data-bs-target="#paymentMethodModal-@order.OrderId">
+                                💳 Tiếp tục thanh toán
+                            </button>
+
+                            <!-- Cancel order -->
+                            <form asp-controller="Tickets" asp-action="CancelOrder" method="post" class="w-100">
+                                <input type="hidden" name="orderId" value="@order.OrderId" />
+                                <button type="submit" class="btn btn-link text-danger text-decoration-none small py-1 w-100"
+                                        onclick="return confirm('Bạn có chắc muốn hủy đơn vé này không?');">
+                                    <i class="bi bi-x-circle"></i> Hủy đơn vé
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <!-- Cancelled state -->
+                            <div class="text-muted mb-2">
+                                <i class="bi bi-x-circle-fill" style="font-size: 2rem;"></i>
+                            </div>
+                            <span class="fw-bold text-muted d-block mb-2">VÉ ĐÃ HỦY</span>
+                        }
+
+                        <a asp-controller="Tickets" asp-action="Details" asp-route-id="@order.OrderId"
+                           class="btn btn-outline-secondary btn-action-detail w-100 mt-2 py-1.5">
+                            <i class="bi bi-eye"></i> Xem chi tiết
+                        </a>
                     </div>
                 </div>
-
-                <!-- 3. RIGHT STUB (ACTIONS / DYNAMIC QR ZONE) -->
-                <div class="ticket-qr-stub">
-                    @if (order.Status == "Đã thanh toán" || order.Status == "Completed" || order.Status == "Paid")
-                    {
-                        <!-- Active QR Button -->
-                        <button type="button" class="btn btn-action-qr w-100 mb-2 py-2" data-bs-toggle="modal" data-bs-target="#qrModal-@order.OrderId">
-                            <i class="bi bi-qr-code"></i> Xem mã QR
-                        </button>
-                        <small class="text-muted d-block mb-3">Dùng soát vé vào rạp</small>
-                    }
-                    else if (order.Status == "Chờ thanh toán" || order.Status == "Đang chờ thanh toán")
-                    {
-                        <!-- Expired countdown -->
-                        <div class="countdown-box mb-2">
-                            <i class="bi bi-hourglass-split"></i> Còn lại: 
-                            <span class="countdown text-danger fw-bold" data-expired="@order.ExpiredAt?.ToString("yyyy-MM-ddTHH:mm:ss")">
-                                ...
-                            </span>
-                        </div>
-
-                        <!-- Payment button -->
-                        <a href="@Url.Action("Pay", "Tickets", new { orderId = order.OrderId })"
-                           class="btn btn-warning w-100 mb-2 py-2 rounded-pill fw-bold pay-btn pulse-amber text-dark">
-                            💳 Tiếp tục thanh toán
-                        </a>
-
-                        <!-- Cancel order -->
-                        <form asp-controller="Tickets" asp-action="CancelOrder" method="post" class="w-100">
-                            <input type="hidden" name="orderId" value="@order.OrderId" />
-                            <button type="submit" class="btn btn-link text-danger text-decoration-none small py-1 w-100"
-                                    onclick="return confirm('Bạn có chắc muốn hủy đơn vé này không?');">
-                                <i class="bi bi-x-circle"></i> Hủy đơn vé
-                            </button>
-                        </form>
-                    }
-                    else
-                    {
-                        <!-- Cancelled state -->
-                        <div class="text-muted mb-2">
-                            <i class="bi bi-x-circle-fill" style="font-size: 2rem;"></i>
-                        </div>
-                        <span class="fw-bold text-muted d-block mb-2">VÉ ĐÃ HỦY</span>
-                    }
-
-                    <a asp-controller="Tickets" asp-action="Details" asp-route-id="@order.OrderId"
-                       class="btn btn-outline-secondary btn-action-detail w-100 mt-2 py-1.5">
-                        <i class="bi bi-eye"></i> Xem chi tiết
-                    </a>
-                </div>
-            </div>
+            }
 
             <!-- QR Modal for Order @order.OrderId -->
             @if (order.Status == "Đã thanh toán" || order.Status == "Completed" || order.Status == "Paid")
@@ -445,19 +554,36 @@
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content rounded-4 border-0 shadow-lg" style="background-color: #1e1e24; color: #ffffff;">
                             <div class="modal-header rounded-top-4 border-0 pb-0">
-                                <h5 class="modal-title fw-bold text-warning" id="qrModalLabel-@order.OrderId">🎟️ Vé Điện Tử</h5>
+                                @{
+                                    var isComboOnlyModal = order.Tickets == null || !order.Tickets.Any();
+                                }
+                                <h5 class="modal-title fw-bold text-warning" id="qrModalLabel-@order.OrderId">
+                                    @(isComboOnlyModal ? "🍿 Nhận Bắp Nước" : "🎟️ Vé Điện Tử")
+                                </h5>
                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body text-center p-4">
                                 @{
                                     var mTicket = order.Tickets.FirstOrDefault();
-                                    var mMovieTitle = mTicket?.Showtime?.Movie?.Title ?? "Không rõ";
+                                    var mMovieTitle = isComboOnlyModal ? "Đơn bắp nước riêng" : (mTicket?.Showtime?.Movie?.Title ?? "Không rõ");
                                     var mRoomName = mTicket?.Showtime?.Auditorium?.Name ?? "Không rõ";
                                     var mShowtime = mTicket?.Showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm") ?? "";
                                     var mSeats = string.Join(", ", order.Tickets.Select(t => $"{t.Seat?.RowLabel}{t.Seat?.SeatNumber}"));
                                     var mCustomerName = order.Customer?.FullName ?? "";
                                     
-                                    var mQrContent = $"Mã đơn: CZ{order.OrderId.ToString("D6")}\n" +
+                                    string mQrContent = "";
+                                    if (isComboOnlyModal)
+                                    {
+                                        mQrContent = $"Mã đơn: CZ{order.OrderId.ToString("D6")}\n" +
+                                                     $"Dịch vụ: Bắp nước / Combo\n" +
+                                                     $"Chi tiết: {string.Join(", ", order.OrderCombos.Select(oc => $"{oc.Combo?.Name} x{oc.Quantity}"))}\n" +
+                                                     $"Khách hàng: {mCustomerName}\n" +
+                                                     $"Tổng tiền: {String.Format("{0:N0}", order.TotalAmount)} ₫\n" +
+                                                     $"Trạng thái: {order.Status}";
+                                    }
+                                    else
+                                    {
+                                        mQrContent = $"Mã đơn: CZ{order.OrderId.ToString("D6")}\n" +
                                                      $"Phim: {mMovieTitle}\n" +
                                                      $"Suất chiếu: {mShowtime}\n" +
                                                      $"Phòng: {mRoomName}\n" +
@@ -465,11 +591,19 @@
                                                      $"Khách hàng: {mCustomerName}\n" +
                                                      $"Tổng tiền: {String.Format("{0:N0}", order.TotalAmount)} ₫\n" +
                                                      $"Trạng thái: {order.Status}";
+                                    }
                                                      
                                     var mQrUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={Uri.EscapeDataString(mQrContent)}";
                                 }
                                 <h4 class="fw-bold mb-1 text-white">@mMovieTitle</h4>
-                                <p class="text-white-50 small mb-3">Phòng: @mRoomName | Ghế: <span class="text-warning fw-bold">@mSeats</span></p>
+                                @if (isComboOnlyModal)
+                                {
+                                    <p class="text-white-50 small mb-3">Sản phẩm: <span class="text-warning fw-bold">@string.Join(", ", order.OrderCombos.Select(oc => $"{oc.Combo?.Name} (x{oc.Quantity})"))</span></p>
+                                }
+                                else
+                                {
+                                    <p class="text-white-50 small mb-3">Phòng: @mRoomName | Ghế: <span class="text-warning fw-bold">@mSeats</span></p>
+                                }
                                 
                                 <div class="d-inline-block p-3 rounded-4 bg-white shadow-sm mb-3">
                                     <img src="@mQrUrl" alt="Mã QR vé" class="img-fluid" style="width: 190px; height: 190px;" />
@@ -477,7 +611,9 @@
                                 
                                 <p class="fw-bold text-warning font-monospace mb-1 fs-5">CZ-@order.OrderId.ToString("D6")</p>
                                 <span class="badge bg-success px-3 py-2 rounded-pill small">ĐÃ THANH TOÁN</span>
-                                <p class="text-white-50 small mt-3 mb-0">Đưa mã QR này cho nhân viên để soát vé vào rạp</p>
+                                <p class="text-white-50 small mt-3 mb-0">
+                                    @(isComboOnlyModal ? "Đưa mã QR này cho nhân viên quầy bắp nước để nhận phần ăn uống" : "Đưa mã QR này cho nhân viên để soát vé vào rạp")
+                                </p>
                             </div>
                             <div class="modal-footer border-top-0 d-flex justify-content-between p-3" style="background-color: #15151b; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
                                 <button type="button" class="btn btn-outline-light btn-sm px-3 rounded-pill" data-bs-dismiss="modal">Đóng</button>

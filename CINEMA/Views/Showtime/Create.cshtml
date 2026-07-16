@@ -410,18 +410,13 @@ function v2() { if (W.slots.length===0){alert('Vui lòng chọn ít nhất 1 khu
 // ── TIME UTILS ──
 function toMin(t) { if(!t)return 0; const[h,m]=t.split(':').map(Number); return h*60+m; }
 function minToT(m) { const h=Math.floor(m/60)%24,mm=m%60; return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0'); }
-// FIX: dùng giờ địa phương thay vì UTC (toISOString bị lệch múi giờ)
 function addMin(iso, mins) {
   const d = new Date(iso);
   d.setMinutes(d.getMinutes() + mins);
   const pad = n => String(n).padStart(2,'0');
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
 }
-function fmtT(localISO) {
-  // localISO dạng 'YYYY-MM-DDTHH:mm' — lấy phần HH:mm trực tiếp
-  return localISO.slice(11,16);
-}
-
+function fmtT(localISO) { return localISO.slice(11,16); }
 
 // ── PREVIEW ──
 function buildPreview() {
@@ -431,7 +426,7 @@ function buildPreview() {
     W.slots.forEach(slot => {
       const startISO = W.date + 'T' + slot + ':00';
       const endISO = addMin(startISO, tot);
-      W.items.push({roomId:room.id, roomName:room.name, startISO, endISO, startStr:slot, endStr:fmtT(endISO), price:W.price, lang:W.lang, hasConflict:null, conflictWith:null, selected:true});
+      W.items.push({roomId:room.id, roomName:room.name, startISO, endISO, startStr:slot, endStr:fmtT(endISO), price:W.price, lang:W.lang, hasConflict:null, conflictWith:null, isBatchConflict:false, selected:true});
     });
   });
   renderGrid(true); updStats();
@@ -449,7 +444,7 @@ function renderGrid(chk) {
         : '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Hợp lệ</span>';
     const cls = chk || item.hasConflict===null ? 'preview-card checking' : item.hasConflict ? 'preview-card conflict' : 'preview-card valid';
     const conf = item.hasConflict && item.conflictWith ? '<div class="conf-detail"><i class="bi bi-exclamation-triangle me-1"></i>' + item.conflictWith + '</div>' : '';
-    const disabled = item.hasConflict ? 'disabled' : '';
+    const disabled = item.hasConflict && !item.isBatchConflict ? 'disabled' : '';
     div.innerHTML = '<div class="' + cls + '" id="pc-'+i+'">' +
       '<div class="card-cb"><input type="checkbox" class="form-check-input" ' + (item.selected?'checked':'') + ' ' + disabled + ' onchange="onCB(' + i + ',this.checked)" /></div>' +
       '<div class="fw-semibold text-truncate pe-4">' + W.movieName + '</div>' +
@@ -461,11 +456,16 @@ function renderGrid(chk) {
   });
 }
 async function checkConflicts() {
-  const reqs = W.items.map((item,i) => ({index:i, auditoriumId:item.roomId, startTime:item.startISO, endTime:item.endISO}));
+  const reqs = W.items.map((item,i) => ({index:i, auditoriumId:item.roomId, startTime:item.startISO, endTime:item.endISO, isSelected:item.selected}));
   try {
     const r = await fetch('/Showtime/CheckConflicts', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(reqs)});
     const res = await r.json();
-    res.forEach(r => { W.items[r.index].hasConflict = r.hasConflict; W.items[r.index].conflictWith = r.conflictWith; if(r.hasConflict) W.items[r.index].selected = false; });
+    res.forEach(r => { 
+      W.items[r.index].hasConflict = r.hasConflict; 
+      W.items[r.index].conflictWith = r.conflictWith; 
+      W.items[r.index].isBatchConflict = r.isBatchConflict; 
+      if(r.hasConflict && !r.isBatchConflict) W.items[r.index].selected = false; 
+    });
   } catch(e) { W.items.forEach(i=>i.hasConflict=false); }
   renderGrid(false); updStats();
 }
@@ -475,10 +475,10 @@ function updStats() {
   document.getElementById('sTot').textContent=tot; document.getElementById('sVal').textContent=tot>0?val:'-'; document.getElementById('sCon').textContent=tot>0?con:'-'; document.getElementById('sSave').textContent=tot>0?sel:'-';
   document.getElementById('btnLbl').textContent='Luu ' + sel + ' suat hop le';
 }
-function onCB(i, checked) { W.items[i].selected = checked; updStats(); updBulk(); }
+function onCB(i, checked) { W.items[i].selected = checked; updStats(); updBulk(); checkConflicts(); }
 function toggleAll() { const a=W.items.filter(i=>!i.hasConflict).every(i=>i.selected); W.items.forEach(i=>{if(!i.hasConflict)i.selected=!a;}); renderGrid(false); updStats(); }
-function autoRemoveConflicts() { W.items.forEach(i=>{if(i.hasConflict)i.selected=false;}); renderGrid(false); updStats(); }
-function clearSel() { W.items.forEach(i=>i.selected=false); renderGrid(false); updStats(); updBulk(); }
+function autoRemoveConflicts() { W.items.forEach(i=>{if(i.hasConflict && !i.isBatchConflict)i.selected=false;}); renderGrid(false); updStats(); }
+function clearSel() { W.items.forEach(i=>i.selected=false); renderGrid(false); updStats(); updBulk(); checkConflicts(); }
 
 // ── BULK EDIT ──
 function updBulk() { const s=W.items.filter(i=>i.selected&&!i.hasConflict); document.getElementById('bulkBar').classList.toggle('on',s.length>0); document.getElementById('bulkCnt').textContent=s.length; }

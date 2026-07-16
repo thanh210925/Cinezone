@@ -263,7 +263,8 @@
                 <table class="table table-hover align-middle mb-0" id="segmentTable">
                     <thead class="table-light text-muted small text-uppercase">
                         <tr>
-                            <th class="ps-4">Mã KH</th>
+                            <th class="ps-4">STT</th>
+                            <th>Mã KH</th>
                             <th>Họ và Tên</th>
                             <th>Email</th>
                             <th class="text-center">Vé / Tháng</th>
@@ -273,6 +274,9 @@
                         </tr>
                     </thead>
                     <tbody>
+                        @{
+                            int stt = 1;
+                        }
                         @foreach (var c in Model.Customers)
                         {
                             var badgeClass = "";
@@ -296,7 +300,8 @@
                                     break;
                             }
                             <tr>
-                                <td class="ps-4 text-muted fw-bold">#@c.CustomerId</td>
+                                <td class="ps-4 text-muted">@(stt++)</td>
+                                <td class="text-muted fw-bold">#@c.CustomerId</td>
                                 <td>
                                     <div class="fw-bold text-dark">@c.FullName</div>
                                 </td>
@@ -511,8 +516,8 @@
                 const rows = document.querySelectorAll('#segmentTable tbody tr');
                 
                 rows.forEach(row => {
-                    const name = row.cells[1].textContent.toLowerCase();
-                    const email = row.cells[2].textContent.toLowerCase();
+                    const name = row.cells[2].textContent.toLowerCase();
+                    const email = row.cells[3].textContent.toLowerCase();
                     if (name.includes(query) || email.includes(query)) {
                         row.style.display = '';
                     } else {

@@ -153,131 +153,156 @@
             var dateName = showDate.ToString("dd/MM/yyyy");
             var dayOfWeek = showDate.ToString("dddd", new System.Globalization.CultureInfo("vi-VN"));
             
-            // Lấy tất cả phòng chiếu có suất chiếu trong ngày này
-            var dateRooms = dateGroup
-                .Select(s => s.Auditorium)
-                .Where(a => a != null)
-                .GroupBy(a => a.AuditoriumId)
-                .Select(gr => gr.First())
-                .OrderBy(a => a.Name)
-                .ToList();
-
-            // Lấy tất cả khung giờ bắt đầu duy nhất trong ngày này
-            var dateTimes = dateGroup
-                .Select(s => s.StartTime.Value.ToString("HH:mm"))
-                .Distinct()
-                .OrderBy(t => t)
+            // Nhóm các suất chiếu của ngày này theo rạp chiếu
+            var showtimesByTheater = dateGroup
+                .Where(s => s.Auditorium?.Theater != null)
+                .GroupBy(s => s.Auditorium.Theater)
+                .OrderBy(g => g.Key.Name)
                 .ToList();
 
             <div class="mb-5 matrix-date-container" data-date="@dateStr">
                 <!-- Header Ngày chiếu -->
                 <div class="matrix-date-header p-3 rounded-top-3 border-bottom border-2 d-flex justify-content-between align-items-center">
-                    <span class="text-uppercase fs-6"><i class="bi bi-calendar3 text-primary me-2"></i>@dayOfWeek (@dateName)</span>
+                    <span class="text-uppercase fs-6 fw-bold text-primary"><i class="bi bi-calendar3 me-2"></i>@dayOfWeek (@dateName)</span>
                     <span class="badge bg-primary rounded-pill">@dateGroup.Count() suất chiếu</span>
                 </div>
 
-                <!-- Bảng Ma Trận -->
-                <div class="table-responsive shadow-sm border rounded-bottom-3 bg-white">
-                    <table class="table table-bordered showtime-matrix-table mb-0 align-middle">
-                        <thead>
-                            <tr>
-                                <th class="sticky-col text-start ps-3" style="min-width: 180px;">Phòng chiếu</th>
-                                @foreach (var time in dateTimes)
-                                {
-                                    <th style="min-width: 140px; text-align: center;">@time</th>
-                                }
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var room in dateRooms)
-                            {
-                                <tr>
-                                    <!-- Cột Phòng chiếu (Sticky left) -->
-                                    <td class="sticky-col text-start ps-3 fw-bold">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <i class="bi bi-door-open-fill text-primary fs-5"></i>
-                                            <div>
-                                                <div class="fw-bold">@room.Name</div>
-                                                <small class="text-muted fw-normal" style="font-size: 0.72rem;">@(room.Theater != null ? room.Theater.Name : "CineZone")</small>
-                                            </div>
-                                        </div>
-                                    </td>
+                <!-- Thân các rạp chiếu -->
+                <div class="card-body bg-white border border-top-0 rounded-bottom-3 p-4">
+                    @if (showtimesByTheater.Any())
+                    {
+                        @foreach (var theaterGroup in showtimesByTheater)
+                        {
+                            var theater = theaterGroup.Key;
+                            var theaterShowtimes = theaterGroup.ToList();
 
-                                    <!-- Các cột Khung giờ -->
-                                    @foreach (var time in dateTimes)
-                                    {
-                                        var match = dateGroup
-                                            .Where(s => s.StartTime.Value.ToString("HH:mm") == time && s.AuditoriumId == room.AuditoriumId)
-                                            .ToList();
+                            // Lấy tất cả phòng chiếu của rạp này có suất chiếu trong ngày
+                            var theaterRooms = theaterShowtimes
+                                .Select(s => s.Auditorium)
+                                .Where(a => a != null)
+                                .GroupBy(a => a.AuditoriumId)
+                                .Select(gr => gr.First())
+                                .OrderBy(a => a.Name)
+                                .ToList();
 
-                                        <td style="min-width: 200px; text-align: center;">
-                                            @if (match.Any())
+                            // Lấy tất cả khung giờ bắt đầu duy nhất của rạp này trong ngày
+                            var theaterTimes = theaterShowtimes
+                                .Select(s => s.StartTime.Value.ToString("HH:mm"))
+                                .Distinct()
+                                .OrderBy(t => t)
+                                .ToList();
+
+                            <div class="mb-4 border rounded-3 p-3 bg-light bg-opacity-50">
+                                <h5 class="fw-bold text-dark ps-2 border-start border-3 border-primary mb-3">
+                                    🏢 @theater.Name <small class="text-muted fw-normal fs-6">(@theater.Address)</small>
+                                </h5>
+
+                                <div class="table-responsive shadow-sm border rounded-3 bg-white">
+                                    <table class="table table-bordered showtime-matrix-table mb-0 align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th class="sticky-col text-start ps-3" style="min-width: 150px;">Phòng chiếu</th>
+                                                @foreach (var time in theaterTimes)
+                                                {
+                                                    <th style="min-width: 120px; text-align: center;">@time</th>
+                                                }
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var room in theaterRooms)
                                             {
-                                                <div class="d-flex flex-column gap-2 justify-content-center align-items-center">
-                                                    @foreach (var s in match)
-                                                    {
-                                                        var isAct = s.IsActive == true;
-                                                        <div class="showtime-card card p-2 @(isAct ? "" : "inactive")" style="width: 180px;">
-                                                            
-                                                            <!-- Nội dung chính (Sẽ mờ đi khi Hover) -->
-                                                            <div class="card-body-content">
-                                                                <div class="fw-bold text-dark text-truncate small" title="@s.Movie?.Title">
-                                                                    @s.Movie?.Title
-                                                                </div>
-                                                                <div class="d-flex justify-content-between text-muted mt-1" style="font-size: 0.72rem;">
-                                                                    <span>@s.Language</span>
-                                                                    <span class="fw-medium text-secondary">Hết: @s.EndTime?.ToString("HH:mm")</span>
-                                                                </div>
-                                                                <div class="fw-semibold text-danger mt-1" style="font-size: 0.78rem;">
-                                                                    @s.BasePrice?.ToString("N0")đ
-                                                                </div>
-                                                            </div>
-
-                                                            <!-- 🎛️ THANH THAO TÁC KHI HOVER (SLIDE UP OVERLAY) -->
-                                                            <div class="showtime-actions-overlay">
-                                                                <!-- Nút Xem/Sửa -->
-                                                                <a asp-action="Edit" asp-route-id="@s.ShowtimeId" class="btn btn-warning text-white btn-circle-action" title="Xem/Sửa">
-                                                                    <i class="bi bi-pencil-fill" style="font-size: 0.8rem;"></i>
-                                                                </a>
-                                                                
-                                                                <!-- Nút Tạm dừng / Kích hoạt -->
-                                                                @if (isAct)
-                                                                {
-                                                                    <form asp-action="Deactivate" asp-route-id="@s.ShowtimeId" method="post" class="d-inline">
-                                                                        <button type="submit" class="btn btn-dark text-white btn-circle-action" title="Tạm dừng">
-                                                                            <i class="bi bi-pause-fill" style="font-size: 0.85rem;"></i>
-                                                                        </button>
-                                                                    </form>
-                                                                }
-                                                                else
-                                                                {
-                                                                    <form asp-action="Activate" asp-route-id="@s.ShowtimeId" method="post" class="d-inline">
-                                                                        <button type="submit" class="btn btn-success text-white btn-circle-action" title="Kích hoạt">
-                                                                            <i class="bi bi-play-fill" style="font-size: 0.85rem;"></i>
-                                                                        </button>
-                                                                    </form>
-                                                                }
-
-                                                                <!-- Nút Xóa -->
-                                                                <a asp-action="Delete" asp-route-id="@s.ShowtimeId" class="btn btn-danger text-white btn-circle-action" title="Xóa" onclick="return confirm('Bạn có chắc muốn xóa suất chiếu này?');">
-                                                                    <i class="bi bi-trash-fill" style="font-size: 0.8rem;"></i>
-                                                                </a>
-                                                            </div>
-
+                                                <tr>
+                                                    <!-- Cột Phòng chiếu (Sticky left) -->
+                                                    <td class="sticky-col text-start ps-3 fw-bold">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <i class="bi bi-door-open-fill text-primary fs-5"></i>
+                                                            <span>@room.Name</span>
                                                         </div>
+                                                    </td>
+
+                                                    <!-- Các cột Khung giờ -->
+                                                    @foreach (var time in theaterTimes)
+                                                    {
+                                                        var match = theaterShowtimes
+                                                            .Where(s => s.StartTime.Value.ToString("HH:mm") == time && s.AuditoriumId == room.AuditoriumId)
+                                                            .ToList();
+
+                                                        <td style="min-width: 200px; text-align: center;">
+                                                            @if (match.Any())
+                                                            {
+                                                                <div class="d-flex flex-column gap-2 justify-content-center align-items-center">
+                                                                    @foreach (var s in match)
+                                                                    {
+                                                                        var isAct = s.IsActive == true;
+                                                                        <div class="showtime-card card p-2 @(isAct ? "" : "inactive")" style="width: 180px;">
+                                                                            
+                                                                            <!-- Nội dung chính (Sẽ mờ đi khi Hover) -->
+                                                                            <div class="card-body-content">
+                                                                                <div class="fw-bold text-dark text-truncate small" title="@s.Movie?.Title">
+                                                                                    @s.Movie?.Title
+                                                                                </div>
+                                                                                <div class="d-flex justify-content-between text-muted mt-1" style="font-size: 0.72rem;">
+                                                                                    <span>@s.Language</span>
+                                                                                    <span class="fw-medium text-secondary">Hết: @s.EndTime?.ToString("HH:mm")</span>
+                                                                                </div>
+                                                                                <div class="fw-semibold text-danger mt-1" style="font-size: 0.78rem;">
+                                                                                    @s.BasePrice?.ToString("N0")đ
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <!-- 🎛️ THANH THAO TÁC KHI HOVER (SLIDE UP OVERLAY) -->
+                                                                            <div class="showtime-actions-overlay">
+                                                                                <!-- Nút Xem/Sửa -->
+                                                                                <a asp-action="Edit" asp-route-id="@s.ShowtimeId" class="btn btn-warning text-white btn-circle-action" title="Xem/Sửa">
+                                                                                    <i class="bi bi-pencil-fill" style="font-size: 0.8rem;"></i>
+                                                                                </a>
+                                                                                
+                                                                                <!-- Nút Tạm dừng / Kích hoạt -->
+                                                                                @if (isAct)
+                                                                                {
+                                                                                    <form asp-action="Deactivate" asp-route-id="@s.ShowtimeId" method="post" class="d-inline">
+                                                                                        <button type="submit" class="btn btn-dark text-white btn-circle-action" title="Tạm dừng">
+                                                                                            <i class="bi bi-pause-fill" style="font-size: 0.85rem;"></i>
+                                                                                        </button>
+                                                                                    </form>
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    <form asp-action="Activate" asp-route-id="@s.ShowtimeId" method="post" class="d-inline">
+                                                                                        <button type="submit" class="btn btn-success text-white btn-circle-action" title="Kích hoạt">
+                                                                                            <i class="bi bi-play-fill" style="font-size: 0.85rem;"></i>
+                                                                                        </button>
+                                                                                    </form>
+                                                                                }
+
+                                                                                <!-- Nút Xóa -->
+                                                                                <a asp-action="Delete" asp-route-id="@s.ShowtimeId" class="btn btn-danger text-white btn-circle-action" title="Xóa" onclick="return confirm('Bạn có chắc muốn xóa suất chiếu này?');">
+                                                                                    <i class="bi bi-trash-fill" style="font-size: 0.8rem;"></i>
+                                                                                </a>
+                                                                            </div>
+
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                            }
+                                                            else
+                                                            {
+                                                                <div class="empty-cell">-</div>
+                                                            }
+                                                        </td>
                                                     }
-                                                </div>
+                                                </tr>
                                             }
-                                            else
-                                            {
-                                                <div class="empty-cell">-</div>
-                                            }
-                                        </td>
-                                    }
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 text-muted">Không tìm thấy rạp chiếu nào có suất chiếu.</div>
+                    }
                 </div>
             </div>
         }

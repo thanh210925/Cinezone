@@ -1,15 +1,29 @@
 @model CINEMA.Models.Order
 @{
-    ViewData["Title"] = "Chi tiết vé";
+    ViewData["Title"] = "Chi tiết đơn hàng";
+    
+    var isComboOnly = Model.Tickets == null || !Model.Tickets.Any();
     
     var ticket = Model.Tickets.FirstOrDefault();
-    var movieTitle = ticket?.Showtime?.Movie?.Title ?? "Không rõ";
+    var movieTitle = isComboOnly ? "Đơn bắp nước riêng" : (ticket?.Showtime?.Movie?.Title ?? "Không rõ");
     var roomName = ticket?.Showtime?.Auditorium?.Name ?? "Không rõ";
     var showtime = ticket?.Showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm") ?? "Không rõ";
     var seats = string.Join(", ", Model.Tickets.Select(t => $"{t.Seat?.RowLabel}{t.Seat?.SeatNumber}"));
     var customerName = Model.Customer?.FullName ?? "Không rõ";
     
-    var qrContent = $"Mã đơn: CZ{Model.OrderId.ToString("D6")}\n" +
+    string qrContent = "";
+    if (isComboOnly)
+    {
+        qrContent = $"Mã đơn: CZ{Model.OrderId.ToString("D6")}\n" +
+                    $"Dịch vụ: Bắp nước / Combo\n" +
+                    $"Chi tiết: {string.Join(", ", Model.OrderCombos.Select(oc => $"{oc.Combo?.Name} x{oc.Quantity}"))}\n" +
+                    $"Khách hàng: {customerName}\n" +
+                    $"Tổng tiền: {String.Format("{0:N0}", Model.TotalAmount)} ₫\n" +
+                    $"Trạng thái: {Model.Status}";
+    }
+    else
+    {
+        qrContent = $"Mã đơn: CZ{Model.OrderId.ToString("D6")}\n" +
                     $"Phim: {movieTitle}\n" +
                     $"Suất chiếu: {showtime}\n" +
                     $"Phòng: {roomName}\n" +
@@ -17,12 +31,20 @@
                     $"Khách hàng: {customerName}\n" +
                     $"Tổng tiền: {String.Format("{0:N0}", Model.TotalAmount)} ₫\n" +
                     $"Trạng thái: {Model.Status}";
+    }
                     
     var qrUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={Uri.EscapeDataString(qrContent)}";
 }
 
 <!-- Custom Styles for Cinema Ticket Stub -->
 <style>
+    .hover-payment-option:hover {
+        background-color: #f8fafc;
+        border-color: #4361ee !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
     :root {
         --primary-gold: #ffc107;
         --dark-slate: #1e1e24;
@@ -311,7 +333,7 @@
                 <div class="barcode-stub">#CZ-@Model.OrderId.ToString("D6")</div>
                 <span class="ticket-status-stamp">ĐÃ THANH TOÁN</span>
             }
-            else if (Model.Status == "Chờ thanh toán" || Model.Status == "Đang chờ thanh toán")
+            else if (Model.Status == "Chờ thanh toán" || Model.Status == "Đang chờ thanh toán" || Model.Status == "Thanh toán thất bại")
             {
                 <div class="text-warning mb-3">
                     <i class="bi bi-clock-history" style="font-size: 3.5rem;"></i>
@@ -320,10 +342,12 @@
                 <small class="text-muted d-block px-3">Vui lòng thanh toán đơn vé để nhận mã QR vào phòng chiếu.</small>
                 
                 <div class="mt-3">
-                    <a href="@Url.Action("Pay", "Tickets", new { orderId = Model.OrderId })" class="btn btn-warning btn-sm fw-bold px-4 rounded-pill">
+                    <button type="button" class="btn btn-warning btn-sm fw-bold px-4 rounded-pill"
+                            data-bs-toggle="modal" data-bs-target="#paymentMethodModal-@Model.OrderId">
                         💳 Thanh toán ngay
-                    </a>
+                    </button>
                 </div>
+
             }
             else
             {
@@ -372,5 +396,44 @@
         <button onclick="window.print()" class="btn btn-dark px-4 rounded-pill">
             <i class="bi bi-printer"></i> In vé
         </button>
+    </div>
+
+    <!-- Modal chọn phương thức thanh toán -->
+    <div class="modal fade" id="paymentMethodModal-@Model.OrderId" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg" style="background-color: #fff;">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="bi bi-credit-card-2-front text-primary me-2"></i>Chọn phương thức thanh toán</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <p class="text-muted small mb-4">Vui lòng chọn phương thức thanh toán để tiếp tục đơn hàng #CZ-@Model.OrderId.ToString("D6").</p>
+                    
+                    <div class="d-flex flex-column gap-3">
+                        <!-- VNPAY Option -->
+                        <a href="@Url.Action("Pay", "Tickets", new { orderId = Model.OrderId, method = "Chuyển khoản" })" 
+                           class="d-flex align-items-center gap-3 p-3 border rounded-3 text-decoration-none text-dark hover-payment-option"
+                           style="transition: all 0.2s; border: 1px solid #dee2e6;">
+                            <i class="bi bi-qr-code-scan text-primary fs-3"></i>
+                            <div class="text-start">
+                                <div class="fw-bold">Ví VNPAY / App Ngân hàng</div>
+                                <small class="text-muted">Quét mã QR để thanh toán nhanh</small>
+                            </div>
+                        </a>
+                        
+                        <!-- Stripe Option -->
+                        <a href="@Url.Action("Pay", "Tickets", new { orderId = Model.OrderId, method = "Online" })" 
+                           class="d-flex align-items-center gap-3 p-3 border rounded-3 text-decoration-none text-dark hover-payment-option"
+                           style="transition: all 0.2s; border: 1px solid #dee2e6;">
+                            <i class="bi bi-credit-card text-warning fs-3"></i>
+                            <div class="text-start">
+                                <div class="fw-bold">Thẻ quốc tế (Stripe)</div>
+                                <small class="text-muted">Thanh toán bằng thẻ Visa, Mastercard...</small>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>

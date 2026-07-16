@@ -572,10 +572,17 @@ namespace CINEMA.Controllers
                 return View("PaymentError");
 
              var order = _context.Orders
-                .Include(o => o.Tickets)
                 .Include(o => o.Customer)
                 .Include(o => o.OrderCombos)
                     .ThenInclude(oc => oc.Combo)
+                .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Seat)
+                .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Showtime)
+                        .ThenInclude(s => s.Movie)
+                .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Showtime)
+                        .ThenInclude(s => s.Auditorium)
                 .FirstOrDefault(o => o.OrderId == orderId);
 
             if (order == null)
@@ -652,30 +659,45 @@ namespace CINEMA.Controllers
                     _logger.LogError(ex, "Failed to send order success email for order {OrderId}", order.OrderId);
                 }
 
-                // Thiết lập ViewBag cho trang Success
+                // Thiết lập ViewBag cho trang Success với đầy đủ thông tin chi tiết
                 ViewBag.Total = order.TotalAmount;
                 ViewBag.PaymentStatus = "Đã thanh toán";
                 ViewBag.BookingCode = $"CZ{order.OrderId:D6}";
+                ViewBag.CustomerName = order.Customer?.FullName ?? "Khách vãng lai";
+                ViewBag.CustomerPhone = order.Customer?.Phone ?? "";
+                
+                string pm = order.PaymentMethod ?? "";
+                if (pm.Contains("VNPAY")) ViewBag.PaymentMethod = "Ví VNPAY";
+                else if (pm.Contains("Stripe")) ViewBag.PaymentMethod = "Thẻ quốc tế (Stripe)";
+                else ViewBag.PaymentMethod = pm;
 
-                // Nếu là đơn bắp nước lẻ (không có vé), hiển thị thông tin bắp nước
-                bool isConcessionOnly = order.Tickets == null || !order.Tickets.Any();
-                if (isConcessionOnly)
+                if (firstTicket != null)
                 {
-                    ViewBag.CustomerName = order.Customer?.FullName;
-                    ViewBag.CustomerPhone = order.Customer?.Phone;
+                    ViewBag.MovieTitle = firstTicket.Showtime?.Movie?.Title;
+                    ViewBag.Showtime = firstTicket.Showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm");
+                    ViewBag.Auditorium = firstTicket.Showtime?.Auditorium?.Name;
+                    
+                    var seatsList = order.Tickets.Select(t => $"{t.Seat?.RowLabel}{t.Seat?.SeatNumber}").ToList();
+                    ViewBag.SelectedSeats = string.Join(", ", seatsList);
+                    
+                    ViewBag.AdultTickets = order.Tickets.Count;
+                    ViewBag.ChildTickets = 0;
+                    ViewBag.StudentTickets = 0;
+                }
 
-                    // Xác định phương thức thanh toán hiển thị
-                    string pm = order.PaymentMethod ?? "";
-                    ViewBag.PaymentMethod = pm.Contains("VNPAY") ? "Ví VNPAY" : pm;
-
-                    ViewBag.Combos = order.OrderCombos?.Select(oc => new CINEMA.ViewModels.ComboViewModel
+                if (order.OrderCombos != null && order.OrderCombos.Any())
+                {
+                    ViewBag.Combos = order.OrderCombos.Select(oc => new CINEMA.ViewModels.ComboViewModel
                     {
                         ComboName = oc.Combo?.Name ?? "Combo",
                         Quantity = oc.Quantity ?? 0,
                         Price = oc.UnitPrice ?? 0
                     }).ToList();
-
-                    ViewBag.Message = "Hóa đơn đặt bắp nước đã được gửi tới hòm thư của bạn. Vui lòng xuất trình mã đơn hàng tại quầy để nhận bắp nước.";
+                    
+                    if (firstTicket == null)
+                    {
+                        ViewBag.Message = "Hóa đơn đặt bắp nước đã được tạo thành công. Vui lòng xuất trình mã QR hoặc mã đặt chỗ tại quầy để nhận bắp nước.";
+                    }
                 }
 
                 return View("Success");
@@ -841,7 +863,7 @@ namespace CINEMA.Controllers
             if (order.CustomerId != customerId)
                 return Forbid();
 
-            if (order.Status != "Chờ thanh toán" && order.Status != "Đang chờ thanh toán")
+            if (order.Status != "Chờ thanh toán" && order.Status != "Đang chờ thanh toán" && order.Status != "Thanh toán thất bại")
             {
                 TempData["ErrorMessage"] = "Đơn hàng này không ở trạng thái chờ thanh toán!";
                 return RedirectToAction("MyTickets", "Tickets");
@@ -924,7 +946,7 @@ namespace CINEMA.Controllers
                 if (ipAddr == "::1") ipAddr = "127.0.0.1";
                 pay.AddRequestData("vnp_IpAddr", ipAddr);
                 pay.AddRequestData("vnp_Locale", "vn");
-                pay.AddRequestData("vnp_OrderInfo", $"Thanh toán đơn #{order.OrderId}");
+                pay.AddRequestData("vnp_OrderInfo", $"Thanh toan don #{order.OrderId}");
                 pay.AddRequestData("vnp_OrderType", "billpayment");
                 pay.AddRequestData("vnp_ReturnUrl", returnUrl);
                 pay.AddRequestData("vnp_TxnRef", order.OrderId.ToString());
@@ -1087,7 +1109,17 @@ namespace CINEMA.Controllers
             if (string.IsNullOrEmpty(session_id)) return View("PaymentError");
 
             var order = await _context.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.OrderCombos)
+                    .ThenInclude(oc => oc.Combo)
                 .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Seat)
+                .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Showtime)
+                        .ThenInclude(s => s.Movie)
+                .Include(o => o.Tickets)
+                    .ThenInclude(t => t.Showtime)
+                        .ThenInclude(s => s.Auditorium)
                 .FirstOrDefaultAsync(o => o.OrderId == orderId);
 
             if (order == null) return NotFound();
@@ -1158,9 +1190,47 @@ namespace CINEMA.Controllers
                         _logger.LogError(ex, "Failed to send order success email for order {OrderId}", successOrderId);
                     }
 
+                    // Thiết lập ViewBag cho trang Success với đầy đủ thông tin chi tiết
                     ViewBag.Total = order.TotalAmount;
                     ViewBag.PaymentStatus = "Đã thanh toán";
                     ViewBag.BookingCode = $"CZ{order.OrderId:D6}";
+                    ViewBag.CustomerName = order.Customer?.FullName ?? "Khách vãng lai";
+                    ViewBag.CustomerPhone = order.Customer?.Phone ?? "";
+                    
+                    string pm = order.PaymentMethod ?? "";
+                    if (pm.Contains("VNPAY")) ViewBag.PaymentMethod = "Ví VNPAY";
+                    else if (pm.Contains("Stripe")) ViewBag.PaymentMethod = "Thẻ quốc tế (Stripe)";
+                    else ViewBag.PaymentMethod = pm;
+
+                    if (firstTicket != null)
+                    {
+                        ViewBag.MovieTitle = firstTicket.Showtime?.Movie?.Title;
+                        ViewBag.Showtime = firstTicket.Showtime?.StartTime?.ToString("dd/MM/yyyy HH:mm");
+                        ViewBag.Auditorium = firstTicket.Showtime?.Auditorium?.Name;
+                        
+                        var seatsList = order.Tickets.Select(t => $"{t.Seat?.RowLabel}{t.Seat?.SeatNumber}").ToList();
+                        ViewBag.SelectedSeats = string.Join(", ", seatsList);
+                        
+                        ViewBag.AdultTickets = order.Tickets.Count;
+                        ViewBag.ChildTickets = 0;
+                        ViewBag.StudentTickets = 0;
+                    }
+
+                    if (order.OrderCombos != null && order.OrderCombos.Any())
+                    {
+                        ViewBag.Combos = order.OrderCombos.Select(oc => new CINEMA.ViewModels.ComboViewModel
+                        {
+                            ComboName = oc.Combo?.Name ?? "Combo",
+                            Quantity = oc.Quantity ?? 0,
+                            Price = oc.UnitPrice ?? 0
+                        }).ToList();
+                        
+                        if (firstTicket == null)
+                        {
+                            ViewBag.Message = "Hóa đơn đặt bắp nước đã được tạo thành công. Vui lòng xuất trình mã QR hoặc mã đặt chỗ tại quầy để nhận bắp nước.";
+                        }
+                    }
+
                     return View("Success");
                 }
                 else
