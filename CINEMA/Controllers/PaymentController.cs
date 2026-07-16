@@ -14,6 +14,7 @@ using System.Linq;
 using System.Text.Json;
 //NEWWWWWW
 using Stripe.Checkout;
+using Microsoft.AspNetCore.SignalR;
 
 namespace CINEMA.Controllers
 {
@@ -27,6 +28,7 @@ namespace CINEMA.Controllers
         private readonly IEmailService _emailService;
         //NEWWWWWWW
         private readonly IPaymentService _stripeService;
+        private readonly Microsoft.AspNetCore.SignalR.IHubContext<CINEMA.Hubs.GroupBookingHub> _groupHubContext;
 
         public PaymentController(
             CinemaContext context, 
@@ -35,7 +37,8 @@ namespace CINEMA.Controllers
             IVnpayService vnpayService,
             RecommendationEngine recommendationEngine,
             IEmailService emailService,
-            IPaymentService stripeService)//NEWWWWWWW
+            IPaymentService stripeService,
+            Microsoft.AspNetCore.SignalR.IHubContext<CINEMA.Hubs.GroupBookingHub> groupHubContext)//NEWWWWWWW
         {
             _context = context;
             _config = config;
@@ -44,6 +47,7 @@ namespace CINEMA.Controllers
             _recommendationEngine = recommendationEngine;
             _emailService = emailService;
             _stripeService = stripeService;//NEWWWWWWW
+            _groupHubContext = groupHubContext;
         }
 
         // =================== [1] Trang xác nhận thanh toán ===================
@@ -259,6 +263,20 @@ namespace CINEMA.Controllers
                     .Select(t => t.Seat.RowLabel + t.Seat.SeatNumber)
                     .ToList();
 
+                var groupRoomId = HttpContext.Session.GetString("GroupBooking_RoomId");
+                var groupLockedSeats = _context.GroupBookingMembers
+                    .Include(m => m.Room)
+                    .Include(m => m.Seat)
+                    .Where(m => m.Room.ShowtimeId == model.ShowtimeId 
+                        && m.Room.Status == "Waiting" 
+                        && m.Room.ExpiresAt > now 
+                        && m.SeatId != null
+                        && !(m.RoomId == groupRoomId && m.CustomerId == customerId.Value))
+                    .Select(m => m.Seat.RowLabel + m.Seat.SeatNumber)
+                    .ToList();
+
+                bookedSeatsForShowtime.AddRange(groupLockedSeats);
+
                 foreach (var seatStr in model.SelectedSeats)
                 {
                     if (bookedSeatsForShowtime.Contains(seatStr))
@@ -437,6 +455,16 @@ namespace CINEMA.Controllers
                         _context.SaveChanges();
                     }
                 }
+                if (!string.IsNullOrEmpty(groupRoomId))
+                {
+                    var member = _context.GroupBookingMembers.FirstOrDefault(m => m.RoomId == groupRoomId && m.CustomerId == customerId.Value);
+                    if (member != null)
+                    {
+                        member.OrderId = order.OrderId;
+                        _context.SaveChanges();
+                    }
+                    HttpContext.Session.Remove("GroupBooking_RoomId");
+                }
 
                 transaction.Commit();
 
@@ -604,6 +632,7 @@ namespace CINEMA.Controllers
                     t.PaymentStatus = "Đã thanh toán";
                     t.Status = "Đã thanh toán";
                 }
+                await ProcessGroupBookingPaymentAsync(order.OrderId);
                 // 💎 UPDATE MEMBERSHIP
                 var customer = _context.Customers.Find(order.CustomerId);
 
@@ -1139,6 +1168,7 @@ namespace CINEMA.Controllers
                         t.PaymentStatus = "Đã thanh toán";
                         t.Status = "Đã thanh toán";
                     }
+                    await ProcessGroupBookingPaymentAsync(order.OrderId);
 
                     // 💎 UPDATE MEMBERSHIP (Copy từ logic VNPay của bạn)
                     var customer = await _context.Customers.FindAsync(order.CustomerId);
@@ -1249,6 +1279,32 @@ namespace CINEMA.Controllers
             {
                 _logger.LogError(ex, "Lỗi xác minh phiên thanh toán Stripe cho đơn {OrderId}", orderId);
                 return View("PaymentError");
+            }
+        }
+
+        private async Task ProcessGroupBookingPaymentAsync(int orderId)
+        {
+            var member = _context.GroupBookingMembers.FirstOrDefault(m => m.OrderId == orderId);
+            if (member != null)
+            {
+                member.Status = "Paid";
+                member.PaidAt = DateTime.Now;
+                _context.SaveChanges();
+
+                // Hub SignalR cập nhật thành viên đã thanh toán
+                await _groupHubContext.Clients.Group(member.RoomId).SendAsync("MemberPaid", member.CustomerId);
+
+                // Tự động đóng phòng nếu tất cả thành viên trong nhóm đều đã thanh toán xong
+                var allRoomMembers = _context.GroupBookingMembers.Where(m => m.RoomId == member.RoomId).ToList();
+                if (allRoomMembers.All(m => m.Status == "Paid" || m.SeatId == null))
+                {
+                    var room = _context.GroupBookingRooms.Find(member.RoomId);
+                    if (room != null)
+                    {
+                        room.Status = "Completed";
+                        _context.SaveChanges();
+                    }
+                }
             }
         }
     }

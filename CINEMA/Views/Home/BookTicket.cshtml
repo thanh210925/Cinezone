@@ -420,14 +420,24 @@
                                     ⏳ Thời gian giữ vé: <strong id="countdown" class="text-danger">10:00</strong>
                                 </div>
 
-                                <button type="submit" class="btn btn-danger w-100 btn-lg fw-bold rounded-3 shadow-sm py-3">
+                                <button type="submit" class="btn btn-danger w-100 btn-lg fw-bold rounded-3 shadow-sm py-3 mb-3">
                                     THANH TOÁN NGAY <i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                                
+                                <div class="text-center my-2 text-muted small">— HOẶC —</div>
+                                
+                                <button type="button" onclick="event.preventDefault(); document.getElementById('groupBookingCreateForm').submit();" class="btn btn-outline-primary w-100 btn-lg fw-bold rounded-3 py-3">
+                                    🤝 RỦ BẠN ĐI CÙNG
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </form>
+
+        <form id="groupBookingCreateForm" action="/GroupBooking/Create" method="post" style="display: none;">
+            <input type="hidden" name="showtimeId" value="@showtime.ShowtimeId" />
         </form>
     }
 

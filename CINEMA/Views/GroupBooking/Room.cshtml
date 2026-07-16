@@ -1,0 +1,562 @@
+@model CINEMA.Models.GroupBookingRoom
+@{
+    ViewData["Title"] = "CineZone - Phòng chờ đặt vé nhóm";
+    var seats = ViewBag.Seats as List<CINEMA.Models.Seat> ?? new List<CINEMA.Models.Seat>();
+    var bookedSeats = ViewBag.BookedSeats as List<string> ?? new List<string>();
+    var seatGroups = seats.GroupBy(s => s.RowLabel);
+    int currentCustomerId = ViewBag.CurrentCustomerId;
+    
+    // Tìm ghế hiện tại của người dùng này nếu có
+    var currentMember = Model.Members.FirstOrDefault(m => m.CustomerId == currentCustomerId);
+    int? mySelectedSeatId = currentMember?.SeatId;
+    string mySelectedSeatCode = currentMember?.Seat != null ? $"{currentMember.Seat.RowLabel}{currentMember.Seat.SeatNumber}" : "";
+}
+
+<div class="container-fluid py-4 min-vh-100" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: #f8fafc; font-family: 'Outfit', 'Inter', sans-serif;">
+    <div class="container py-2">
+        
+        <!-- 🎬 Tên Phim & Rạp thông tin -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="p-4 rounded-4 shadow-lg border border-opacity-10 border-light" style="background: rgba(30, 41, 59, 0.45); backdrop-filter: blur(16px);">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                        <div>
+                            <span class="badge bg-primary mb-2 px-3 py-2 text-uppercase letter-spacing-1 small">👥 Phòng chờ: @Model.RoomId</span>
+                            <h2 class="fw-bold text-white mb-1"><i class="bi bi-film me-2 text-warning"></i> @Model.Showtime.Movie.Title</h2>
+                            <p class="text-slate-300 mb-0 mt-2 small text-muted">
+                                <i class="bi bi-geo-alt-fill text-danger me-1"></i> @Model.Showtime.Auditorium.Theater.Name &nbsp;|&nbsp;
+                                <i class="bi bi-camera-reels-fill text-primary me-1"></i> @Model.Showtime.Auditorium.Name &nbsp;|&nbsp;
+                                <i class="bi bi-clock-fill text-success me-1"></i> @Model.Showtime.StartTime?.ToString("dd/MM/yyyy HH:mm")
+                            </p>
+                        </div>
+                        <div class="text-md-end bg-dark bg-opacity-50 p-3 rounded-3 border border-secondary border-opacity-25" style="min-width: 200px;">
+                            <span class="text-muted d-block small mb-1">⏳ PHÒNG CHỜ HẾT HẠN TRONG</span>
+                            <span id="roomCountdown" class="fs-3 fw-bold text-danger">15:00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- CỘT TRÁI: SƠ ĐỒ GHẾ THỜI GIAN THỰC -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-lg h-100 rounded-4 overflow-hidden" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05) !important;">
+                    <div class="card-header bg-dark bg-opacity-25 border-bottom border-light border-opacity-10 pt-4 pb-3 px-4">
+                        <h4 class="fw-bold mb-0 text-white"><i class="bi bi-grid-3x3-gap me-2 text-danger"></i> Chọn Ghế Của Bạn</h4>
+                        <small class="text-muted d-block mt-1">Click vào ghế trống để chọn. Hệ thống tự động đồng bộ thời gian thực với bạn bè.</small>
+                    </div>
+                    <div class="card-body py-5 overflow-auto">
+                        <!-- Màn hình chiếu -->
+                        <div class="cinema-screen-container mb-5 text-center">
+                            <div class="cinema-screen mx-auto"></div>
+                            <small class="text-muted fw-bold letter-spacing-2">MÀN HÌNH CHIẾU</small>
+                        </div>
+
+                        <!-- Lưới Ghế -->
+                        <div class="d-flex flex-column align-items-center">
+                            @{
+                                int maxCol = seats.Any() ? seats.Max(s => s.SeatNumber ?? 0) : 0;
+                            }
+                            @foreach (var group in seatGroups)
+                            {
+                                <div class="d-flex justify-content-center align-items-center mb-2 gap-1 flex-wrap">
+                                    <span class="fw-bold text-muted me-3 text-center" style="width: 24px;">@group.Key</span>
+                                    @for (int col = 1; col <= maxCol; col++)
+                                    {
+                                        var seat = group.FirstOrDefault(s => s.SeatNumber == col);
+                                        if (seat != null)
+                                        {
+                                            string seatCode = $"{seat.RowLabel}{seat.SeatNumber}";
+                                            bool isBooked = bookedSeats.Contains(seatCode);
+                                            decimal surcharge = 0m;
+                                            string typeClass = "";
+                                            string icon = "";
+
+                                            if (seat.SeatType == "VIP")
+                                            {
+                                                surcharge = 30000m;
+                                                typeClass = "seat-vip";
+                                            }
+                                            else if (seat.SeatType == "Couple")
+                                            {
+                                                surcharge = 100000m;
+                                                typeClass = "seat-couple";
+                                                icon = "<i class=\"bi bi-heart-fill small\"></i>";
+                                            }
+                                            else if (seat.SeatType == "Disabled")
+                                            {
+                                                typeClass = "seat-disabled";
+                                                icon = "<i class=\"bi bi-person-badge-fill small\"></i>";
+                                            }
+
+                                            <!-- Ghế Wrapper -->
+                                            <div class="seat-container" 
+                                                 id="seat-container-@seat.SeatId"
+                                                 data-seat-id="@seat.SeatId" 
+                                                 data-seat-code="@seatCode"
+                                                 data-booked="@(isBooked ? "true" : "false")"
+                                                 data-surcharge="@surcharge">
+                                                 
+                                                <button class="btn-seat @typeClass @(isBooked ? "seat-booked" : "")" 
+                                                        id="btn-seat-@seat.SeatId"
+                                                        onclick="selectGroupSeat(@seat.SeatId)" 
+                                                        title="@seatCode - @seat.SeatType @(surcharge > 0 ? $"(+{surcharge:N0}đ)" : "")"
+                                                        @(isBooked ? "disabled" : "")>
+                                                    @if (!string.IsNullOrEmpty(icon))
+                                                    {
+                                                        @Html.Raw(icon)
+                                                    }
+                                                    else
+                                                    {
+                                                        @seat.SeatNumber
+                                                    }
+                                                </button>
+                                                <!-- Badge hiển thị initials của người giữ ghế -->
+                                                <span class="seat-member-badge" id="badge-seat-@seat.SeatId"></span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div style="width: 38px; height: 38px; display: inline-block;"></div>
+                                        }
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Chú thích loại ghế -->
+                        <div class="d-flex justify-content-center gap-4 mt-5 pt-4 border-top border-light border-opacity-10 flex-wrap text-muted small">
+                            <div class="d-flex align-items-center"><div class="legend-box border border-secondary border-opacity-25 bg-slate"></div> <span class="ms-2">Thường</span></div>
+                            <div class="d-flex align-items-center"><div class="legend-box seat-vip bg-yellow"></div> <span class="ms-2">VIP (+30k)</span></div>
+                            <div class="d-flex align-items-center"><div class="legend-box seat-couple bg-pink"></div> <span class="ms-2">Couple (+100k)</span></div>
+                            <div class="d-flex align-items-center"><div class="legend-box seat-disabled bg-blue"></div> <span class="ms-2">Khuyết tật</span></div>
+                            <div class="d-flex align-items-center"><div class="legend-box bg-success border-success"></div> <span class="ms-2">Bạn đang chọn</span></div>
+                            <div class="d-flex align-items-center"><div class="legend-box bg-info border-info"></div> <span class="ms-2">Thành viên khác chọn</span></div>
+                            <div class="d-flex align-items-center"><div class="legend-box bg-secondary opacity-50"></div> <span class="ms-2">Đã bán</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CỘT PHẢI: CHI TIẾT PHÒNG NHÓM & THANH TOÁN -->
+            <div class="col-lg-4">
+                <div class="d-flex flex-column gap-4 h-100">
+                    
+                    <!-- Box chia sẻ link -->
+                    <div class="p-4 rounded-4 shadow-lg border border-opacity-10 border-light" style="background: rgba(30, 41, 59, 0.45); backdrop-filter: blur(16px);">
+                        <h5 class="fw-bold mb-3 text-white"><i class="bi bi-share me-2 text-primary"></i> Mời Bạn Bè Tham Gia</h5>
+                        <p class="small text-muted mb-3">Gửi đường dẫn này cho bạn bè. Họ chỉ cần đăng nhập là có thể vào phòng chờ chọn ghế chung.</p>
+                        
+                        <div class="input-group mb-3 bg-dark bg-opacity-50 p-1 rounded-3 border border-secondary border-opacity-25">
+                            <input type="text" id="shareRoomLink" class="form-control bg-transparent border-0 text-white small" style="outline: none; box-shadow: none;" readonly value="" />
+                            <button class="btn btn-primary px-3 rounded-3 btn-sm" type="button" onclick="copyRoomLink(this)">
+                                <i class="bi bi-clipboard me-1"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel thành viên nhóm -->
+                    <div class="p-4 rounded-4 shadow-lg border border-opacity-10 border-light flex-grow-1 d-flex flex-column" style="background: rgba(30, 41, 59, 0.45); backdrop-filter: blur(16px);">
+                        <h5 class="fw-bold mb-3 text-white"><i class="bi bi-people me-2 text-warning"></i> Bạn Đồng Hành</h5>
+                        
+                        <div class="flex-grow-1 overflow-auto d-flex flex-column gap-2 mb-4" id="memberListContainer" style="max-height: 380px;">
+                            <!-- Danh sách thành viên được vẽ bằng JS -->
+                            <div class="text-center py-4 text-muted small">Đang tải thành viên...</div>
+                        </div>
+
+                        <!-- Cụm Checkout -->
+                        <div class="mt-auto border-top border-light border-opacity-10 pt-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-muted fw-bold">Ghế của bạn:</span>
+                                <span class="fs-5 fw-bold text-success" id="mySeatCodeDisplay">Chưa chọn</span>
+                            </div>
+                            
+                            <a id="btnCheckout" href="/GroupBooking/StartCheckout?roomId=@Model.RoomId" class="btn btn-danger w-100 btn-lg fw-bold rounded-3 shadow-lg py-3 disabled">
+                                THANH TOÁN PHẦN CỦA TÔI <i class="bi bi-arrow-right ms-2"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<style>
+    .letter-spacing-1 { letter-spacing: 1px; }
+    .letter-spacing-2 { letter-spacing: 3px; }
+    
+    .cinema-screen-container {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .cinema-screen {
+        height: 12px;
+        background: linear-gradient(to bottom, #38bdf8, transparent);
+        border-top-left-radius: 50% 100%;
+        border-top-right-radius: 50% 100%;
+        border-top: 4px solid #0ea5e9;
+        box-shadow: 0 10px 30px rgba(14, 165, 233, 0.3);
+        margin-bottom: 12px;
+    }
+
+    .legend-box {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+    }
+
+    .seat-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .btn-seat {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px 10px 4px 4px;
+        font-weight: bold;
+        font-size: 0.8rem;
+        background-color: #334155;
+        border: 1px solid #475569;
+        color: #e2e8f0;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+
+    .btn-seat:hover:not(:disabled) {
+        transform: translateY(-2px);
+        background-color: #475569;
+        border-color: #64748b;
+        box-shadow: 0 4px 10px rgba(255, 255, 255, 0.1);
+    }
+
+    .seat-vip {
+        background-color: #854d0e;
+        border-color: #a16207;
+        color: #fef08a;
+    }
+    .seat-vip:hover:not(:disabled) {
+        background-color: #a16207 !important;
+        border-color: #ca8a04 !important;
+    }
+
+    .seat-couple {
+        background-color: #9d174d;
+        border-color: #be185d;
+        color: #fce7f3;
+    }
+    .seat-couple:hover:not(:disabled) {
+        background-color: #be185d !important;
+        border-color: #db2777 !important;
+    }
+
+    .seat-disabled {
+        background-color: #1e3a8a;
+        border-color: #1d4ed8;
+        color: #dbeafe;
+    }
+    .seat-disabled:hover:not(:disabled) {
+        background-color: #1d4ed8 !important;
+        border-color: #2563eb !important;
+    }
+
+    .seat-booked {
+        background-color: #1e293b !important;
+        border-color: #1e293b !important;
+        color: #475569 !important;
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    /* Ghế do thành viên khác trong nhóm chọn */
+    .seat-group-selected {
+        background-color: #06b6d4 !important;
+        border-color: #0891b2 !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 12px rgba(6, 182, 212, 0.6) !important;
+    }
+
+    /* Ghế do chính mình chọn */
+    .seat-my-selected {
+        background-color: #22c55e !important;
+        border-color: #16a34a !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 15px rgba(34, 197, 94, 0.7) !important;
+        animation: pulseSelected 2s infinite;
+    }
+    
+    @@keyframes pulseSelected {
+        0% { box-shadow: 0 0 15px rgba(34, 197, 94, 0.7); }
+        50% { box-shadow: 0 0 25px rgba(34, 197, 94, 0.9); }
+        100% { box-shadow: 0 0 15px rgba(34, 197, 94, 0.7); }
+    }
+
+    .seat-member-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background-color: #f43f5e;
+        color: white;
+        font-size: 0.62rem;
+        font-weight: 800;
+        padding: 1px 4px;
+        border-radius: 10px;
+        border: 1.5px solid #0f172a;
+        pointer-events: none;
+        display: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    .member-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #334155;
+    }
+    
+    .member-card {
+        background: rgba(15, 23, 42, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .member-card:hover {
+        background: rgba(15, 23, 42, 0.6);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+</style>
+
+@section Scripts {
+    <!-- SignalR Library -->
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+    <script>
+        const roomId = "@Model.RoomId";
+        const currentCustomerId = @currentCustomerId;
+        let expiresAt = new Date("@Model.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ss")");
+        
+        // Thiết lập link chia sẻ tự động
+        document.getElementById("shareRoomLink").value = window.location.href;
+
+        // Cấu hình SignalR
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/groupBookingHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("UserJoinedRoom", function () {
+            refreshRoomData();
+        });
+
+        connection.on("SeatSelectedByMember", function (customerId, seatId, seatCode) {
+            refreshRoomData();
+        });
+
+        connection.on("SeatReleasedByMember", function (customerId, seatId, seatCode) {
+            refreshRoomData();
+        });
+
+        connection.on("MemberPaid", function (customerId) {
+            refreshRoomData();
+        });
+
+        connection.start().then(function () {
+            connection.invoke("JoinRoom", roomId).catch(err => console.error(err));
+        }).catch(function (err) {
+            console.error("SignalR Connection Error: ", err.toString());
+        });
+
+        // Hàm click chọn ghế
+        function selectGroupSeat(seatId) {
+            const btn = document.getElementById("btn-seat-" + seatId);
+            
+            // Nếu click vào ghế đang được chọn bởi mình -> Bỏ chọn
+            let targetSeatId = seatId;
+            if (btn.classList.contains("seat-my-selected")) {
+                targetSeatId = null; // Gửi null lên server để giải phóng ghế
+            }
+
+            // Gọi API lưu vào DB
+            fetch(`/GroupBooking/ConfirmSeat?roomId=${roomId}&seatId=${targetSeatId || ""}`, {
+                method: "POST"
+            })
+            .then(res => {
+                if (!res.ok) {
+                    res.text().then(text => alert(text));
+                }
+            })
+            .catch(err => console.error("Lỗi chọn ghế: ", err));
+        }
+
+        // Lấy dữ liệu cập nhật phòng và render giao diện
+        function refreshRoomData() {
+            fetch(`/GroupBooking/RoomStatus?roomId=${roomId}`)
+            .then(res => res.json())
+            .then(data => {
+                // Kiểm tra hết hạn phòng
+                if (data.status === "Expired") {
+                    alert("Phòng chờ đặt vé nhóm này đã hết hạn!");
+                    window.location.href = "/Home/Index";
+                    return;
+                }
+                
+                renderMembers(data.members);
+                updateSeatingChart(data.members);
+            })
+            .catch(err => console.error("Lỗi tải thông tin phòng: ", err));
+        }
+
+        // Vẽ danh sách thành viên bên panel phải
+        function renderMembers(members) {
+            const container = document.getElementById("memberListContainer");
+            container.innerHTML = "";
+
+            let mySeatCode = "Chưa chọn";
+            let myHasPaid = false;
+
+            members.forEach(member => {
+                const isMe = member.customerId === currentCustomerId;
+                if (isMe) {
+                    mySeatCode = member.seatCode !== "Chưa chọn" ? member.seatCode : "Chưa chọn";
+                    myHasPaid = member.status === "Paid";
+                }
+
+                let statusBadge = "";
+                if (member.status === "Paid") {
+                    statusBadge = `<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Đã thanh toán</span>`;
+                } else if (member.status === "SeatSelected") {
+                    statusBadge = `<span class="badge bg-info">Đã chọn: ${member.seatCode}</span>`;
+                } else {
+                    statusBadge = `<span class="badge bg-secondary opacity-75">Đang chọn ghế...</span>`;
+                }
+
+                const cardHtml = `
+                    <div class="d-flex align-items-center justify-content-between p-3 rounded-3 member-card ${isMe ? 'border-primary border-opacity-50 border' : ''}">
+                        <div class="d-flex align-items-center gap-3">
+                            <img src="${member.avatarUrl}" class="member-avatar" alt="Avatar" />
+                            <div>
+                                <h6 class="fw-bold text-white mb-0 small">
+                                    ${member.fullName} 
+                                    ${member.isCreator ? '<span class="text-warning text-xs ms-1">★ Trưởng nhóm</span>' : ''}
+                                    ${isMe ? '<span class="text-primary text-xs ms-1">(Bạn)</span>' : ''}
+                                </h6>
+                                <span class="text-muted small mt-1 d-block" style="font-size: 0.72rem;">Ghế: ${member.seatCode}</span>
+                            </div>
+                        </div>
+                        <div>
+                            ${statusBadge}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+
+            // Cập nhật text hiển thị ghế của mình và trạng thái nút Checkout
+            const mySeatDisplay = document.getElementById("mySeatCodeDisplay");
+            mySeatDisplay.innerText = mySeatCode;
+            
+            const btnCheckout = document.getElementById("btnCheckout");
+            if (mySeatCode !== "Chưa chọn" && !myHasPaid) {
+                btnCheckout.classList.remove("disabled");
+            } else {
+                btnCheckout.classList.add("disabled");
+            }
+
+            if (myHasPaid) {
+                btnCheckout.innerText = "BẠN ĐÃ THANH TOÁN XONG ✅";
+                btnCheckout.className = "btn btn-success w-100 btn-lg fw-bold rounded-3 shadow-lg py-3 disabled";
+            } else {
+                btnCheckout.innerText = "THANH TOÁN PHẦN CỦA TÔI";
+                btnCheckout.className = "btn btn-danger w-100 btn-lg fw-bold rounded-3 shadow-lg py-3" + (mySeatCode === "Chưa chọn" ? " disabled" : "");
+            }
+        }
+
+        // Vẽ lại sơ đồ ghế dựa trên dữ liệu thành viên
+        function updateSeatingChart(members) {
+            // Reset các class của ghế (trừ ghế đã bán ngoài hệ thống)
+            document.querySelectorAll(".seat-container").forEach(el => {
+                const isBooked = el.getAttribute("data-booked") === "true";
+                if (!isBooked) {
+                    const btn = el.querySelector(".btn-seat");
+                    btn.classList.remove("seat-my-selected", "seat-group-selected");
+                    
+                    const badge = el.querySelector(".seat-member-badge");
+                    badge.style.display = "none";
+                    badge.innerText = "";
+                }
+            });
+
+            // Duyệt danh sách thành viên để vẽ màu ghế của họ
+            members.forEach(member => {
+                if (member.seatId > 0) {
+                    const el = document.getElementById("seat-container-" + member.seatId);
+                    if (el) {
+                        const isMe = member.customerId === currentCustomerId;
+                        const btn = el.querySelector(".btn-seat");
+                        const badge = el.querySelector(".seat-member-badge");
+
+                        if (isMe) {
+                            btn.classList.add("seat-my-selected");
+                        } else {
+                            btn.classList.add("seat-group-selected");
+                            // Hiển thị viết tắt tên của thành viên giữ ghế (ví dụ: "Nguyen Van A" -> "NA")
+                            const initials = member.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                            badge.innerText = initials;
+                            badge.style.display = "block";
+                        }
+                    }
+                }
+            });
+        }
+
+        // Đếm ngược thời gian phòng chờ (15 phút)
+        const countdownTimer = setInterval(function () {
+            const now = new Date().getTime();
+            const distance = expiresAt - now;
+
+            if (distance < 0) {
+                clearInterval(countdownTimer);
+                document.getElementById("roomCountdown").innerText = "HẾT HẠN";
+                alert("Thời gian giữ phòng chờ đã hết!");
+                window.location.href = "/Home/Index";
+                return;
+            }
+
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById("roomCountdown").innerText = 
+                minutes + ":" + (seconds < 10 ? "0" + seconds : seconds);
+        }, 1000);
+
+        // Copy link phòng chờ
+        function copyRoomLink(btn) {
+            const copyText = document.getElementById("shareRoomLink");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            
+            navigator.clipboard.writeText(copyText.value).then(function() {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check2"></i> Copied!';
+                btn.className = "btn btn-success px-3 rounded-3 btn-sm";
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.className = "btn btn-primary px-3 rounded-3 btn-sm";
+                }, 2000);
+            });
+        }
+
+        // Tải dữ liệu ban đầu khi load trang
+        refreshRoomData();
+    </script>
+}

@@ -104,6 +104,7 @@ namespace CINEMA
       
 
             app.MapHub<CINEMA.Hubs.ChatHub>("/chatHub");
+            app.MapHub<CINEMA.Hubs.GroupBookingHub>("/groupBookingHub");
 
             app.MapControllerRoute(
                 name: "default",

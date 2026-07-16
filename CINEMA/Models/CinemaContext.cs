@@ -51,6 +51,8 @@ public partial class CinemaContext : DbContext
     public DbSet<UserMovieView> UserMovieViews { get; set; }
     public DbSet<UserSearchLog> UserSearchLogs { get; set; }
     public DbSet<ChatMessage> ChatMessages { get; set; }
+    public virtual DbSet<GroupBookingRoom> GroupBookingRooms { get; set; }
+    public virtual DbSet<GroupBookingMember> GroupBookingMembers { get; set; }
     //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
     //        => optionsBuilder.UseSqlServer("Server=DESKTOP-11TEUJ3\\BANGTHANH;Database=CINEMA;User Id=BANGTHANH;Password=12345678;TrustServerCertificate=True;");
@@ -63,7 +65,9 @@ public partial class CinemaContext : DbContext
             || entity is UserActivityLog
             || entity is UserMovieView
             || entity is UserSearchLog
-            || entity is ChatMessage;
+            || entity is ChatMessage
+            || entity is GroupBookingRoom
+            || entity is GroupBookingMember;
     }
 
     public override int SaveChanges()
@@ -184,6 +188,52 @@ public partial class CinemaContext : DbContext
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<GroupBookingRoom>(entity =>
+        {
+            entity.HasKey(e => e.RoomId);
+            entity.Property(e => e.RoomId).HasMaxLength(20);
+            entity.Property(e => e.Status).HasMaxLength(30).HasDefaultValue("Waiting");
+            entity.Property(e => e.MaxMembers).HasDefaultValue(10);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+            entity.HasOne(d => d.Showtime)
+                .WithMany()
+                .HasForeignKey(d => d.ShowtimeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.Creator)
+                .WithMany()
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GroupBookingMember>(entity =>
+        {
+            entity.HasKey(e => e.MemberId);
+            entity.Property(e => e.RoomId).HasMaxLength(20);
+            entity.Property(e => e.Status).HasMaxLength(30).HasDefaultValue("Joined");
+            entity.Property(e => e.JoinedAt).HasDefaultValueSql("GETDATE()");
+
+            entity.HasOne(d => d.Room)
+                .WithMany(p => p.Members)
+                .HasForeignKey(d => d.RoomId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.Customer)
+                .WithMany()
+                .HasForeignKey(d => d.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.Seat)
+                .WithMany()
+                .HasForeignKey(d => d.SeatId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(d => d.Order)
+                .WithMany()
+                .HasForeignKey(d => d.OrderId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
 
         modelBuilder.Entity<UserMovieView>()
             .HasIndex(v => new { v.CustomerId, v.MovieId })
