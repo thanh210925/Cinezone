@@ -26,6 +26,7 @@ namespace CINEMA
             builder.Services.AddScoped<IVnpayService, VnpayService>();
             builder.Services.AddScoped<StatisticsController>();
             builder.Services.AddScoped<RecommendationEngine>();
+            builder.Services.AddScoped<CustomerClusteringService>();
             builder.Services.AddHttpClient<CINEMA.Services.GeminiService>();
             builder.Services.AddScoped<IMovieService, MovieService>();
 

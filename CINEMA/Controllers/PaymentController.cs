@@ -363,6 +363,8 @@ namespace CINEMA.Controllers
                     ExpiredAt = DateTime.Now.AddMinutes(15),
 
                     TotalAmount = total,
+                    ComboTotal = comboTotal,
+                    TicketTotal = ticketOnlyTotal,
 
                     VoucherCode = model.VoucherCode,
 
@@ -823,7 +825,7 @@ namespace CINEMA.Controllers
 
         // =================== [5] API Thanh toán lại ===================
         [HttpGet]
-        public IActionResult CreatePayment(int orderId)
+        public async Task<IActionResult> CreatePayment(int orderId)
         {
             var customerId = HttpContext.Session.GetInt32("CustomerId");
             if (customerId == null)
@@ -867,6 +869,35 @@ namespace CINEMA.Controllers
                 });
 
                 TempData["ErrorMessage"] = "Đơn hàng đã hết hạn thanh toán!";
+                return RedirectToAction("MyTickets", "Tickets");
+            }
+
+            if (order.PaymentMethod == "Stripe" || order.PaymentMethod == "Online" || (order.PaymentMethod != null && order.PaymentMethod.Contains("Stripe")))
+            {
+                string reqBaseUrl = _config["AppSettings:BaseUrl"] ?? $"{Request.Scheme}://{Request.Host}";
+                int currentOrderId = order.OrderId;
+                Task.Run(async () => {
+                    try {
+                        await _emailService.SendPaymentReminderEmailAsync(currentOrderId, reqBaseUrl);
+                    } catch (Exception ex) {
+                        _logger.LogError(ex, "Failed to send payment reminder email for order {OrderId}", currentOrderId);
+                    }
+                });
+
+                var baseSuccessUrl = Url.Action("StripeSuccess", "Payment", new { orderId = order.OrderId }, Request.Scheme) ?? string.Empty;
+                var successUrl = baseSuccessUrl + (baseSuccessUrl.Contains("?") ? "&session_id={CHECKOUT_SESSION_ID}" : "?session_id={CHECKOUT_SESSION_ID}");
+                var cancelUrl = Url.Action("PaymentError", "Payment", new { orderId = order.OrderId }, Request.Scheme) ?? string.Empty;
+
+                var payment = await _stripeService.CreatePaymentAsync(order, successUrl, cancelUrl);
+
+                if (payment.Success && !string.IsNullOrEmpty(payment.PaymentUrl))
+                {
+                    order.Status = "Đang chờ thanh toán";
+                    _context.SaveChanges();
+                    return Redirect(payment.PaymentUrl);
+                }
+
+                TempData["ErrorMessage"] = "Không thể khởi tạo thanh toán Stripe: " + payment.Message;
                 return RedirectToAction("MyTickets", "Tickets");
             }
 

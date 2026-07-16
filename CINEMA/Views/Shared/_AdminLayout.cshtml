@@ -475,6 +475,11 @@
                         <i class="bi bi-people"></i><span>Gợi ý phim (KNN)</span>
                     </a>
                 </li>
+                <li>
+                    <a asp-controller="Statistics" asp-action="CustomerSegmentation" class="@IsActive("Statistics", "CustomerSegmentation")">
+                        <i class="bi bi-pie-chart-fill"></i><span>Phân cụm khách hàng</span>
+                    </a>
+                </li>
 
                 <li class="menu-divider">
                     <a asp-controller="Admin" asp-action="Logout" class="logout-link">

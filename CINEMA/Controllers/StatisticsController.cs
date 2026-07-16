@@ -14,11 +14,13 @@ namespace CINEMA.Controllers
     {
         private readonly CinemaContext _context;
         private readonly RecommendationEngine _recommendationEngine;
+        private readonly CustomerClusteringService _clusteringService;
 
-        public StatisticsController(CinemaContext context, RecommendationEngine recommendationEngine)
+        public StatisticsController(CinemaContext context, RecommendationEngine recommendationEngine, CustomerClusteringService clusteringService)
         {
             _context = context;
             _recommendationEngine = recommendationEngine;
+            _clusteringService = clusteringService;
         }
 
         // ============================
@@ -809,6 +811,16 @@ namespace CINEMA.Controllers
             }
 
             return View(knnResult);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CustomerSegmentation(int k = 3)
+        {
+            if (k < 2) k = 2;
+            if (k > 5) k = 5;
+
+            var result = await _clusteringService.ClusterCustomersAsync(k);
+            return View(result);
         }
     }
 }
