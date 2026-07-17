@@ -4,6 +4,7 @@ using CINEMA.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CINEMA.Migrations
 {
     [DbContext(typeof(CinemaContext))]
-    partial class CinemaContextModelSnapshot : ModelSnapshot
+    [Migration("20260716103742_AddVoucherTermsAndScope")]
+    partial class AddVoucherTermsAndScope
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1273,6 +1276,9 @@ namespace CINEMA.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VoucherId"));
 
+                    b.Property<int>("ApplicableScope")
+                        .HasColumnType("int");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1302,74 +1308,15 @@ namespace CINEMA.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("TermsAndConditions")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UsedCount")
                         .HasColumnType("int");
 
-                    b.Property<int?>("VoucherConditionId")
-                        .HasColumnType("int");
-
                     b.HasKey("VoucherId");
 
-                    b.HasIndex("VoucherConditionId");
-
                     b.ToTable("Vouchers");
-                });
-
-            modelBuilder.Entity("CINEMA.Models.VoucherCondition", b =>
-                {
-                    b.Property<int>("VoucherConditionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VoucherConditionId"));
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.HasKey("VoucherConditionId");
-
-                    b.ToTable("VoucherConditions");
-                });
-
-            modelBuilder.Entity("CINEMA.Models.VoucherRule", b =>
-                {
-                    b.Property<int>("VoucherRuleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VoucherRuleId"));
-
-                    b.Property<string>("Field")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Operator")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int>("VoucherConditionId")
-                        .HasColumnType("int");
-
-                    b.HasKey("VoucherRuleId");
-
-                    b.HasIndex("VoucherConditionId");
-
-                    b.ToTable("VoucherRules");
                 });
 
             modelBuilder.Entity("CINEMA.Models.WorkSchedule", b =>
@@ -1771,27 +1718,6 @@ namespace CINEMA.Migrations
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("CINEMA.Models.Voucher", b =>
-                {
-                    b.HasOne("CINEMA.Models.VoucherCondition", "VoucherCondition")
-                        .WithMany("Vouchers")
-                        .HasForeignKey("VoucherConditionId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("VoucherCondition");
-                });
-
-            modelBuilder.Entity("CINEMA.Models.VoucherRule", b =>
-                {
-                    b.HasOne("CINEMA.Models.VoucherCondition", "VoucherCondition")
-                        .WithMany("Rules")
-                        .HasForeignKey("VoucherConditionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("VoucherCondition");
-                });
-
             modelBuilder.Entity("CINEMA.Models.WorkSchedule", b =>
                 {
                     b.HasOne("CINEMA.Models.Admin", "Admin")
@@ -1928,13 +1854,6 @@ namespace CINEMA.Migrations
             modelBuilder.Entity("CINEMA.Models.Ticket", b =>
                 {
                     b.Navigation("TicketCombos");
-                });
-
-            modelBuilder.Entity("CINEMA.Models.VoucherCondition", b =>
-                {
-                    b.Navigation("Rules");
-
-                    b.Navigation("Vouchers");
                 });
 #pragma warning restore 612, 618
         }

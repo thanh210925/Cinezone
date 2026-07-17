@@ -1,4 +1,4 @@
-﻿@model CINEMA.Models.Voucher
+@model CINEMA.Models.Voucher
 @{
     ViewData["Title"] = "Thêm Voucher";
     Layout = "_AdminLayout";
@@ -15,34 +15,43 @@
 
 <form method="post">
 
-    <!-- MÃ -->
     <label>Mã voucher</label>
     <input asp-for="Code" class="form-control mb-2" placeholder="VD: GIAM10" />
     <span asp-validation-for="Code" class="text-danger"></span>
 
-    <!-- % GIẢM -->
     <label>% giảm</label>
     <input asp-for="DiscountPercent" class="form-control mb-2" placeholder="VD: 10" />
 
-    <!-- GIẢM TIỀN -->
     <label>Giảm tiền (VNĐ)</label>
     <input asp-for="DiscountAmount" class="form-control mb-2" placeholder="VD: 50000" />
 
-    <!-- ĐƠN TỐI THIỂU -->
     <label>Đơn tối thiểu</label>
     <input asp-for="MinOrderValue" class="form-control mb-2" placeholder="VD: 100000" />
 
-    <!-- SỐ LƯỢNG -->
     <label>Số lượng</label>
     <input asp-for="Quantity" class="form-control mb-2" placeholder="VD: 100" />
 
-    <!-- NGÀY BẮT ĐẦU -->
     <label>Ngày bắt đầu</label>
     <input asp-for="StartDate" type="date" class="form-control mb-2" />
 
-    <!-- NGÀY KẾT THÚC -->
     <label>Ngày kết thúc</label>
-    <input asp-for="EndDate" type="date" class="form-control mb-2" />>
+    <input asp-for="EndDate" type="date" class="form-control mb-2" />
+
+    <div class="form-group mb-2">
+        <label>Phạm vi áp dụng (Điều kiện)</label>
+        <select asp-for="VoucherConditionId" class="form-control">
+            <option value="">Không giới hạn (Áp dụng toàn bộ đơn hàng)</option>
+            @if (ViewBag.VoucherConditions != null)
+            {
+                foreach (var cond in (List<CINEMA.Models.VoucherCondition>)ViewBag.VoucherConditions)
+                {
+                    <option value="@cond.VoucherConditionId">@cond.Name</option>
+                }
+            }
+        </select>
+    </div>
+
+
 
     <button class="btn btn-success">💾 Tạo voucher</button>
     <a href="/AdminVoucher" class="btn btn-secondary">⬅ Quay lại</a>

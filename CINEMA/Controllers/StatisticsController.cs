@@ -99,6 +99,7 @@ namespace CINEMA.Controllers
             }
 
             var paidOrders = await paidOrdersQuery.ToListAsync();
+            model.DetailedOrders = paidOrders.OrderByDescending(o => o.CreatedAt).ToList();
 
 
             // =====================================================

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using CINEMA.Services;
 
 namespace CINEMA.Controllers
@@ -883,43 +884,172 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
         }
 
         [HttpGet]
-        public IActionResult CheckVoucher(string code, decimal total)
+        public IActionResult CheckVoucher(string code, decimal total, decimal comboTotal = 0)
         {
             if (string.IsNullOrEmpty(code))
-                return Json(new { success = false, message = "Chưa nhập mã" });
+                return Json(new { success = false, message = "Chưa nhập mã voucher" });
 
             var voucher = _context.Vouchers
+                .Include(v => v.VoucherCondition)
+                    .ThenInclude(vc => vc.Rules)
                 .FirstOrDefault(v => v.Code != null &&
                                      v.Code.ToLower() == code.ToLower() &&
                                      v.IsActive);
 
             if (voucher == null)
-                return Json(new { success = false, message = "Không tồn tại" });
+                return Json(new { success = false, message = "Mã voucher không tồn tại" });
 
             if (voucher.StartDate != null && voucher.StartDate > DateTime.Now)
-                return Json(new { success = false, message = "Chưa đến thời gian" });
+                return Json(new { success = false, message = "Chưa đến thời gian áp dụng" });
 
             if (voucher.EndDate != null && voucher.EndDate < DateTime.Now)
-                return Json(new { success = false, message = "Hết hạn" });
+                return Json(new { success = false, message = "Mã voucher đã hết hạn" });
 
             if (voucher.UsedCount >= voucher.Quantity)
-                return Json(new { success = false, message = "Hết lượt" });
+                return Json(new { success = false, message = "Mã voucher đã hết lượt sử dụng" });
 
             if (total < voucher.MinOrderValue)
-                return Json(new { success = false, message = "Chưa đủ điều kiện" });
+                return Json(new { success = false, message = "Đơn hàng chưa đủ điều kiện áp dụng mã này" });
 
+            // =============== TÍCH HỢP KIỂM TRA PHẠM VI ÁP DỤNG ===============
+            var customerId = HttpContext.Session.GetInt32("CustomerId");
+            decimal mDiscountPercent = 0m;
+            if (customerId != null)
+            {
+                var customer = _context.Customers.Find(customerId.Value);
+                if (customer != null)
+                {
+                    string membershipLevel = customer.MembershipLevel ?? "Đồng";
+                    if (membershipLevel == "Kim cương")
+                        mDiscountPercent = 0.10m;
+                    else if (membershipLevel == "Bạc")
+                        mDiscountPercent = 0.05m;
+                }
+            }
+
+            // Thu thập thông tin cho Evaluation Context
+            int ticketQuantity = 0;
+            int comboQuantity = 0;
+            decimal comboTotalVal = comboTotal * (1 - mDiscountPercent);
+            decimal ticketTotal = total - comboTotalVal;
+            if (ticketTotal < 0) ticketTotal = 0;
+
+            bool isGroupBooking = HttpContext.Session.GetString("GroupBooking_RoomId") != null;
+            int groupMemberCount = 0;
+            string dayOfWeek = DateTime.Now.DayOfWeek.ToString();
+            int showtimeHour = DateTime.Now.Hour;
+
+            // Đọc thêm từ Session
+            var showtimeIdOpt = HttpContext.Session.GetInt32("Booking_ShowtimeId");
+            if (showtimeIdOpt.HasValue)
+            {
+                var showtime = _context.Showtimes
+                    .Include(s => s.Movie)
+                    .FirstOrDefault(s => s.ShowtimeId == showtimeIdOpt.Value);
+                if (showtime != null && showtime.StartTime.HasValue)
+                {
+                    dayOfWeek = showtime.StartTime.Value.DayOfWeek.ToString();
+                    showtimeHour = showtime.StartTime.Value.Hour;
+                }
+            }
+
+            var adultTk = HttpContext.Session.GetInt32("Booking_AdultTickets") ?? 0;
+            var childTk = HttpContext.Session.GetInt32("Booking_ChildTickets") ?? 0;
+            var studentTk = HttpContext.Session.GetInt32("Booking_StudentTickets") ?? 0;
+            ticketQuantity = adultTk + childTk + studentTk;
+
+            var combosJson = HttpContext.Session.GetString("Booking_Combos");
+            if (!string.IsNullOrEmpty(combosJson))
+            {
+                try
+                {
+                    var comboDict = JsonSerializer.Deserialize<Dictionary<string, string>>(combosJson);
+                    if (comboDict != null)
+                    {
+                        foreach (var kvp in comboDict)
+                        {
+                            if (int.TryParse(kvp.Value, out int q))
+                            {
+                                comboQuantity += q;
+                            }
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            if (isGroupBooking)
+            {
+                string roomId = HttpContext.Session.GetString("GroupBooking_RoomId");
+                var room = _context.GroupBookingRooms
+                    .Include(r => r.Members)
+                    .FirstOrDefault(r => r.RoomId == roomId);
+                if (room != null)
+                {
+                    groupMemberCount = room.Members.Count;
+                }
+            }
+
+            // Đánh giá các quy tắc động
+            if (voucher.VoucherCondition != null && voucher.VoucherCondition.Rules != null && voucher.VoucherCondition.Rules.Any())
+            {
+                var evalContext = new Helpers.VoucherEvaluationContext
+                {
+                    TicketQuantity = ticketQuantity,
+                    ComboQuantity = comboQuantity,
+                    TicketTotal = ticketTotal,
+                    ComboTotal = comboTotalVal,
+                    TotalPrice = total,
+                    IsGroupBooking = isGroupBooking,
+                    GroupMemberCount = groupMemberCount,
+                    DayOfWeek = dayOfWeek,
+                    ShowtimeHour = showtimeHour
+                };
+
+                foreach (var rule in voucher.VoucherCondition.Rules)
+                {
+                    if (!Helpers.VoucherRuleEvaluator.Evaluate(rule, evalContext, out string ruleError))
+                    {
+                        return Json(new { success = false, message = $"Voucher không hợp lệ: {ruleError}" });
+                    }
+                }
+            }
+
+            // ===================================================================
+
+            // Tính số tiền được giảm theo điều kiện phạm vi áp dụng
+            decimal discountableAmount = total;
+            if (voucher.VoucherCondition != null && voucher.VoucherCondition.Rules != null && voucher.VoucherCondition.Rules.Any())
+            {
+                bool hasTicketRules = voucher.VoucherCondition.Rules.Any(r => r.Field == "TicketQuantity" || r.Field == "TicketTotal");
+                bool hasComboRules = voucher.VoucherCondition.Rules.Any(r => r.Field == "ComboQuantity" || r.Field == "ComboTotal");
+
+                if (hasTicketRules && !hasComboRules)
+                {
+                    discountableAmount = ticketTotal;
+                }
+                else if (hasComboRules && !hasTicketRules)
+                {
+                    discountableAmount = comboTotalVal;
+                }
+            }
+
+            // Nếu qua hết các điều kiện trên thì mới áp dụng tính tiền
             decimal discount = 0;
 
             if (voucher.DiscountPercent.HasValue)
-                discount = total * (decimal)voucher.DiscountPercent.Value;
-
-            if (voucher.DiscountAmount.HasValue)
+                discount = discountableAmount * (decimal)(voucher.DiscountPercent.Value / 100.0);
+            else if (voucher.DiscountAmount.HasValue)
                 discount = voucher.DiscountAmount.Value;
+
+            if (discount > discountableAmount)
+                discount = discountableAmount;
 
             return Json(new
             {
                 success = true,
-                discount = discount
+                discount = discount,
+                terms = voucher.VoucherCondition?.Description ?? "Áp dụng cho toàn bộ đơn hàng"
             });
         }
 
@@ -1362,19 +1492,62 @@ Chỉ trả về mảng JSON, không giải thích gì thêm.";
             decimal discount = 0m;
             if (!string.IsNullOrEmpty(voucherCode))
             {
-                var voucher = _context.Vouchers.FirstOrDefault(v => v.Code.ToLower() == voucherCode.ToLower().Trim() && v.IsActive);
+                var voucher = _context.Vouchers
+                    .Include(v => v.VoucherCondition)
+                        .ThenInclude(vc => vc.Rules)
+                    .FirstOrDefault(v => v.Code.ToLower() == voucherCode.ToLower().Trim() && v.IsActive);
                 if (voucher != null)
                 {
+                    bool isVoucherValid = true;
+                    if (voucher.VoucherCondition != null && voucher.VoucherCondition.Rules != null && voucher.VoucherCondition.Rules.Any())
+                    {
+                        int comboQuantity = 0;
+                        for (int i = 0; i < comboIds.Count; i++)
+                        {
+                            if (quantities[i] > 0)
+                            {
+                                var combo = _context.Combos.FirstOrDefault(c => c.ComboId == comboIds[i] && c.IsActive == true);
+                                if (combo != null) comboQuantity += quantities[i];
+                            }
+                        }
+
+                        var evalContext = new Helpers.VoucherEvaluationContext
+                        {
+                            TicketQuantity = 0,
+                            ComboQuantity = comboQuantity,
+                            TicketTotal = 0,
+                            ComboTotal = baseTotal,
+                            TotalPrice = baseTotal,
+                            IsGroupBooking = false,
+                            GroupMemberCount = 0,
+                            DayOfWeek = DateTime.Now.DayOfWeek.ToString(),
+                            ShowtimeHour = DateTime.Now.Hour
+                        };
+
+                        foreach (var rule in voucher.VoucherCondition.Rules)
+                        {
+                            if (!Helpers.VoucherRuleEvaluator.Evaluate(rule, evalContext, out _))
+                            {
+                                isVoucherValid = false;
+                                break;
+                            }
+                        }
+                    }
+
                     if (voucher.StartDate.HasValue && DateTime.Now < voucher.StartDate.Value) { }
                     else if (voucher.EndDate.HasValue && DateTime.Now > voucher.EndDate.Value) { }
                     else if (voucher.UsedCount >= voucher.Quantity) { }
                     else if (baseTotal < voucher.MinOrderValue) { }
+                    else if (!isVoucherValid) { }
                     else
                     {
                         if (voucher.DiscountPercent.HasValue)
-                            discount = baseTotal * (decimal)voucher.DiscountPercent.Value;
+                            discount = baseTotal * (decimal)(voucher.DiscountPercent.Value / 100.0);
                         else if (voucher.DiscountAmount.HasValue)
                             discount = voucher.DiscountAmount.Value;
+
+                        if (discount > baseTotal)
+                            discount = baseTotal;
                     }
                 }
             }

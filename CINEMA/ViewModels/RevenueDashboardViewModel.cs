@@ -157,6 +157,7 @@ namespace CINEMA.ViewModels
         public List<PaymentMethodStatViewModel> PaymentMethodStats { get; set; } = new();
         public List<CustomerSpendViewModel> TopCustomers { get; set; } = new();
         public List<RoomRevenueViewModel> RoomRevenues { get; set; } = new();
+        public List<CINEMA.Models.Order> DetailedOrders { get; set; } = new();
     }
 
     // =====================================================

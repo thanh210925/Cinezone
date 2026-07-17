@@ -209,7 +209,6 @@
             <input type="hidden" name="ShowtimeId" value="@showtime.ShowtimeId" />
             <input type="hidden" id="basePrice" name="BasePrice" value="@basePrice" />
             <input type="hidden" id="TotalPriceHidden" name="TotalPrice" value="0" />
-            <input type="hidden" name="VoucherCode" id="voucherCodeHidden" />
 
             <div class="row g-4">
                 <!-- CỘT TRÁI -->
@@ -401,16 +400,6 @@
                                 </div>
                                 <hr class="text-muted" />
 
-                                <div class="mb-3">
-                                    <label class="form-label text-muted small fw-bold"><i class="bi bi-gift me-1"></i> Mã giảm giá</label>
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" id="voucherCode" class="form-control" placeholder="Nhập mã..." />
-                                        <button type="button" class="btn btn-outline-success fw-bold" onclick="applyVoucher()">Áp dụng</button>
-                                    </div>
-                                    <div id="voucherMessage" class="mt-2 small fw-semibold"></div>
-                                </div>
-                                <hr class="text-muted" />
-
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <span class="text-muted fw-bold">TỔNG TIỀN:</span>
                                     <span class="fs-3 fw-bold text-danger"><span id="totalPrice">0</span> đ</span>
@@ -547,8 +536,6 @@
 
 @section Scripts {
     <script>
-        let discount = 0;
-
         function calcTotal() {
             const basePriceElement = document.getElementById("basePrice");
             if (!basePriceElement) return; // Tránh lỗi js nếu chưa chọn suất chiếu
@@ -576,53 +563,10 @@
                 total += qty * price;
             });
 
-            if (discount > 0) {
-                if (discount < 1) total = total - total * discount;
-                else total = total - discount;
-            }
-
             if (total < 0) total = 0;
 
             document.getElementById("totalPrice").innerText = total.toLocaleString("vi-VN");
             document.getElementById("TotalPriceHidden").value = total;
-        }
-
-        async function applyVoucher() {
-            const code = document.getElementById("voucherCode").value.trim();
-            const message = document.getElementById("voucherMessage");
-
-            if (!code) {
-                message.innerText = "❌ Vui lòng nhập mã voucher";
-                message.className = "mt-2 small fw-semibold text-danger";
-                return;
-            }
-            calcTotal();
-
-            let total = parseFloat(document.getElementById("TotalPriceHidden").value) || 0;
-
-            try {
-                let res = await fetch(`/Home/CheckVoucher?code=${code}&total=${total}`);
-                let data = await res.json();
-
-                if (!data.success) {
-                    message.innerText = "❌ " + data.message;
-                    message.className = "mt-2 small fw-semibold text-danger";
-                    return;
-                }
-                discount = data.discount;
-                let newTotal = total - data.discount;
-                if (newTotal < 0) newTotal = 0;
-
-                document.getElementById("totalPrice").innerText = newTotal.toLocaleString("vi-VN");
-                document.getElementById("TotalPriceHidden").value = newTotal;
-                document.getElementById("voucherCodeHidden").value = code;
-
-                message.innerText = "✅ Đã giảm " + data.discount.toLocaleString("vi-VN") + "đ";
-                message.className = "mt-2 small fw-semibold text-success";
-            } catch {
-                message.innerText = "❌ Lỗi hệ thống, vui lòng thử lại";
-                message.className = "mt-2 small fw-semibold text-danger";
-            }
         }
 
         function getMaxSeats() {
@@ -723,10 +667,6 @@
 
                     document.querySelectorAll(".seat-checkbox").forEach(cb => cb.checked = false);
                     updateSelectedSeats();
-                    discount = 0;
-                    document.getElementById("voucherCode").value = "";
-                    document.getElementById("voucherMessage").innerText = "";
-                    document.getElementById("voucherCodeHidden").value = "";
                     calcTotal();
                 });
             });

@@ -308,7 +308,11 @@
                 if (data.success) {
                     discountAmt = parseFloat(data.discount) || 0;
                     statusMsg.className = "small mt-2 px-1 text-success fw-semibold";
-                    statusMsg.innerText = `Áp dụng thành công! Được giảm ${discountAmt.toLocaleString("vi-VN")} đ`;
+                    let msgHtml = `Áp dụng thành công! Được giảm ${discountAmt.toLocaleString("vi-VN")} đ`;
+                    if (data.terms) {
+                        msgHtml += `<br/><small class="text-muted d-block mt-1" style="font-size: 0.8rem; line-height: 1.4;"><i class="bi bi-info-circle"></i> Điều kiện: ${data.terms.replace(/\n/g, '<br/>')}</small>`;
+                    }
+                    statusMsg.innerHTML = msgHtml;
                     recalculateTotal();
                 } else {
                     discountAmt = 0;

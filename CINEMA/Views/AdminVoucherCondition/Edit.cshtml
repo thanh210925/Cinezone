@@ -1,0 +1,277 @@
+@model CINEMA.Models.VoucherCondition
+@{
+    ViewData["Title"] = "Chỉnh sửa Phạm vi áp dụng";
+    Layout = "_AdminLayout";
+}
+
+<div class="container py-4" style="max-width: 900px;">
+    <h2 class="mb-4 text-primary fw-bold">
+        <i class="bi bi-pencil-square me-2"></i>Chỉnh sửa Phạm vi áp dụng / Điều kiện
+    </h2>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger rounded-3 shadow-sm mb-4">
+            Vui lòng kiểm tra lại thông tin và thử lại.
+        </div>
+    }
+
+    <form method="post" class="card shadow border-0 rounded-4 p-4 bg-white" id="conditionForm">
+        <input type="hidden" asp-for="VoucherConditionId" />
+
+        <!-- TÊN PHẠM VI -->
+        <div class="mb-3">
+            <label class="form-label fw-bold fs-5">Tên phạm vi áp dụng <span class="text-danger">*</span></label>
+            <input asp-for="Name" class="form-control form-control-lg border-2" placeholder="VD: Khuyến mãi Thứ Ba vui vẻ, Chỉ áp dụng mua vé phim" required />
+            <span asp-validation-for="Name" class="text-danger small"></span>
+        </div>
+
+        <!-- MÔ TẢ -->
+        <div class="mb-4">
+            <label class="form-label fw-bold">Mô tả chi tiết</label>
+            <textarea asp-for="Description" class="form-control" rows="2" placeholder="Mô tả điều kiện sử dụng để hiển thị cho khách hàng..."></textarea>
+            <span asp-validation-for="Description" class="text-danger small"></span>
+        </div>
+
+        <div class="card border border-light-subtle rounded-3 p-3 bg-light bg-opacity-50 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="bi bi-shield-check text-primary me-2"></i>Các quy tắc điều kiện kiểm tra
+                </h5>
+                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold" id="btnAddRule">
+                    <i class="bi bi-plus-lg me-1"></i>Thêm quy tắc
+                </button>
+            </div>
+
+            <!-- DANH SÁCH QUY TẮC ĐỘNG -->
+            <div class="table-responsive">
+                <table class="table align-middle" id="rulesTable">
+                    <thead>
+                        <tr class="text-secondary small">
+                            <th style="width: 35%;">Trường kiểm tra (Field)</th>
+                            <th style="width: 25%;">Phép so sánh (Operator)</th>
+                            <th style="width: 30%;">Giá trị so sánh (Value)</th>
+                            <th style="width: 10%;" class="text-center">Xóa</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rulesContainer">
+                        @if (Model.Rules != null && Model.Rules.Any())
+                        {
+                            int idx = 0;
+                            var fieldsList = new[] {
+                                new { Value = "TicketQuantity", Text = "Số lượng vé phim" },
+                                new { Value = "ComboQuantity", Text = "Số lượng bắp nước (Combo)" },
+                                new { Value = "TicketTotal", Text = "Tổng tiền vé" },
+                                new { Value = "ComboTotal", Text = "Tổng tiền bắp nước" },
+                                new { Value = "TotalPrice", Text = "Tổng giá trị đơn hàng" },
+                                new { Value = "IsGroupBooking", Text = "Hình thức đặt nhóm" },
+                                new { Value = "GroupMemberCount", Text = "Số lượng thành viên nhóm" },
+                                new { Value = "DayOfWeek", Text = "Thứ trong tuần" },
+                                new { Value = "ShowtimeHour", Text = "Khung giờ bắt đầu chiếu" }
+                            };
+
+                            var operatorsList = new[] {
+                                new { Value = "Equal", Text = "Bằng (=)" },
+                                new { Value = "NotEqual", Text = "Khác (!=)" },
+                                new { Value = "GreaterThan", Text = "Lớn hơn (>)" },
+                                new { Value = "GreaterThanOrEqual", Text = "Tối thiểu (>=)" },
+                                new { Value = "LessThan", Text = "Nhỏ hơn (<)" },
+                                new { Value = "LessThanOrEqual", Text = "Tối đa (<=)" },
+                                new { Value = "Contains", Text = "Chứa giá trị" }
+                            };
+
+                            foreach (var rule in Model.Rules)
+                            {
+                                <tr id="rule-row-@idx">
+                                    <td>
+                                        <select name="Rules[@idx].Field" class="form-select select-field" required>
+                                            @foreach (var f in fieldsList)
+                                            {
+                                                <!option value="@f.Value" @(rule.Field == f.Value ? "selected" : "")>@f.Text</!option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select name="Rules[@idx].Operator" class="form-select" required>
+                                            @foreach (var op in operatorsList)
+                                            {
+                                                <!option value="@op.Value" @(rule.Operator == op.Value ? "selected" : "")>@op.Text</!option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input name="Rules[@idx].Value" type="text" class="form-control rule-value-input" value="@rule.Value" required />
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-outline-danger btn-sm rounded-circle btn-remove-row" style="width: 32px; height: 32px; padding: 0;">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                idx++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="text-muted small mt-2 bg-white p-3 rounded-3 border border-dashed">
+                <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-info-circle me-1"></i>Hướng dẫn cấu hình giá trị so sánh (Value):</h6>
+                <ul class="mb-0 ps-3">
+                    <li><strong>Đơn hàng đặt nhóm</strong>: Nhập <code>True</code> (để yêu cầu phải là đơn đặt nhóm) hoặc <code>False</code>.</li>
+                    <li><strong>Thứ trong tuần</strong>: Nhập tên tiếng Anh: <code>Monday</code>, <code>Tuesday</code>, <code>Wednesday</code>, <code>Thursday</code>, <code>Friday</code>, <code>Saturday</code>, <code>Sunday</code>.</li>
+                    <li><strong>Giờ chiếu, Số lượng, Tổng tiền</strong>: Nhập số (VD: <code>18</code> đối với khung giờ chiếu, <code>2</code> đối với số lượng vé, <code>100000</code> đối với tiền).</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <a href="/AdminVoucherCondition" class="btn btn-outline-secondary rounded-pill px-4">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại
+            </a>
+            <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+                <i class="bi bi-save me-1"></i> Cập nhật phạm vi
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const container = document.getElementById("rulesContainer");
+            const btnAddRule = document.getElementById("btnAddRule");
+            let ruleIndex = container.querySelectorAll("tr").length;
+
+            const fields = [
+                { value: "TicketQuantity", text: "Số lượng vé phim" },
+                { value: "ComboQuantity", text: "Số lượng bắp nước (Combo)" },
+                { value: "TicketTotal", text: "Tổng tiền vé" },
+                { value: "ComboTotal", text: "Tổng tiền bắp nước" },
+                { value: "TotalPrice", text: "Tổng giá trị đơn hàng" },
+                { value: "IsGroupBooking", text: "Hình thức đặt nhóm" },
+                { value: "GroupMemberCount", text: "Số lượng thành viên nhóm" },
+                { value: "DayOfWeek", text: "Thứ trong tuần" },
+                { value: "ShowtimeHour", text: "Khung giờ bắt đầu chiếu" }
+            ];
+
+            const operators = [
+                { value: "Equal", text: "Bằng (=)" },
+                { value: "NotEqual", text: "Khác (!=)" },
+                { value: "GreaterThan", text: "Lớn hơn (>)" },
+                { value: "GreaterThanOrEqual", text: "Tối thiểu (>=)" },
+                { value: "LessThan", text: "Nhỏ hơn (<)" },
+                { value: "LessThanOrEqual", text: "Tối đa (<=)" },
+                { value: "Contains", text: "Chứa giá trị" }
+            ];
+
+            function createRuleRow() {
+                const tr = document.createElement("tr");
+                tr.setAttribute("id", `rule-row-${ruleIndex}`);
+
+                // Field Dropdown
+                let fieldOptions = fields.map(f => `<option value="${f.value}">${f.text}</option>`).join("");
+                let opOptions = operators.map(o => `<option value="${o.value}">${o.text}</option>`).join("");
+
+                tr.innerHTML = `
+                    <td>
+                        <select name="Rules[${ruleIndex}].Field" class="form-select select-field" required>
+                            ${fieldOptions}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="Rules[${ruleIndex}].Operator" class="form-select" required>
+                            ${opOptions}
+                        </select>
+                    </td>
+                    <td>
+                        <input name="Rules[${ruleIndex}].Value" type="text" class="form-control rule-value-input" placeholder="Giá trị so sánh" required />
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-outline-danger btn-sm rounded-circle btn-remove-row" style="width: 32px; height: 32px; padding: 0;">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </td>
+                `;
+
+                // Handle changes of Field to give friendly input suggestion
+                const selectField = tr.querySelector(".select-field");
+                const valInput = tr.querySelector(".rule-value-input");
+                
+                selectField.addEventListener("change", function() {
+                    if (selectField.value === "IsGroupBooking") {
+                        valInput.placeholder = "True hoặc False";
+                    } else if (selectField.value === "DayOfWeek") {
+                        valInput.placeholder = "VD: Tuesday, Saturday";
+                    } else if (selectField.value === "ShowtimeHour") {
+                        valInput.placeholder = "Giờ chiếu (VD: 18)";
+                    } else if (selectField.value.includes("Quantity") || selectField.value.includes("Count")) {
+                        valInput.placeholder = "Số lượng (VD: 2)";
+                    } else if (selectField.value.includes("Total") || selectField.value === "TotalPrice") {
+                        valInput.placeholder = "Số tiền (VD: 100000)";
+                    } else {
+                        valInput.placeholder = "Giá trị";
+                    }
+                });
+
+                tr.querySelector(".btn-remove-row").addEventListener("click", function() {
+                    tr.remove();
+                    reindexRows();
+                });
+
+                container.appendChild(tr);
+                ruleIndex++;
+            }
+
+            function reindexRows() {
+                const rows = container.querySelectorAll("tr");
+                ruleIndex = 0;
+                rows.forEach((row, idx) => {
+                    row.setAttribute("id", `rule-row-${idx}`);
+                    
+                    const selectField = row.querySelector("select[name*='.Field']");
+                    const selectOp = row.querySelector("select[name*='.Operator']");
+                    const valInput = row.querySelector("input[name*='.Value']");
+
+                    selectField.setAttribute("name", `Rules[${idx}].Field`);
+                    selectOp.setAttribute("name", `Rules[${idx}].Operator`);
+                    valInput.setAttribute("name", `Rules[${idx}].Value`);
+                    
+                    ruleIndex++;
+                });
+            }
+
+            btnAddRule.addEventListener("click", createRuleRow);
+
+            // Bind remove row button for existing rows
+            container.querySelectorAll(".btn-remove-row").forEach(btn => {
+                btn.addEventListener("click", function() {
+                    btn.closest("tr").remove();
+                    reindexRows();
+                });
+            });
+
+            // Bind change for existing select-fields to adjust suggestion placeholders
+            container.querySelectorAll(".select-field").forEach(select => {
+                const row = select.closest("tr");
+                const valInput = row.querySelector(".rule-value-input");
+                select.addEventListener("change", function() {
+                    if (select.value === "IsGroupBooking") {
+                        valInput.placeholder = "True hoặc False";
+                    } else if (select.value === "DayOfWeek") {
+                        valInput.placeholder = "VD: Tuesday, Saturday";
+                    } else if (select.value === "ShowtimeHour") {
+                        valInput.placeholder = "Giờ chiếu (VD: 18)";
+                    } else if (select.value.includes("Quantity") || select.value.includes("Count")) {
+                        valInput.placeholder = "Số lượng (VD: 2)";
+                    } else if (select.value.includes("Total") || select.value === "TotalPrice") {
+                        valInput.placeholder = "Số tiền (VD: 100000)";
+                    } else {
+                        valInput.placeholder = "Giá trị";
+                    }
+                });
+            });
+        });
+    </script>
+}

@@ -165,6 +165,11 @@ namespace CINEMA.Controllers
 
             decimal membershipDiscountAmount = originalPrice * mDiscountPercent;
             decimal priceAfterMembership = originalPrice - membershipDiscountAmount;
+            decimal comboTotal = combosVm.Sum(c => c.Price * c.Quantity);
+            decimal ticketOnlyOriginal = originalPrice - comboTotal;
+            decimal comboTotalAfterMembership = comboTotal * (1 - mDiscountPercent);
+            decimal ticketTotalAfterMembership = ticketOnlyOriginal * (1 - mDiscountPercent);
+            
             decimal finalPrice = priceAfterMembership;
             decimal voucherDiscountAmount = 0m;
 
@@ -172,16 +177,81 @@ namespace CINEMA.Controllers
             if (!string.IsNullOrEmpty(VoucherCode))
             {
                 var voucher = _context.Vouchers
+                    .Include(v => v.VoucherCondition)
+                        .ThenInclude(vc => vc.Rules)
                     .FirstOrDefault(v => v.Code == VoucherCode && v.IsActive);
 
                 if (voucher != null)
                 {
-                    if (voucher.DiscountPercent != null)
-                        voucherDiscountAmount = priceAfterMembership * (decimal)voucher.DiscountPercent;
-                    else if (voucher.DiscountAmount != null)
-                        voucherDiscountAmount = voucher.DiscountAmount.Value;
+                    bool isVoucherValid = true;
+                    if (voucher.VoucherCondition != null && voucher.VoucherCondition.Rules != null && voucher.VoucherCondition.Rules.Any())
+                    {
+                        bool isGroupBooking = HttpContext.Session.GetString("GroupBooking_RoomId") != null;
+                        int groupMemberCount = 0;
+                        if (isGroupBooking)
+                        {
+                            string roomId = HttpContext.Session.GetString("GroupBooking_RoomId");
+                            var room = _context.GroupBookingRooms
+                                .Include(r => r.Members)
+                                .FirstOrDefault(r => r.RoomId == roomId);
+                            if (room != null) groupMemberCount = room.Members.Count;
+                        }
 
-                    finalPrice -= voucherDiscountAmount;
+                        var evalContext = new Helpers.VoucherEvaluationContext
+                        {
+                            TicketQuantity = AdultTickets + ChildTickets + StudentTickets,
+                            ComboQuantity = combosVm.Sum(c => c.Quantity),
+                            TicketTotal = ticketTotalAfterMembership,
+                            ComboTotal = comboTotalAfterMembership,
+                            TotalPrice = priceAfterMembership,
+                            IsGroupBooking = isGroupBooking,
+                            GroupMemberCount = groupMemberCount,
+                            DayOfWeek = showtime.StartTime?.DayOfWeek.ToString() ?? DateTime.Now.DayOfWeek.ToString(),
+                            ShowtimeHour = showtime.StartTime?.Hour ?? DateTime.Now.Hour
+                        };
+
+                        foreach (var rule in voucher.VoucherCondition.Rules)
+                        {
+                            if (!Helpers.VoucherRuleEvaluator.Evaluate(rule, evalContext, out _))
+                            {
+                                isVoucherValid = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!isVoucherValid)
+                    {
+                        voucherDiscountAmount = 0m;
+                    }
+                    else
+                    {
+                        decimal discountableAmount = priceAfterMembership;
+                        if (voucher.VoucherCondition != null && voucher.VoucherCondition.Rules != null && voucher.VoucherCondition.Rules.Any())
+                        {
+                            bool hasTicketRules = voucher.VoucherCondition.Rules.Any(r => r.Field == "TicketQuantity" || r.Field == "TicketTotal");
+                            bool hasComboRules = voucher.VoucherCondition.Rules.Any(r => r.Field == "ComboQuantity" || r.Field == "ComboTotal");
+
+                            if (hasTicketRules && !hasComboRules)
+                            {
+                                discountableAmount = ticketTotalAfterMembership;
+                            }
+                            else if (hasComboRules && !hasTicketRules)
+                            {
+                                discountableAmount = comboTotalAfterMembership;
+                            }
+                        }
+
+                        if (voucher.DiscountPercent != null)
+                            voucherDiscountAmount = discountableAmount * (decimal)(voucher.DiscountPercent.Value / 100.0);
+                        else if (voucher.DiscountAmount != null)
+                            voucherDiscountAmount = voucher.DiscountAmount.Value;
+
+                        if (voucherDiscountAmount > discountableAmount)
+                            voucherDiscountAmount = discountableAmount;
+
+                        finalPrice -= voucherDiscountAmount;
+                    }
                 }
             }
 
@@ -332,15 +402,17 @@ namespace CINEMA.Controllers
                     mDiscountPercent = 0.05m;
 
                 decimal membershipDiscount = originalPrice * mDiscountPercent;
-                decimal priceAfterMembership = originalPrice - membershipDiscount;
-
-                decimal total = priceAfterMembership;
+                decimal comboTotalAfterMembership = comboTotal * (1 - mDiscountPercent);
+                decimal ticketTotalAfterMembership = ticketOnlyOriginal * (1 - mDiscountPercent);
+                decimal total = (originalPrice - membershipDiscount);
                 decimal voucherDiscount = 0m;
 
                 // 🎟️ CHECK VOUCHER DB
                 if (!string.IsNullOrEmpty(model.VoucherCode))
                 {
                     var voucher = _context.Vouchers
+                        .Include(v => v.VoucherCondition)
+                            .ThenInclude(vc => vc.Rules)
                         .FirstOrDefault(v => v.Code == model.VoucherCode && v.IsActive);
 
                     if (voucher != null)
@@ -354,10 +426,75 @@ namespace CINEMA.Controllers
                         if (total < voucher.MinOrderValue)
                             return Content("Chưa đủ điều kiện");
 
+                        // =============== TÍCH HỢP BẢO MẬT KIỂM TRA PHẠM VI ÁP DỤNG ===============
+                        bool isVoucherValid = true;
+                        string ruleErrorMessage = "";
+                        if (voucher.VoucherCondition != null && voucher.VoucherCondition.Rules != null && voucher.VoucherCondition.Rules.Any())
+                        {
+                            bool isGroupBooking = HttpContext.Session.GetString("GroupBooking_RoomId") != null;
+                            int groupMemberCount = 0;
+                            if (isGroupBooking)
+                            {
+                                string roomId = HttpContext.Session.GetString("GroupBooking_RoomId");
+                                var room = _context.GroupBookingRooms
+                                    .Include(r => r.Members)
+                                    .FirstOrDefault(r => r.RoomId == roomId);
+                                if (room != null) groupMemberCount = room.Members.Count;
+                            }
+
+                            var evalContext = new Helpers.VoucherEvaluationContext
+                            {
+                                TicketQuantity = model.AdultTickets + model.ChildTickets + model.StudentTickets,
+                                ComboQuantity = model.Combos?.Sum(c => c.Quantity) ?? 0,
+                                TicketTotal = ticketTotalAfterMembership,
+                                ComboTotal = comboTotalAfterMembership,
+                                TotalPrice = total,
+                                IsGroupBooking = isGroupBooking,
+                                GroupMemberCount = groupMemberCount,
+                                DayOfWeek = showtime?.StartTime?.DayOfWeek.ToString() ?? DateTime.Now.DayOfWeek.ToString(),
+                                ShowtimeHour = showtime?.StartTime?.Hour ?? DateTime.Now.Hour
+                            };
+
+                            foreach (var rule in voucher.VoucherCondition.Rules)
+                            {
+                                if (!Helpers.VoucherRuleEvaluator.Evaluate(rule, evalContext, out string ruleError))
+                                {
+                                    isVoucherValid = false;
+                                    ruleErrorMessage = ruleError;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!isVoucherValid)
+                        {
+                            return Content($"Voucher không hợp lệ: {ruleErrorMessage}");
+                        }
+                        // =========================================================================
+
+                        decimal discountableAmount = total;
+                        if (voucher.VoucherCondition != null && voucher.VoucherCondition.Rules != null && voucher.VoucherCondition.Rules.Any())
+                        {
+                            bool hasTicketRules = voucher.VoucherCondition.Rules.Any(r => r.Field == "TicketQuantity" || r.Field == "TicketTotal");
+                            bool hasComboRules = voucher.VoucherCondition.Rules.Any(r => r.Field == "ComboQuantity" || r.Field == "ComboTotal");
+
+                            if (hasTicketRules && !hasComboRules)
+                            {
+                                discountableAmount = ticketTotalAfterMembership;
+                            }
+                            else if (hasComboRules && !hasTicketRules)
+                            {
+                                discountableAmount = comboTotalAfterMembership;
+                            }
+                        }
+
                         if (voucher.DiscountPercent != null)
-                            voucherDiscount = total * (decimal)voucher.DiscountPercent;
+                            voucherDiscount = discountableAmount * (decimal)(voucher.DiscountPercent.Value / 100.0);
                         else if (voucher.DiscountAmount != null)
                             voucherDiscount = voucher.DiscountAmount.Value;
+
+                        if (voucherDiscount > discountableAmount)
+                            voucherDiscount = discountableAmount;
 
                         total -= voucherDiscount;
                     }
@@ -815,20 +952,90 @@ namespace CINEMA.Controllers
             decimal finalPrice = priceAfterMembership;
             decimal voucherDiscountAmount = 0m;
 
+            decimal comboTotal = combos.Sum(c => c.Price * c.Quantity);
+            decimal ticketOnlyOriginal = originalPrice - comboTotal;
+            decimal comboTotalAfterMembership = comboTotal * (1 - mDiscountPercent);
+            decimal ticketTotalAfterMembership = ticketOnlyOriginal * (1 - mDiscountPercent);
+
             // 🎟️ APPLY VOUCHER KHI KHÔI PHỤC
             if (!string.IsNullOrEmpty(voucherCode))
             {
                 var voucher = _context.Vouchers
+                    .Include(v => v.VoucherCondition)
+                        .ThenInclude(vc => vc.Rules)
                     .FirstOrDefault(v => v.Code == voucherCode && v.IsActive);
 
                 if (voucher != null)
                 {
-                    if (voucher.DiscountPercent != null)
-                        voucherDiscountAmount = priceAfterMembership * (decimal)voucher.DiscountPercent;
-                    else if (voucher.DiscountAmount != null)
-                        voucherDiscountAmount = voucher.DiscountAmount.Value;
+                    bool isVoucherValid = true;
+                    if (voucher.VoucherCondition != null && voucher.VoucherCondition.Rules != null && voucher.VoucherCondition.Rules.Any())
+                    {
+                        bool isGroupBooking = HttpContext.Session.GetString("GroupBooking_RoomId") != null;
+                        int groupMemberCount = 0;
+                        if (isGroupBooking)
+                        {
+                            string roomId = HttpContext.Session.GetString("GroupBooking_RoomId");
+                            var room = _context.GroupBookingRooms
+                                .Include(r => r.Members)
+                                .FirstOrDefault(r => r.RoomId == roomId);
+                            if (room != null) groupMemberCount = room.Members.Count;
+                        }
 
-                    finalPrice -= voucherDiscountAmount;
+                        var evalContext = new Helpers.VoucherEvaluationContext
+                        {
+                            TicketQuantity = adult + child + student,
+                            ComboQuantity = combos.Sum(c => c.Quantity),
+                            TicketTotal = ticketTotalAfterMembership,
+                            ComboTotal = comboTotalAfterMembership,
+                            TotalPrice = priceAfterMembership,
+                            IsGroupBooking = isGroupBooking,
+                            GroupMemberCount = groupMemberCount,
+                            DayOfWeek = showtime.StartTime?.DayOfWeek.ToString() ?? DateTime.Now.DayOfWeek.ToString(),
+                            ShowtimeHour = showtime.StartTime?.Hour ?? DateTime.Now.Hour
+                        };
+
+                        foreach (var rule in voucher.VoucherCondition.Rules)
+                        {
+                            if (!Helpers.VoucherRuleEvaluator.Evaluate(rule, evalContext, out _))
+                            {
+                                isVoucherValid = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!isVoucherValid)
+                    {
+                        voucherDiscountAmount = 0m;
+                    }
+                    else
+                    {
+                        decimal discountableAmount = priceAfterMembership;
+                        if (voucher.VoucherCondition != null && voucher.VoucherCondition.Rules != null && voucher.VoucherCondition.Rules.Any())
+                        {
+                            bool hasTicketRules = voucher.VoucherCondition.Rules.Any(r => r.Field == "TicketQuantity" || r.Field == "TicketTotal");
+                            bool hasComboRules = voucher.VoucherCondition.Rules.Any(r => r.Field == "ComboQuantity" || r.Field == "ComboTotal");
+
+                            if (hasTicketRules && !hasComboRules)
+                            {
+                                discountableAmount = ticketTotalAfterMembership;
+                            }
+                            else if (hasComboRules && !hasTicketRules)
+                            {
+                                discountableAmount = comboTotalAfterMembership;
+                            }
+                        }
+
+                        if (voucher.DiscountPercent != null)
+                            voucherDiscountAmount = discountableAmount * (decimal)(voucher.DiscountPercent.Value / 100.0);
+                        else if (voucher.DiscountAmount != null)
+                            voucherDiscountAmount = voucher.DiscountAmount.Value;
+
+                        if (voucherDiscountAmount > discountableAmount)
+                            voucherDiscountAmount = discountableAmount;
+
+                        finalPrice -= voucherDiscountAmount;
+                    }
                 }
             }
 
@@ -1307,5 +1514,6 @@ namespace CINEMA.Controllers
                 }
             }
         }
+
     }
 }

@@ -46,6 +46,8 @@ public partial class CinemaContext : DbContext
 
     public virtual DbSet<TicketCombo> TicketCombos { get; set; }
     public virtual DbSet<Voucher> Vouchers { get; set; }
+    public virtual DbSet<VoucherCondition> VoucherConditions { get; set; }
+    public virtual DbSet<VoucherRule> VoucherRules { get; set; }
     public virtual DbSet<Review> Reviews { get; set; }
     public DbSet<UserActivityLog> UserActivityLogs { get; set; }
     public DbSet<UserMovieView> UserMovieViews { get; set; }
@@ -188,6 +190,34 @@ public partial class CinemaContext : DbContext
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<VoucherCondition>(entity =>
+        {
+            entity.HasKey(e => e.VoucherConditionId);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(150);
+            entity.Property(e => e.Description).HasMaxLength(500);
+        });
+
+        modelBuilder.Entity<Voucher>(entity =>
+        {
+            entity.HasOne(d => d.VoucherCondition)
+                  .WithMany(p => p.Vouchers)
+                  .HasForeignKey(d => d.VoucherConditionId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<VoucherRule>(entity =>
+        {
+            entity.HasKey(e => e.VoucherRuleId);
+            entity.Property(e => e.Field).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Operator).IsRequired().HasMaxLength(30);
+            entity.Property(e => e.Value).IsRequired().HasMaxLength(150);
+
+            entity.HasOne(d => d.VoucherCondition)
+                  .WithMany(p => p.Rules)
+                  .HasForeignKey(d => d.VoucherConditionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<GroupBookingRoom>(entity =>
         {
             entity.HasKey(e => e.RoomId);

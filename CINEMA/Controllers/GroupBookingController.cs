@@ -251,6 +251,7 @@ namespace CINEMA.Controllers
         }
 
         // GET: GroupBooking/StartCheckout
+        // GET: GroupBooking/StartCheckout
         [HttpGet]
         public IActionResult StartCheckout(string roomId)
         {
@@ -258,6 +259,7 @@ namespace CINEMA.Controllers
             if (customerId == null) return RedirectToAction("Login", "Customer");
 
             var room = _context.GroupBookingRooms
+                .Include(r => r.Showtime) // BỔ SUNG DÒNG NÀY ĐỂ FIX LỖI NULL
                 .Include(r => r.Members).ThenInclude(m => m.Seat)
                 .FirstOrDefault(r => r.RoomId == roomId);
 
@@ -278,14 +280,13 @@ namespace CINEMA.Controllers
             HttpContext.Session.SetString("GroupBooking_RoomId", roomId);
 
             // Redirect sang controller Payment/Index với các tham số tương tự như BookTicket submit
-            // Đặt các tham số checkout mặc định cho 1 vé duy nhất của thành viên này
-            return RedirectToAction("RedirectToPaymentIndex", new {
-                movieId = room.Showtime.MovieId,
+            return RedirectToAction("RedirectToPaymentIndex", new
+            {
+                movieId = room.Showtime.MovieId, // Giờ đây room.Showtime đã có dữ liệu
                 showtimeId = room.ShowtimeId,
                 selectedSeats = room.Showtime.AuditoriumId == null ? "" : $"{member.Seat.RowLabel}{member.Seat.SeatNumber}"
             });
         }
-
         // Helper action để tạo HTTP POST giả lập qua trang trung gian hoặc chuyển tiếp tham số an toàn
         [HttpGet]
         public IActionResult RedirectToPaymentIndex(int movieId, int showtimeId, string selectedSeats)

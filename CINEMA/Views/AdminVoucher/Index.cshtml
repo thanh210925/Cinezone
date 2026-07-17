@@ -1,4 +1,4 @@
-﻿@model List<CINEMA.Models.Voucher>
+@model List<CINEMA.Models.Voucher>
 @{
     ViewData["Title"] = "Quản lý Voucher";
     Layout = "_AdminLayout";
@@ -54,6 +54,7 @@
                                 <th class="ps-4">Mã Voucher</th>
                                 <th class="text-center">Mức giảm</th>
                                 <th class="text-end">Đơn tối thiểu</th>
+                                <th class="text-center">Phạm vi áp dụng</th>
                                 <th class="text-center">Thời gian áp dụng</th>
                                 <th class="text-center">Tình trạng</th>
                                 <th class="text-center">Trạng thái</th>
@@ -83,6 +84,17 @@
 
                                     <td class="text-end text-muted fw-medium">
                                         @String.Format("{0:N0} ₫", v.MinOrderValue)
+                                    </td>
+
+                                    <td class="text-center">
+                                        @if (v.VoucherCondition != null)
+                                        {
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3">@v.VoucherCondition.Name</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-3">Không giới hạn</span>
+                                        }
                                     </td>
 
                                     <td class="text-center text-muted small">

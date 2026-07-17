@@ -547,43 +547,39 @@
                         </div>
                     }
 
+                    <!-- KHU VỰC NHẬP VOUCHER -->
+                    <p class="section-label"><i class="bi bi-gift-fill text-danger"></i> Mã giảm giá / Voucher</p>
+                    <div class="card p-3 border rounded-3 bg-light mb-4 shadow-xs" style="background-color: #f8f9fa !important;">
+                        <div class="input-group">
+                            <input type="text" id="checkoutVoucherCode" class="form-control text-uppercase fw-bold" placeholder="Nhập mã voucher..." value="@Model.VoucherCode" style="letter-spacing: 1px;" />
+                            <button type="button" class="btn btn-warning fw-bold px-4 text-dark" onclick="applyCheckoutVoucher()">Áp dụng</button>
+                        </div>
+                        <div id="checkoutVoucherMessage" class="mt-2 small fw-semibold"></div>
+                    </div>
+
                     <p class="section-label"><i class="bi bi-receipt"></i> Chi tiết thanh toán</p>
-                    <div class="checkout-list-group mb-4">
-                        @if (Model.MembershipDiscountAmount > 0 || Model.DiscountAmount > 0)
-                        {
-                            <div class="checkout-list-item">
-                                <span>Tổng tiền gốc</span>
-                                <span class="text-muted text-decoration-line-through">@Model.OriginalPrice.ToString("N0") ₫</span>
-                            </div>
-                            @if (Model.MembershipDiscountAmount > 0)
-                            {
-                                <div class="checkout-list-item">
-                                    <span class="text-success fw-semibold"><i class="bi bi-gem me-1"></i> Ưu đãi hạng @Model.MembershipLevel</span>
-                                    <span class="text-success fw-bold">-@Model.MembershipDiscountAmount.ToString("N0") ₫ (-@Model.MembershipDiscountPercent.ToString("0")%)</span>
-                                </div>
-                            }
-                            @if (Model.DiscountAmount > 0)
-                            {
-                                <div class="checkout-list-item">
-                                    <span class="text-danger fw-semibold"><i class="bi bi-tag-fill me-1"></i> Giảm giá Voucher (@Model.VoucherCode)</span>
-                                    <span class="text-danger fw-bold">-@Model.DiscountAmount?.ToString("N0") ₫</span>
-                                </div>
-                            }
-                        }
-                        else
-                        {
-                            <div class="checkout-list-item">
-                                <span>Tổng thanh toán</span>
-                                <span class="fw-bold text-dark">@Model.OriginalPrice.ToString("N0") ₫</span>
-                            </div>
-                        }
+                    <div class="checkout-list-group mb-4" id="payment-details-list">
+                        <div class="checkout-list-item">
+                            <span>Tổng tiền gốc</span>
+                            <span class="fw-bold text-dark" id="disp-original-price">@Model.OriginalPrice.ToString("N0") ₫</span>
+                        </div>
+                        
+                        <div class="checkout-list-item" id="row-membership-discount" style="@(Model.MembershipDiscountAmount > 0 ? "" : "display: none;")">
+                            <span class="text-success fw-semibold"><i class="bi bi-gem me-1"></i> Ưu đãi hạng @Model.MembershipLevel</span>
+                            <span class="text-success fw-bold" id="disp-membership-discount">-@Model.MembershipDiscountAmount.ToString("N0") ₫ (-@Model.MembershipDiscountPercent.ToString("0")%)</span>
+                        </div>
+
+                        <div class="checkout-list-item" id="row-voucher-discount" style="@(Model.DiscountAmount > 0 ? "" : "display: none;")">
+                            <span class="text-danger fw-semibold"><i class="bi bi-tag-fill me-1"></i> Giảm giá Voucher (<span id="disp-voucher-code">@Model.VoucherCode</span>)</span>
+                            <span class="text-danger fw-bold" id="disp-voucher-discount">-@(Model.DiscountAmount?.ToString("N0") ?? "0") ₫</span>
+                        </div>
                     </div>
 
                     <div class="ticket-perforation"></div>
 
                     <div class="total-price-box">
                         <span class="total-price-label">Tổng thanh toán</span>
-                        <span class="total-price-value">@Model.TotalPrice.ToString("N0") ₫</span>
+                        <span class="total-price-value" id="disp-total-price">@Model.TotalPrice.ToString("N0") ₫</span>
                     </div>
                 </div>
             </div>
@@ -726,6 +722,61 @@
                 gatewayInfo.innerHTML = 'Bạn đã chọn giữ chỗ. Vui lòng đến rạp trước <strong>15 phút</strong> so với giờ chiếu để thanh toán tiền mặt hoặc quẹt thẻ.';
                 submitBtn.innerHTML = '<i class="bi bi-shop me-2"></i>Xác nhận giữ vé';
                 submitBtn.style.backgroundColor = '#198754'; // Màu xanh lá
+            }
+        }
+
+        async function applyCheckoutVoucher() {
+            const codeInput = document.getElementById("checkoutVoucherCode");
+            const code = codeInput.value.trim();
+            const message = document.getElementById("checkoutVoucherMessage");
+
+            if (!code) {
+                message.innerText = "❌ Vui lòng nhập mã voucher";
+                message.className = "mt-2 small fw-semibold text-danger";
+                return;
+            }
+
+            message.innerText = "⏳ Đang kiểm tra...";
+            message.className = "mt-2 small fw-semibold text-warning";
+
+            // Tính toán các giá trị số từ Model
+            const originalPrice = parseFloat("@Model.OriginalPrice");
+            const membershipDiscount = parseFloat("@Model.MembershipDiscountAmount");
+            const priceAfterMembership = originalPrice - membershipDiscount;
+            const comboTotal = parseFloat("@(Model.Combos?.Sum(c => c.Price * c.Quantity) ?? 0)");
+
+            try {
+                let res = await fetch(`/Home/CheckVoucher?code=${encodeURIComponent(code)}&total=${priceAfterMembership}&comboTotal=${comboTotal}`);
+                let data = await res.json();
+
+                if (!data.success) {
+                    message.innerText = "❌ " + data.message;
+                    message.className = "mt-2 small fw-semibold text-danger";
+                    return;
+                }
+
+                // Cập nhật các input ẩn của Form để gửi lên server khi submit
+                document.getElementById("VoucherCode").value = code;
+                
+                const finalTotal = priceAfterMembership - data.discount;
+                document.getElementById("TotalPrice").value = finalTotal < 0 ? 0 : finalTotal;
+
+                // Cập nhật giao diện chi tiết thanh toán và tổng số tiền
+                document.getElementById("row-voucher-discount").style.display = "flex";
+                document.getElementById("disp-voucher-code").innerText = code;
+                document.getElementById("disp-voucher-discount").innerText = "-" + data.discount.toLocaleString("vi-VN") + " ₫";
+                document.getElementById("disp-total-price").innerText = (finalTotal < 0 ? 0 : finalTotal).toLocaleString("vi-VN") + " ₫";
+
+                let msgHtml = "✅ Áp dụng voucher thành công! Được giảm " + data.discount.toLocaleString("vi-VN") + "đ";
+                if (data.terms) {
+                    msgHtml += `<div class="text-muted mt-1" style="font-size: 0.8rem; line-height: 1.4;"><i class="bi bi-info-circle"></i> Điều kiện: ${data.terms.replace(/\n/g, '<br/>')}</div>`;
+                }
+                message.innerHTML = msgHtml;
+                message.className = "mt-2 small fw-semibold text-success";
+            } catch (err) {
+                console.error(err);
+                message.innerText = "❌ Lỗi hệ thống khi kiểm tra voucher";
+                message.className = "mt-2 small fw-semibold text-danger";
             }
         }
     </script>
