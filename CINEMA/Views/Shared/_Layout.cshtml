@@ -95,12 +95,21 @@
                                 <i class="bi bi-gem"></i> Thành viên
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="TermsAndPolicies">
-                                <i class="bi bi-shield-check"></i> Điều khoản & Chính sách
-                            </a>
-                        </li>
+                      
                     </ul>
+
+                    <!-- CENTER SEARCH BAR ON HEADER -->
+                    <div class="mx-auto my-2 my-lg-0 position-relative" style="width: 320px; max-width: 100%;">
+                        <form asp-controller="Home" asp-action="Search" method="get" class="w-100 position-relative">
+                            <i class="bi bi-search position-absolute top-50 translate-middle-y ms-3 text-muted"></i>
+                            <input type="text"
+                                   name="keyword"
+                                   class="form-control rounded-pill ps-5 pe-4 py-1"
+                                   placeholder="Tìm kiếm phim..."
+                                   style="font-size: 0.88rem; background: #F1F5F9; border: 1px solid #E2E8F0; color: #1E293B;"
+                                   required />
+                        </form>
+                    </div>
 
                     <ul class="navbar-nav ms-auto align-items-center">
                         <li class="nav-item me-2">

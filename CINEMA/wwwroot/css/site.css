@@ -46,6 +46,22 @@ main {
     flex: 1;
 }
 
+/* Animations */
+@keyframes czFadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.cz-animate-fade {
+    animation: czFadeInUp 0.5s ease forwards;
+}
+
 /* ==========================================
    2. NAVBAR & HEADER
 ========================================== */

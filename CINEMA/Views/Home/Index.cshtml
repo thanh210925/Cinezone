@@ -63,97 +63,77 @@
     </div>
 }
 
-<!-- HEADER SECTION -->
-<div class="hero-section">
-    <div class="container">
-        <h1 class="hero-title text-center fw-bold mb-2">
-            CINEZONE
-        </h1>
-        <p class="text-center subtitle text-muted mb-0">
-            Điểm hẹn điện ảnh của bạn - Đặt vé, chọn ghế, thưởng thức bộ phim yêu thích
-        </p>
-    </div>
-</div>
+<!-- 🌟 HERO BANNER CAROUSEL MATCHING REFERENCE DESIGN SCREENSHOT -->
+<div id="bannerCarousel" class="carousel slide carousel-fade position-relative mb-5 cz-animate-fade" data-bs-ride="carousel">
+    <div class="carousel-inner shadow-lg" style="border-radius: 24px !important; overflow: hidden;">
+        @if (Model != null && Model.Any())
+        {
+            var heroMovies = Model.Take(5).ToList();
+            for (int i = 0; i < heroMovies.Count; i++)
+            {
+                var movie = heroMovies[i];
+                var isActive = i == 0 ? "active" : "";
+                var backdrop = string.IsNullOrEmpty(movie.PosterUrl) ? "/images/banner_web_4_.jpg" : movie.PosterUrl;
+                var rating = movie.RatingAverage > 0 ? movie.RatingAverage.ToString("0.0") : "9.4";
+                var ageRating = string.IsNullOrEmpty(movie.AgeRating) ? "T16" : movie.AgeRating;
 
-@* 
-<!-- 🏠 Banner -->
-<div class="container mt-2">
+                <div class="carousel-item @isActive">
+                    <div class="hero-banner-custom-box position-relative d-flex align-items-center" style="background-image: url('@backdrop');">
+                        <div class="hero-banner-custom-overlay w-100 h-100 d-flex align-items-center px-4 px-md-5">
+                            <div class="row align-items-center w-100 g-4 mx-0">
+                                <!-- Left Poster Thumbnail -->
+                                <div class="col-md-4 col-lg-3 d-none d-md-block text-center text-md-start">
+                                    <img src="@movie.PosterUrl" alt="@movie.Title" class="img-fluid hero-banner-thumb" />
+                                </div>
+                                <!-- Right Details -->
+                                <div class="col-md-8 col-lg-9 text-white">
+                                    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+                                        <span class="badge bg-dark bg-opacity-75 px-3 py-2 rounded-pill fw-semibold border border-secondary border-opacity-25">Hành Động</span>
+                                        <span class="badge bg-dark bg-opacity-75 px-3 py-2 rounded-pill fw-semibold border border-secondary border-opacity-25">2026</span>
+                                        <span class="badge bg-dark bg-opacity-75 px-3 py-2 rounded-pill fw-semibold border border-secondary border-opacity-25">IMAX 3D</span>
+                                    </div>
+                                    
+                                    <h1 class="fw-bold display-5 mb-3 text-uppercase text-white letter-spacing-1">@movie.Title</h1>
 
-    <h2 class="text-center mb-2  fw-bold">
-        CINEZONE - ĐIỂM HẸN ĐIỆN ẢNH CỦA BẠN
-    </h2> *@
-    @* <!-- 🔍 TÌM KIẾM PHIM --> *@
-<div class="container mt-1 d-flex justify-content-center">
-    <div class="search-box shadow-lg">
+                                    <div class="d-flex align-items-center gap-3 mb-3 flex-wrap small">
+                                        <span class="badge bg-warning text-dark font-weight-bold px-2 py-1 rounded-pill" style="font-size: 0.85rem;">⭐ @rating</span>
+                                        <span class="text-slate-300">2026</span>
+                                        <span class="text-slate-300">@(movie.Duration.HasValue ? movie.Duration.Value + " phút" : "87 phút")</span>
+                                        <span class="badge bg-danger rounded-pill px-2 py-1" style="font-size: 0.75rem;">@ageRating</span>
+                                        <span class="text-slate-300">Tiếng Việt</span>
+                                    </div>
 
-        <form asp-controller="Home" asp-action="Search" method="get">
-            <div class="position-relative">
+                                    <p class="text-slate-300 mb-4 me-lg-5 hero-banner-desc">
+                                        @(string.IsNullOrEmpty(movie.Description) 
+                                            ? "Sarah đến một ngôi làng bị ám bởi truyền thuyết về Quỷ Mèo Đen. Khi các vụ chết người bí ẩn xảy ra, cô khám phá ra nghi lễ hiến tế cổ xưa và những bí mật đen tối của dân làng..." 
+                                            : movie.Description)
+                                    </p>
 
-                <!-- Icon -->
-                <i class="bi bi-search search-icon"></i>
-
-                <!-- Input -->
-                <input type="text"
-                       name="keyword"
-                       class="form-control search-input"
-                       placeholder="Tìm phim đang chiếu..."
-                       required />
-
-                <!-- Button -->
-                <button type="submit" class="btn search-btn">
-                    Tìm
-                </button>
-
-            </div>
-        </form>
-
-    </div>
-</div>
-
-<div id="bannerCarousel"
-         class="carousel slide carousel-fade shadow-sm rounded"
-         data-bs-ride="carousel">
-
-        <div class="carousel-inner rounded">
-
-            <div class="carousel-item active">
-                <img src="~/images/banner_web_4_.jpg"
-                     class="d-block w-100 rounded">
-                </div>
-
-                <div class="carousel-item">
-                    <img src="~/images/1920X560.png"
-                         class="d-block w-100 rounded">
-                    </div>
-
-                    <div class="carousel-item">
-                        <img src="~/images/6f0dfc9c-5711-478b-a9c1-08f0aad4feeb.jpg"
-                             class="d-block w-100 rounded">
+                                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                                        <a asp-controller="Home" asp-action="BookTicket" asp-route-id="@movie.MovieId" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow border-0 d-inline-flex align-items-center gap-2" style="background-color: #1d72f3;">
+                                            <i class="bi bi-ticket-perforated-fill fs-5"></i> Đặt vé
+                                        </a>
+                                        <a href="@(string.IsNullOrEmpty(movie.TrailerUrl) ? "#" : movie.TrailerUrl)" target="_blank" class="btn btn-outline-light rounded-pill px-4 py-2 fw-semibold d-inline-flex align-items-center gap-2 bg-dark bg-opacity-50 border-secondary border-opacity-50">
+                                            <i class="bi bi-play-circle fs-5"></i> Trailer
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-
                     </div>
-
-                    <button class="carousel-control-prev"
-                            type="button"
-                            data-bs-target="#bannerCarousel"
-                            data-bs-slide="prev">
-
-                        <span class="carousel-control-prev-icon"></span>
-
-                    </button>
-
-                    <button class="carousel-control-next"
-                            type="button"
-                            data-bs-target="#bannerCarousel"
-                            data-bs-slide="next">
-
-                        <span class="carousel-control-next-icon"></span>
-
-                    </button>
-
                 </div>
+            }
+        }
+    </div>
 
-            </div>
+    <!-- Floating Navigation Arrows -->
+    <button class="carousel-control-prev hero-arrow-btn hero-arrow-prev" type="button" data-bs-target="#bannerCarousel" data-bs-slide="prev">
+        <i class="bi bi-chevron-left fs-4"></i>
+    </button>
+    <button class="carousel-control-next hero-arrow-btn hero-arrow-next" type="button" data-bs-target="#bannerCarousel" data-bs-slide="next">
+        <i class="bi bi-chevron-right fs-4"></i>
+    </button>
+</div>
 
 
 
@@ -419,178 +399,111 @@
 
 
 
-<!-- 📊 POPULAR TRENDS SECTION -->
-<section class="trends-section mt-5 py-5 bg-white border-top border-bottom">
+<!-- 📊 COMPACT POPULAR GENRES SECTION (LIGHT THEME) -->
+<section class="genre-compact-section my-4 py-4 rounded-4 shadow-sm border cz-animate-fade" style="background: #ffffff;">
     <div class="container">
-        <div class="row g-4">
-            <!-- Thể loại phổ biến -->
-            <div class="col-12">
-                <div class="genre-section">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                <span class="text-danger fs-5">🔥</span> THỂ LOẠI HOT NHẤT
+            </h5>
+            <small class="text-muted">Các thể loại được tìm kiếm nhiều nhất</small>
+        </div>
 
-                    <div class="text-center mb-5">
-                        <h2 class="fw-bold">
-                            <i class="bi bi-fire text-danger"></i>
-                            THỂ LOẠI HOT NHẤT
-                        </h2>
-                        <p class="text-muted">
-                            Những thể loại được khách hàng quan tâm nhiều nhất
-                        </p>
-                    </div>
+        @{
+            var popularGenres = ViewBag.PopularGenres as List<CINEMA.Models.Genre> ?? new List<CINEMA.Models.Genre>();
+        }
 
-                    @{
-                        var popularGenres = ViewBag.PopularGenres as List<CINEMA.Models.Genre>
-                                            ?? new List<CINEMA.Models.Genre>();
-                    }
-
-                    <div class="row g-4">
-
-                        @for (int i = 0; i < popularGenres.Count; i++)
-                        {
-                            var genre = popularGenres[i];
-
-                            <div class="col-lg-4 col-md-6">
-
-                                <a asp-controller="Home"
-                                   asp-action="MoviesByGenre"
-                                   asp-route-genreId="@genre.GenreId"
-                                   class="text-decoration-none">
-
-                                    <div class="genre-hot-card">
-
-                                        <div class="genre-rank-circle">
-                                            #@(i + 1)
-                                        </div>
-
-                                        <div class="genre-icon">
-                                            🔥
-                                        </div>
-
-                                        <h4 class="genre-title">
-                                            @genre.Name
-                                        </h4>
-
-                                        <p class="genre-desc">
-                                            Khám phá những bộ phim thuộc thể loại
-                                            <strong>@genre.Name</strong>
-                                            đang được yêu thích.
-                                        </p>
-
-                                        <div class="genre-btn">
-                                            Khám phá
-                                            <i class="bi bi-arrow-right"></i>
-                                        </div>
-
-                                    </div>
-
-                                </a>
-
-                            </div>
-                        }
-
-                    </div>
-
-                </div>
-            </div>
-            @* <!-- Combo bắp nước phổ biến -->
-            <div class="col-lg-6 col-md-12">
-                <div class="p-4 rounded-4 shadow-sm border h-100" style="background-color: #fffdf5;">
-                    <h3 class="fw-bold mb-4 text-dark fs-5">
-                        <i class="bi-star-fill text-warning me-2"></i> Combo Bắp Nước Bán Chạy
-                    </h3>
-                    <p class="text-muted small mb-4">Sự lựa chọn bắp nước được thực khách ưa chuộng nhất.</p>
-                    
-                    @{
-                        var popularCombos = ViewBag.PopularCombos as List<CINEMA.Models.Combo> ?? new List<CINEMA.Models.Combo>();
-                    }
-                    <div class="d-flex flex-column gap-2">
-                        @foreach (var combo in popularCombos)
-                        {
-                            <div class="d-flex align-items-center p-2 bg-white rounded-3 border h-100" style="min-height: 60px;">
-                                @if (!string.IsNullOrEmpty(combo.ImageUrl))
-                                {
-                                    <img src="@combo.ImageUrl" class="rounded me-2 shadow-sm" style="width: 40px; height: 40px; object-fit: cover;" />
-                                }
-                                <div class="flex-grow-1 min-w-0">
-                                    <h6 class="fw-bold text-dark mb-1 small text-truncate" title="@combo.Name">@combo.Name</h6>
-                                    <span class="text-danger fw-bold small">@combo.Price?.ToString("N0") đ</span>
+        <div class="row g-3">
+            @for (int i = 0; i < popularGenres.Count; i++)
+            {
+                var genre = popularGenres[i];
+                <div class="col-md-4 col-12">
+                    <a asp-controller="Home" asp-action="MoviesByGenre" asp-route-genreId="@genre.GenreId" class="text-decoration-none">
+                        <div class="genre-compact-card p-3 rounded-3 d-flex align-items-center justify-content-between shadow-sm" style="background: #f8fafc; border: 1px solid #e2e8f0; transition: all 0.25s ease;">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="badge bg-danger rounded-circle p-2 fs-6 fw-bold" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">#@(i + 1)</span>
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0">@genre.Name</h6>
+                                    <small class="text-muted" style="font-size: 0.78rem;">Phim hot trong tuần</small>
                                 </div>
                             </div>
-                        }
-                    </div>
+                            <span class="text-primary font-weight-bold fs-5">→</span>
+                        </div>
+                    </a>
                 </div>
-            </div> *@
+            }
         </div>
     </div>
 </section>
 
-@* <!-- THEATER LOCATIONS --> *@
-<section class="theater-section mt-5 mb-5">
+<!-- 📍 COMPACT THEATER LOCATIONS & MAP SECTION (280px Height - LIGHT THEME) -->
+<section class="theater-section my-4 cz-animate-fade">
     <div class="container">
-
-        <div class="section-header mb-5">
-            <h2 class="section-title text-center fw-bold">
-                <i class="bi bi-geo-alt"></i> HỆ THỐNG RẠP CINEZONE
-            </h2>
-            <p class="text-center text-muted">Chọn rạp để xem vị trí trên bản đồ</p>
-            <div class="title-underline"></div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                    <span class="text-primary fs-5">📍</span> HỆ THỐNG RẠP CINEZONE
+                </h5>
+                <p class="text-muted small mb-0">Chọn rạp để xem vị trí trên bản đồ</p>
+            </div>
+            <a asp-controller="Home" asp-action="Schedule" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                Lịch chiếu →
+            </a>
         </div>
 
         @{
-            var theaters = ViewBag.Theaters as List<CINEMA.Models.Theater>;
-            var firstTheater = theaters?.FirstOrDefault();
-
-            string defaultMap =
-                firstTheater != null
+            var theaters = ViewBag.Theaters as List<CINEMA.Models.Theater> ?? new List<CINEMA.Models.Theater>();
+            var firstTheater = theaters.FirstOrDefault();
+            string defaultMap = firstTheater != null
                 ? $"https://maps.google.com/maps?q={Uri.EscapeDataString(firstTheater.Address ?? "")}&output=embed"
                 : "https://maps.google.com/maps?q=Ho%20Chi%20Minh&output=embed";
         }
 
-        <!-- Theater List -->
-        <div class="row mb-5">
+        <div class="row g-3 align-items-stretch">
+            <!-- Left Side: Compact Theater List (5 cols, height 280px) -->
+            <div class="col-lg-5">
+                <div class="theater-compact-list p-2 rounded-3 border" style="background: #f8fafc; border-color: #e2e8f0 !important; max-height: 280px; overflow-y: auto;">
+                    @if (theaters.Any())
+                    {
+                        for (int i = 0; i < theaters.Count; i++)
+                        {
+                            var t = theaters[i];
+                            var isActive = i == 0 ? "active" : "";
 
-            @foreach (var theater in ViewBag.Theaters)
-            {
-                <div class="col-md-6 col-lg-4 mb-3">
-
-                    <div class="theater-card h-100 p-4 rounded-3 shadow-sm cursor-pointer"
-                         onclick="changeMap('@theater.Address', this)">
-
-                        <h5 class="fw-bold mb-3 theater-name">
-                            <i class="bi bi-building"></i> @theater.Name
-                        </h5>
-
-                        <div class="theater-info mb-2">
-                            <p class="mb-2">
-                                <i class="bi bi-geo-alt-fill text-primary"></i>
-                                <span class="ms-2">@theater.Address</span>
-                            </p>
-                        </div>
-
-                        <small class="text-muted">
-                            <i class="bi bi-telephone-fill"></i>
-                            <span class="ms-2">@theater.Phone</span>
-                        </small>
-
-                    </div>
-
+                            <div class="theater-compact-item p-2 mb-2 rounded-3 cursor-pointer position-relative @isActive"
+                                 onclick="changeMap('@t.Address', this)">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <h6 class="fw-bold text-dark mb-0 small theater-name">
+                                        <i class="bi bi-building me-1 text-primary"></i> @t.Name
+                                    </h6>
+                                    <span class="badge bg-warning text-dark font-weight-bold" style="font-size: 0.7rem;">★ 4.9</span>
+                                </div>
+                                <div class="small text-muted mb-1 text-truncate" style="font-size: 0.78rem;" title="@t.Address">
+                                    <i class="bi bi-geo-alt-fill text-danger me-1"></i> @t.Address
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="p-2 text-center text-muted small">Đang cập nhật danh sách rạp...</div>
+                    }
                 </div>
-            }
+            </div>
 
+            <!-- Right Side: Compact Map Embed (7 cols, height 280px) -->
+            <div class="col-lg-7">
+                <div class="map-container rounded-3 overflow-hidden shadow-sm border h-100" style="min-height: 280px; border-color: #e2e8f0 !important;">
+                    <iframe id="theaterMap"
+                            src="@defaultMap"
+                            width="100%"
+                            height="100%"
+                            style="border: none; min-height: 280px;"
+                            loading="lazy">
+                    </iframe>
+                </div>
+            </div>
         </div>
-
-        <!-- Map -->
-        <div class="map-container rounded-3 overflow-hidden shadow-md">
-
-            <iframe id="theaterMap"
-                    src="@defaultMap"
-                    width="100%"
-                    height="550"
-                    style="border: none;"
-                    loading="lazy">
-            </iframe>
-
-        </div>
-
     </div>
 </section>
 
@@ -845,44 +758,35 @@ document.addEventListener("DOMContentLoaded", function () {
 // =========================
 
 window.changeMap = function (address, element) {
-
-    document.querySelectorAll(".theater-card")
+    document.querySelectorAll(".theater-compact-item, .theater-card")
         .forEach(x => x.classList.remove("active"));
 
     if (element)
         element.classList.add("active");
 
-    document.getElementById("theaterMap").src =
-        "https://maps.google.com/maps?q=" +
-        encodeURIComponent(address) +
-        "&output=embed";
+    const map = document.getElementById("theaterMap");
+    if (map) {
+        map.src = "https://maps.google.com/maps?q=" + encodeURIComponent(address) + "&output=embed";
+    }
 };
 
 function scrollToMapAndChange(address) {
-
-    const mapSection = document.querySelector(".map-container");
+    const mapSection = document.querySelector(".theater-section") || document.querySelector(".map-container");
 
     if (mapSection)
         mapSection.scrollIntoView({ behavior: "smooth" });
 
-    document.querySelectorAll(".theater-card")
-        .forEach(card => {
+    document.querySelectorAll(".theater-compact-item, .theater-card").forEach(card => {
+        const addrElement = card.querySelector("[title]") || card.querySelector(".text-truncate") || card.querySelector(".theater-info p");
+        const cardAddress = addrElement ? (addrElement.getAttribute("title") || addrElement.innerText.trim()) : "";
 
-            const cardAddress =
-                card.querySelector(".theater-info p").innerText.trim();
+        card.classList.remove("active");
 
-            card.classList.remove("active");
-
-            if (cardAddress === address) {
-
-                card.classList.add("active");
-
-                changeMap(address, card);
-
-            }
-
-        });
-
+        if (cardAddress && (cardAddress.includes(address) || address.includes(cardAddress))) {
+            card.classList.add("active");
+            changeMap(address, card);
+        }
+    });
 }
 </script>
 }
