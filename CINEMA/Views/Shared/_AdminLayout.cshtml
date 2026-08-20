@@ -68,7 +68,7 @@
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Admin" asp-action="ChatSupport" class="@IsActive("Admin", "ChatSupport")">
+                    <a asp-controller="AdminChat" asp-action="ChatSupport" class="@IsActive("AdminChat", "ChatSupport")">
                         <i class="bi bi-chat-dots-fill"></i><span>Hỗ trợ Khách hàng</span>
                     </a>
                 </li>
@@ -77,17 +77,17 @@
                 {
                     <li class="menu-group-title">Quản trị nhân sự</li>
                     <li>
-                        <a asp-controller="Admin" asp-action="StaffList" class="@IsActive("StaffList", "")">
+                        <a asp-controller="AdminStaff" asp-action="StaffList" class="@IsActive("AdminStaff", "StaffList")">
                             <i class="bi bi-people-fill"></i><span>Quản lý Nhân viên</span>
                         </a>
                     </li>
                     <li>
-                        <a asp-controller="Admin" asp-action="RegisterFace" class="@IsActive("Admin", "RegisterFace")">
+                        <a asp-controller="AdminAttendance" asp-action="RegisterFace" class="@IsActive("AdminAttendance", "RegisterFace")">
                             <i class="bi bi-person-bounding-box"></i><span>Đăng ký khuôn mặt</span>
                         </a>
                     </li>
                     <li>
-                        <a asp-controller="Admin" asp-action="MonthlyTimesheet" class="@IsActive("Admin", "MonthlyTimesheet")">
+                        <a asp-controller="AdminAttendance" asp-action="MonthlyTimesheet" class="@IsActive("AdminAttendance", "MonthlyTimesheet")">
                             <i class="bi bi-calendar-check"></i><span>Bảng công tháng</span>
                         </a>
                     </li>
@@ -112,7 +112,7 @@
                         </a>
                     </li>
                     <li>
-                        <a asp-controller="Admin" asp-action="ManageLeave" class="@IsActive("Admin", "ManageLeave")">
+                        <a asp-controller="AdminLeave" asp-action="ManageLeave" class="@IsActive("AdminLeave", "ManageLeave")">
                             <i class="bi bi-calendar-x"></i><span>Quản lý nghỉ phép</span>
                             @if (pendingLeaveCount > 0)
                             {
@@ -134,17 +134,17 @@
 
                 <li class="menu-group-title">Nhân sự (cá nhân)</li>
                 <li>
-                    <a asp-controller="Admin" asp-action="MySchedule" class="@IsActive("Admin", "MySchedule")">
+                    <a asp-controller="AdminAttendance" asp-action="MySchedule" class="@IsActive("AdminAttendance", "MySchedule")">
                         <i class="bi bi-calendar-week"></i><span>Lịch của tôi</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Admin" asp-action="LeaveRequest" class="@IsActive("Admin", "LeaveRequest")">
+                    <a asp-controller="AdminLeave" asp-action="LeaveRequest" class="@IsActive("AdminLeave", "LeaveRequest")">
                         <i class="bi bi-check2-square"></i><span>Đơn xin nghỉ phép</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Admin" asp-action="CheckInOut" class="@IsActive("Admin", "CheckInOut")">
+                    <a asp-controller="AdminAttendance" asp-action="CheckInOut" class="@IsActive("AdminAttendance", "CheckInOut")">
                         <i class="bi bi-camera"></i><span>Chấm công</span>
                     </a>
                 </li>
@@ -215,22 +215,22 @@
 
                 <li class="menu-group-title">Nhật ký &amp; Phân tích khách hàng</li>
                 <li>
-                    <a asp-controller="Admin" asp-action="CustomerActivityLogs" class="@IsActive("Admin", "CustomerActivityLogs")">
+                    <a asp-controller="AdminTracking" asp-action="CustomerActivityLogs" class="@IsActive("AdminTracking", "CustomerActivityLogs")">
                         <i class="bi bi-clock-history"></i><span>Nhật ký hoạt động KH</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Admin" asp-action="MovieViewStats" class="@IsActive("Admin", "MovieViewStats")">
+                    <a asp-controller="AdminTracking" asp-action="MovieViewStats" class="@IsActive("AdminTracking", "MovieViewStats")">
                         <i class="bi bi-eye"></i><span>Thống kê lượt xem phim</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Admin" asp-action="CustomerSearchLogs" class="@IsActive("Admin", "CustomerSearchLogs")">
+                    <a asp-controller="AdminTracking" asp-action="CustomerSearchLogs" class="@IsActive("AdminTracking", "CustomerSearchLogs")">
                         <i class="bi bi-search"></i><span>Lịch sử tìm kiếm</span>
                     </a>
                 </li>
                 <li>
-                    <a asp-controller="Admin" asp-action="TopSearchKeywords" class="@IsActive("Admin", "TopSearchKeywords")">
+                    <a asp-controller="AdminTracking" asp-action="TopSearchKeywords" class="@IsActive("AdminTracking", "TopSearchKeywords")">
                         <i class="bi bi-graph-up"></i><span>Top từ khóa tìm kiếm</span>
                     </a>
                 </li>

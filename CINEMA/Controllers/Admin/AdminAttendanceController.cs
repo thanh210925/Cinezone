@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CINEMA.Controllers
 {
+    [Route("Admin/[action]")]
     public class AdminAttendanceController : AdminBaseController
     {
         private readonly CinemaContext _context;

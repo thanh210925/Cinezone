@@ -160,7 +160,7 @@
     
     <div class="row g-3 mb-4">
         <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Admin" asp-action="ChatSupport" class="quick-nav-card">
+            <a asp-controller="AdminChat" asp-action="ChatSupport" class="quick-nav-card">
                 <div class="quick-nav-icon icon-warning"><i class="bi bi-chat-dots-fill"></i></div>
                 <div class="quick-nav-content">
                     <h6 class="quick-nav-title">Hỗ trợ Khách hàng</h6>
@@ -170,7 +170,7 @@
             </a>
         </div>
         <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Admin" asp-action="MySchedule" class="quick-nav-card">
+            <a asp-controller="AdminAttendance" asp-action="MySchedule" class="quick-nav-card">
                 <div class="quick-nav-icon icon-primary"><i class="bi bi-calendar-week"></i></div>
                 <div class="quick-nav-content">
                     <h6 class="quick-nav-title">Lịch của tôi</h6>
@@ -180,7 +180,7 @@
             </a>
         </div>
         <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Admin" asp-action="LeaveRequest" class="quick-nav-card">
+            <a asp-controller="AdminLeave" asp-action="LeaveRequest" class="quick-nav-card">
                 <div class="quick-nav-icon icon-success"><i class="bi bi-check2-square"></i></div>
                 <div class="quick-nav-content">
                     <h6 class="quick-nav-title">Đơn xin nghỉ phép</h6>
@@ -190,7 +190,7 @@
             </a>
         </div>
         <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Admin" asp-action="CheckInOut" class="quick-nav-card">
+            <a asp-controller="AdminAttendance" asp-action="CheckInOut" class="quick-nav-card">
                 <div class="quick-nav-icon icon-secondary"><i class="bi bi-camera"></i></div>
                 <div class="quick-nav-content">
                     <h6 class="quick-nav-title">Chấm công</h6>
@@ -200,7 +200,7 @@
             </a>
         </div>
         <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Admin" asp-action="DetailsStaff" asp-route-id="@adminId" class="quick-nav-card">
+            <a asp-controller="AdminStaff" asp-action="EditStaff" asp-route-id="@adminId" class="quick-nav-card">
                 <div class="quick-nav-icon icon-purple"><i class="bi bi-person-badge"></i></div>
                 <div class="quick-nav-content">
                     <h6 class="quick-nav-title">Tài khoản cá nhân</h6>
@@ -213,7 +213,7 @@
         @if (role == "SuperAdmin")
         {
             <div class="col-xxl-3 col-xl-4 col-sm-6">
-                <a asp-controller="Admin" asp-action="StaffList" class="quick-nav-card">
+                <a asp-controller="AdminStaff" asp-action="StaffList" class="quick-nav-card">
                     <div class="quick-nav-icon icon-dark"><i class="bi bi-people-fill"></i></div>
                     <div class="quick-nav-content">
                         <h6 class="quick-nav-title">Quản lý Nhân viên</h6>
@@ -223,7 +223,7 @@
                 </a>
             </div>
             <div class="col-xxl-3 col-xl-4 col-sm-6">
-                <a asp-controller="Admin" asp-action="RegisterFace" class="quick-nav-card">
+                <a asp-controller="AdminAttendance" asp-action="RegisterFace" class="quick-nav-card">
                     <div class="quick-nav-icon icon-dark"><i class="bi bi-person-bounding-box"></i></div>
                     <div class="quick-nav-content">
                         <h6 class="quick-nav-title">Đăng ký khuôn mặt</h6>
@@ -273,7 +273,7 @@
                 </a>
             </div>
             <div class="col-xxl-3 col-xl-4 col-sm-6">
-                <a asp-controller="Admin" asp-action="ManageLeave" class="quick-nav-card">
+                <a asp-controller="AdminLeave" asp-action="ManageLeave" class="quick-nav-card">
                     <div class="quick-nav-icon icon-dark"><i class="bi bi-calendar-x"></i></div>
                     <div class="quick-nav-content">
                         <h6 class="quick-nav-title">
@@ -309,7 +309,7 @@
                 </a>
             </div>
             <div class="col-xxl-3 col-xl-4 col-sm-6">
-                <a asp-controller="Admin" asp-action="MonthlyTimesheet" class="quick-nav-card">
+                <a asp-controller="AdminAttendance" asp-action="MonthlyTimesheet" class="quick-nav-card">
                     <div class="quick-nav-icon icon-dark"><i class="bi bi-calendar-check"></i></div>
                     <div class="quick-nav-content">
                         <h6 class="quick-nav-title">Bảng công tháng</h6>
@@ -378,7 +378,7 @@
             </a>
         </div>
         <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Admin" asp-action="CustomerActivityLogs" class="quick-nav-card">
+            <a asp-controller="AdminTracking" asp-action="CustomerActivityLogs" class="quick-nav-card">
                 <div class="quick-nav-icon icon-secondary"><i class="bi bi-clock-history"></i></div>
                 <div class="quick-nav-content">
                     <h6 class="quick-nav-title">Nhật ký hoạt động KH</h6>
@@ -388,7 +388,7 @@
             </a>
         </div>
         <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Admin" asp-action="MovieViewStats" class="quick-nav-card">
+            <a asp-controller="AdminTracking" asp-action="MovieViewStats" class="quick-nav-card">
                 <div class="quick-nav-icon icon-warning"><i class="bi bi-eye"></i></div>
                 <div class="quick-nav-content">
                     <h6 class="quick-nav-title">Thống kê lượt xem phim</h6>
@@ -398,7 +398,7 @@
             </a>
         </div>
         <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Admin" asp-action="CustomerSearchLogs" class="quick-nav-card">
+            <a asp-controller="AdminTracking" asp-action="CustomerSearchLogs" class="quick-nav-card">
                 <div class="quick-nav-icon icon-danger"><i class="bi bi-search"></i></div>
                 <div class="quick-nav-content">
                     <h6 class="quick-nav-title">Lịch sử tìm kiếm</h6>
@@ -408,7 +408,7 @@
             </a>
         </div>
         <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Admin" asp-action="TopSearchKeywords" class="quick-nav-card">
+            <a asp-controller="AdminTracking" asp-action="TopSearchKeywords" class="quick-nav-card">
                 <div class="quick-nav-icon icon-success"><i class="bi bi-graph-up"></i></div>
                 <div class="quick-nav-content">
                     <h6 class="quick-nav-title">Top từ khóa tìm kiếm</h6>

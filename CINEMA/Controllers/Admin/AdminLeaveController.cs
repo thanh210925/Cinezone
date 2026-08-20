@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CINEMA.Controllers
 {
+    [Route("Admin/[action]")]
     public class AdminLeaveController : AdminBaseController
     {
         private readonly CinemaContext _context;
@@ -64,7 +65,7 @@ namespace CINEMA.Controllers
                 _context.LeaveTypes.Remove(type);
                 await _context.SaveChangesAsync();
             }
-            return RedirectToAction("ManageLeaveSettings", "Admin");
+            return RedirectToAction("ManageLeave");
         }
 
         public IActionResult ManageLeave()

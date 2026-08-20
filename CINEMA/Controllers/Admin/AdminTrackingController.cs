@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CINEMA.Controllers
 {
+    [Route("Admin/[action]")]
     public class AdminTrackingController : AdminBaseController
     {
         private readonly CinemaContext _context;
