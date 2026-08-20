@@ -46,29 +46,38 @@
 
                         <div class="row g-2">
                             <!-- Super Admin Card -->
-                            <div class="col-4">
-                                <div class="role-card active" id="cardSuperAdmin" onclick="selectRole('SuperAdmin', 'admin@cinezone.vn', '👑 Super Admin (Toàn Quyền)', '#d9534f')">
+                            <div class="col-3">
+                                <div class="role-card active" id="cardSuperAdmin" onclick="selectRole('SuperAdmin', 'Admin1@gmail.com', '👑 Super Admin (Toàn Quyền)', '#d9534f')">
                                     <span class="role-icon text-danger">👑</span>
                                     <div class="fw-bold text-dark small">Super Admin</div>
-                                    <div class="text-muted extra-small" style="font-size: 0.75rem;">Toàn Quyền</div>
+                                    <div class="text-muted extra-small" style="font-size: 0.72rem;">Toàn Quyền</div>
                                 </div>
                             </div>
 
                             <!-- Manager Card -->
-                            <div class="col-4">
+                            <div class="col-3">
                                 <div class="role-card" id="cardManager" onclick="selectRole('Manager', 'manager@cinezone.vn', '🎬 Manager (Phim & Lịch Chiếu)', '#0275d8')">
                                     <span class="role-icon text-primary">🎬</span>
                                     <div class="fw-bold text-dark small">Manager</div>
-                                    <div class="text-muted extra-small" style="font-size: 0.75rem;">Phim & Lịch Chiếu</div>
+                                    <div class="text-muted extra-small" style="font-size: 0.72rem;">Phim & Vé</div>
+                                </div>
+                            </div>
+
+                            <!-- CRM Card (MỚI) -->
+                            <div class="col-3">
+                                <div class="role-card" id="cardCRM" onclick="selectRole('CRM', 'crm@cinezone.vn', '💜 CRM (Quản Lý KH & CSKH)', '#6f42c1')">
+                                    <span class="role-icon" style="color: #6f42c1;">🎧</span>
+                                    <div class="fw-bold text-dark small">CRM</div>
+                                    <div class="text-muted extra-small" style="font-size: 0.72rem;">CSKH & CRM</div>
                                 </div>
                             </div>
 
                             <!-- Staff Card -->
-                            <div class="col-4">
+                            <div class="col-3">
                                 <div class="role-card" id="cardStaff" onclick="selectRole('Staff', 'staff@cinezone.vn', '🎟️ Staff (Bán Vé & QR)', '#5cb85c')">
                                     <span class="role-icon text-success">🎟️</span>
                                     <div class="fw-bold text-dark small">Staff</div>
-                                    <div class="text-muted extra-small" style="font-size: 0.75rem;">Bán Vé & QR</div>
+                                    <div class="text-muted extra-small" style="font-size: 0.72rem;">Bán Vé & QR</div>
                                 </div>
                             </div>
                         </div>
@@ -151,17 +160,20 @@
     <script>
         function selectRole(roleCode, email, badgeText, badgeColor) {
             // Remove active class from all cards
-            document.getElementById('cardSuperAdmin').classList.remove('active');
-            document.getElementById('cardManager').classList.remove('active');
-            document.getElementById('cardStaff').classList.remove('active');
+            document.getElementById('cardSuperAdmin')?.classList.remove('active');
+            document.getElementById('cardManager')?.classList.remove('active');
+            document.getElementById('cardCRM')?.classList.remove('active');
+            document.getElementById('cardStaff')?.classList.remove('active');
 
             // Add active class to clicked card
             if (roleCode === 'SuperAdmin') {
-                document.getElementById('cardSuperAdmin').classList.add('active');
+                document.getElementById('cardSuperAdmin')?.classList.add('active');
             } else if (roleCode === 'Manager') {
-                document.getElementById('cardManager').classList.add('active');
+                document.getElementById('cardManager')?.classList.add('active');
+            } else if (roleCode === 'CRM') {
+                document.getElementById('cardCRM')?.classList.add('active');
             } else {
-                document.getElementById('cardStaff').classList.add('active');
+                document.getElementById('cardStaff')?.classList.add('active');
             }
 
             // Fill email input
