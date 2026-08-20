@@ -1,0 +1,534 @@
+/* ==========================================================================
+   CINEZONE - BOOK TICKET COMPACT & ELEGANT LIGHT THEME
+   ========================================================================== */
+
+:root {
+    --bg-page: #f4f6f9;
+    --card-bg: #ffffff;
+    --text-main: #1e293b;
+    --text-muted-custom: #64748b;
+    --border-color: #e2e8f0;
+    --purple-primary: #7c3aed;
+    --purple-gradient: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+    --pink-accent: #ec4899;
+}
+
+body {
+    background-color: var(--bg-page) !important;
+    color: var(--text-main);
+    font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.bookticket-container {
+    background-color: var(--bg-page);
+    min-height: 100vh;
+}
+
+/* ---------- Top Movie Banner Card (Compact) ---------- */
+.movie-header-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    color: var(--text-main);
+    padding: 16px 20px !important;
+}
+
+.share-title {
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: var(--text-muted-custom);
+}
+
+.btn-share-custom {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+}
+.btn-share-facebook {
+    background-color: #e7f0ff;
+    color: #1877F2;
+}
+.btn-share-facebook:hover {
+    background-color: #1877F2;
+    color: #ffffff;
+}
+.btn-share-zalo {
+    background-color: #e5f1ff;
+    color: #0068FF;
+}
+.btn-share-zalo:hover {
+    background-color: #0068FF;
+    color: #ffffff;
+}
+.btn-share-tiktok {
+    background-color: #f1f5f9;
+    color: #0f172a;
+}
+.btn-share-tiktok:hover {
+    background-color: #0f172a;
+    color: #ffffff;
+}
+.btn-share-messenger {
+    background-color: #e5f4ff;
+    color: #0084FF;
+}
+.btn-share-messenger:hover {
+    background-color: #0084FF;
+    color: #ffffff;
+}
+
+/* ---------- COMPACT STEPPER TABS BAR ---------- */
+.wizard-stepper-bar {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 4px 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.wizard-step-pill {
+    flex: 1;
+    max-width: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.4px;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.wizard-step-num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    transition: all 0.2s ease;
+}
+
+.wizard-step-pill.active {
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+    color: #ffffff;
+    border-color: #a855f7;
+    box-shadow: 0 3px 10px rgba(124, 58, 237, 0.2);
+}
+
+.wizard-step-pill.active .wizard-step-num {
+    background: #ffffff;
+    color: var(--purple-primary);
+}
+
+.wizard-step-divider {
+    width: 12px;
+    height: 2px;
+    background: #cbd5e1;
+    flex-shrink: 0;
+}
+
+/* ---------- Panels & Cards (Compact) ---------- */
+.light-panel-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+.light-panel-card .card-header {
+    background: #ffffff;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 12px 18px 10px !important;
+}
+
+.light-panel-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+/* ---------- Ticket Type Cards (Step 1 - Compact) ---------- */
+.ticket-type-card {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.ticket-type-card:hover {
+    border-color: var(--purple-primary);
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.1);
+}
+
+.ticket-type-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: #475569;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.ticket-type-price {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--pink-accent);
+    margin-bottom: 10px;
+}
+
+.ticket-counter-box {
+    display: inline-flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 2px;
+    gap: 4px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+.btn-counter {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    border: none;
+    color: #0f172a;
+    font-size: 0.95rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-counter:hover {
+    background: var(--purple-primary);
+    color: #ffffff;
+}
+
+.ticket-input-display {
+    width: 36px;
+    background: transparent;
+    border: none;
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+/* ---------- Seat Map Section (Step 2 - Compact) ---------- */
+.cinema-screen-container {
+    width: 100%;
+    max-width: 460px;
+    margin: 0 auto 20px;
+    text-align: center;
+}
+
+.cinema-screen-arc {
+    height: 16px;
+    background: linear-gradient(to bottom, rgba(124, 58, 237, 0.15), transparent);
+    border-top: 3px solid var(--purple-primary);
+    border-top-left-radius: 50% 100%;
+    border-top-right-radius: 50% 100%;
+    box-shadow: 0 6px 14px rgba(124, 58, 237, 0.18);
+    margin-bottom: 6px;
+}
+
+.screen-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--purple-primary);
+    text-transform: uppercase;
+}
+
+/* Hidden Raw Checkboxes */
+.seat-checkbox {
+    display: none !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* Seat Badges Grid (Compact 32px) */
+.seat-wrapper {
+    cursor: pointer;
+    display: inline-block;
+    user-select: none;
+}
+
+.seat-badge {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px 6px 3px 3px;
+    font-weight: 700;
+    font-size: 0.78rem;
+    background-color: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    transition: all 0.18s ease;
+}
+
+.seat-wrapper:hover:not(.disabled-seat) .seat-badge {
+    transform: translateY(-2px) scale(1.04);
+    border-color: var(--purple-primary) !important;
+    box-shadow: 0 4px 10px rgba(124, 58, 237, 0.25) !important;
+}
+
+.seat-checkbox:checked + .seat-badge {
+    background-color: #22c55e !important;
+    color: #ffffff !important;
+    border-color: #22c55e !important;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.35) !important;
+}
+
+/* Seat Categories */
+.seat-vip {
+    background-color: #fef08a !important;
+    color: #854d0e !important;
+    border-color: #eab308 !important;
+}
+
+.seat-couple {
+    background-color: #fce7f3 !important;
+    color: #9d174d !important;
+    border-color: #ec4899 !important;
+}
+
+.seat-disabled {
+    background-color: #dbeafe !important;
+    color: #1e40af !important;
+    border-color: #3b82f6 !important;
+}
+
+.disabled-seat {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.seat-held-by-other {
+    cursor: not-allowed !important;
+}
+
+.seat-held-by-other .seat-badge {
+    background-color: #fef08a !important;
+    color: #854d0e !important;
+    border-color: #ca8a04 !important;
+    box-shadow: 0 0 8px rgba(234, 179, 8, 0.5) !important;
+    animation: pulseHolding 2s infinite ease-in-out;
+}
+
+@keyframes pulseHolding {
+    0% { opacity: 0.75; }
+    50% { opacity: 1; }
+    100% { opacity: 0.75; }
+}
+
+/* Seat Legend Bar (Compact) */
+.seat-legend-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 18px;
+    padding-top: 14px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: #475569;
+    font-weight: 600;
+}
+
+.legend-box {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid #cbd5e1;
+}
+
+/* ---------- Combos Section (Step 3 - Compact) ---------- */
+.combo-card-light {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s ease;
+}
+
+.combo-card-light:hover {
+    border-color: var(--purple-primary);
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+
+.combo-img-box {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    object-fit: cover;
+    background: #e2e8f0;
+    flex-shrink: 0;
+}
+
+.combo-price-text {
+    font-weight: 800;
+    color: var(--pink-accent);
+    font-size: 0.95rem;
+}
+
+/* ---------- Order Summary Right Sidebar (Compact) ---------- */
+.order-summary-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+    color: var(--text-main);
+}
+
+.order-summary-header {
+    background: linear-gradient(90deg, #1e1b4b 0%, #311065 100%);
+    padding: 14px 18px;
+}
+
+.summary-title {
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: 0.4px;
+    margin: 0;
+    text-transform: uppercase;
+    color: #ffffff;
+}
+
+.summary-movie-info {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.seat-badge-selected {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #22c55e;
+    color: #ffffff;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    box-shadow: 0 2px 6px rgba(34, 197, 94, 0.25);
+}
+
+.summary-total-box {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 12px 16px;
+    border: 1px solid #e2e8f0;
+}
+
+.summary-total-price {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--pink-accent);
+    letter-spacing: -0.5px;
+    font-family: 'Outfit', sans-serif;
+}
+
+.btn-pay-gradient {
+    background: linear-gradient(135deg, #ec4899 0%, #7c3aed 100%);
+    border: none;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: 0.4px;
+    padding: 12px;
+    border-radius: 10px;
+    width: 100%;
+    transition: all 0.25s ease;
+    box-shadow: 0 6px 18px rgba(236, 72, 153, 0.3);
+}
+
+.btn-pay-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(236, 72, 153, 0.45);
+    color: #ffffff;
+}
+
+.btn-invite-outline {
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    color: #475569;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 10px;
+    border-radius: 10px;
+    width: 100%;
+    transition: all 0.2s ease;
+}
+
+.btn-invite-outline:hover {
+    border-color: var(--purple-primary);
+    color: var(--purple-primary);
+    background: #f8fafc;
+}
+
+.timer-holding-badge {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: center;
+}

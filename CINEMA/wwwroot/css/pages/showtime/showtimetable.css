@@ -1,0 +1,128 @@
+/* Showtime Table Matrix & List styles */
+.matrix-date-header {
+    background-color: #f8fafc;
+    border-left: 4px solid #4361ee;
+    font-weight: 700;
+    color: #1e293b;
+}
+.showtime-matrix-table th {
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background-color: #f8fafc !important;
+    color: #475569;
+    vertical-align: middle;
+    text-align: center;
+}
+.showtime-matrix-table td {
+    vertical-align: middle;
+    padding: 12px 8px;
+}
+.time-col {
+    font-weight: 800;
+    color: #0f172a;
+    background-color: #f1f5f9;
+    width: 100px;
+    text-align: center;
+    border-right: 2px solid #cbd5e1;
+    font-size: 1.05rem;
+}
+.empty-cell {
+    color: #cbd5e1;
+    font-weight: 400;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+/* STICKY COLUMN FOR ROOM NAMES */
+.sticky-col {
+    position: sticky;
+    left: 0;
+    background-color: #f8fafc !important;
+    z-index: 2;
+    border-right: 2px solid #cbd5e1 !important;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+th.sticky-col {
+    z-index: 3;
+    background-color: #f8fafc !important;
+}
+
+/* HOVER ACTIONS EFFECT */
+.showtime-card {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s ease-in-out;
+    border-left: 4px solid #198754 !important;
+    background-color: #fff;
+    height: 85px;
+}
+.showtime-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1) !important;
+    border-left-color: #4361ee !important;
+}
+.showtime-card.inactive {
+    border-left: 4px solid #6c757d !important;
+    opacity: 0.75;
+}
+.showtime-card .card-body-content {
+    transition: opacity 0.2s ease;
+}
+.showtime-card:hover .card-body-content {
+    opacity: 0.3;
+}
+
+.showtime-actions-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.93);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transform: translateY(100%);
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    opacity: 0;
+    z-index: 5;
+}
+.showtime-card:hover .showtime-actions-overlay {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.btn-circle-action {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: all 0.2s;
+}
+.btn-circle-action:hover {
+    transform: scale(1.15);
+}
+
+/* Showtime Table List */
+.showtime-row {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+.showtime-row:hover {
+    background-color: rgba(67, 97, 238, 0.03) !important;
+}
+.bulk-action-bar {
+    border-color: #ffc107 !important;
+    animation: slideUpList 0.3s ease;
+}
+@keyframes slideUpList {
+    from { transform: translate(-50%, 100%); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+}

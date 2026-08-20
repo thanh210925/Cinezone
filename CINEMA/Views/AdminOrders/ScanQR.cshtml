@@ -1,0 +1,211 @@
+@{
+    ViewData["Title"] = "Quét Mã QR Soát Vé";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1"><i class="bi bi-qr-code-scan text-primary me-2"></i>Trung Tâm Soát Vé Xem Phim</h3>
+            <p class="text-muted small mb-0">Quét mã QR trên vé khách hàng hoặc nhập mã đơn hàng thủ công để soát vé vào rạp.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-3 fw-semibold">
+            <i class="bi bi-arrow-left me-1"></i> Danh sách đơn hàng
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <!-- CỘT TRÁI: CAMERA QUÉT QR & NHẬP THỦ CÔNG -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-0 pt-4 pb-2">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-camera-fill text-danger me-2"></i>Camera Quét QR Code</h5>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <div id="reader" style="width: 100%; max-width: 450px; margin: 0 auto;" class="rounded-3 overflow-hidden border"></div>
+                    <div class="mt-3">
+                        <button type="button" id="startScanBtn" class="btn btn-primary rounded-3 px-4 fw-bold me-2">
+                            <i class="bi bi-play-circle me-1"></i> Bật Camera
+                        </button>
+                        <button type="button" id="stopScanBtn" class="btn btn-outline-danger rounded-3 px-4 fw-bold" style="display:none;">
+                            <i class="bi bi-stop-circle me-1"></i> Tắt Camera
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-0 pt-4 pb-2">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-keyboard-fill text-primary me-2"></i>Nhập Mã Vé / Đơn Hàng Thủ Công</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form id="manualScanForm" onsubmit="handleManualSubmit(event)">
+                        <div class="input-group input-group-lg mb-3">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-upc-scan"></i></span>
+                            <input type="text" id="manualQrInput" class="form-control border-start-0" placeholder="Ví dụ: ORD-12345 hoặc 12345" required />
+                            <button type="submit" class="btn btn-success px-4 fw-bold">
+                                <i class="bi bi-check-circle me-1"></i> Xác nhận
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: KẾT QUẢ KHI QUÉT VÉ -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 pt-4 pb-2">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-card-checklist text-success me-2"></i>Kết Quả Xử Lý Vé</h5>
+                </div>
+                <div class="card-body p-4 d-flex flex-column justify-content-center align-items-center" id="resultContainer">
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-qr-code fs-1 d-block mb-3 text-secondary opacity-50"></i>
+                        <p class="mb-0">Vui lòng quét QR Code hoặc nhập mã vé để xem kết quả soát vé.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Thư viện Quét QR Code qua HTML5 Camera -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script>
+        let html5QrCode = null;
+
+        document.getElementById("startScanBtn").addEventListener("click", function () {
+            startCamera();
+        });
+
+        document.getElementById("stopScanBtn").addEventListener("click", function () {
+            stopCamera();
+        });
+
+        function startCamera() {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                onScanSuccess
+            ).then(() => {
+                document.getElementById("startScanBtn").style.display = "none";
+                document.getElementById("stopScanBtn").style.display = "inline-block";
+            }).catch(err => {
+                alert("Không thể truy cập Camera: " + err);
+            });
+        }
+
+        function stopCamera() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById("startScanBtn").style.display = "inline-block";
+                    document.getElementById("stopScanBtn").style.display = "none";
+                }).catch(err => console.error(err));
+            }
+        }
+
+        function onScanSuccess(decodedText) {
+            processQrCode(decodedText);
+        }
+
+        function handleManualSubmit(e) {
+            e.preventDefault();
+            const inputVal = document.getElementById("manualQrInput").value;
+            if (inputVal) {
+                processQrCode(inputVal);
+            }
+        }
+
+        function processQrCode(qrData) {
+            const container = document.getElementById("resultContainer");
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p class="text-muted fw-bold">Đang tra cứu dữ liệu vé #${qrData}...</p>
+                </div>
+            `;
+
+            fetch('/api/admin/tickets/scan-qr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ qrData: qrData })
+            })
+            .then(res => res.json())
+            .then(data => {
+                renderResult(data);
+            })
+            .catch(err => {
+                container.innerHTML = `
+                    <div class="alert alert-danger text-center w-100">
+                        <i class="bi bi-x-circle-fill fs-2 d-block mb-2"></i>
+                        <h5>Lỗi kết nối Server!</h5>
+                        <p class="mb-0">${err.message}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function renderResult(data) {
+            const container = document.getElementById("resultContainer");
+            if (data.isSuccess) {
+                container.innerHTML = `
+                    <div class="w-100">
+                        <div class="alert alert-success text-center rounded-4 p-4 mb-4">
+                            <i class="bi bi-check-circle-fill fs-1 d-block mb-2 text-success"></i>
+                            <h4 class="fw-bold mb-1">SOÁT VÉ THÀNH CÔNG!</h4>
+                            <p class="mb-0 text-dark fw-semibold">${data.message}</p>
+                        </div>
+
+                        <div class="card border-0 bg-light rounded-4 p-3 mb-3">
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Mã đơn hàng:</small>
+                                    <strong class="fs-5 text-primary">#${data.orderId}</strong>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Khách hàng:</small>
+                                    <strong class="fs-6">${data.customerName}</strong>
+                                </div>
+                                <div class="col-12 border-top pt-2">
+                                    <small class="text-muted d-block">Tên phim:</small>
+                                    <strong class="fs-5 text-dark">${data.movieTitle || 'Đang cập nhật'}</strong>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Rạp & Phòng chiếu:</small>
+                                    <strong>${data.theaterName || 'N/A'} — ${data.auditoriumName || 'N/A'}</strong>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Ghế đặt:</small>
+                                    <span class="badge bg-danger fs-6">${(data.seatNames && data.seatNames.length) ? data.seatNames.join(', ') : 'N/A'}</span>
+                                </div>
+                                <div class="col-12 border-top pt-2">
+                                    <small class="text-muted d-block">Combo bắp nước:</small>
+                                    <span>${(data.comboNames && data.comboNames.length) ? data.comboNames.join(', ') : 'Không có'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="w-100">
+                        <div class="alert alert-danger text-center rounded-4 p-4 mb-4">
+                            <i class="bi bi-exclamation-triangle-fill fs-1 d-block mb-2 text-danger"></i>
+                            <h4 class="fw-bold mb-1">VÉ KHÔNG HỢP LỆ / ĐÃ SỬ DỤNG</h4>
+                            <p class="mb-0 text-dark fw-semibold">${data.message}</p>
+                        </div>
+                        ${data.orderId ? `
+                            <div class="card border-0 bg-light rounded-4 p-3 text-center">
+                                <span class="text-muted">Đơn hàng #${data.orderId} — Khách hàng: <strong>${data.customerName || 'N/A'}</strong></span>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+        }
+    </script>
+}

@@ -214,3 +214,89 @@ body {
     .sidebar-overlay.show {
         display: block;
     }
+
+:root {
+    --sb-bg-top: #1a1d29;
+    --sb-bg-bottom: #12141c;
+    --sb-border: #242837;
+    --sb-text: #9aa1b8;
+    --sb-text-dim: #5f6478;
+    --sb-text-strong: #f3f4f8;
+    --accent: #f2b705;
+    --accent-soft: rgba(242,183,5,.12);
+    --accent-glow: rgba(242,183,5,.35);
+    --danger: #ef4444;
+    --content-bg: #f4f5f9;
+}
+
+.logo-text {
+    font-weight: 800;
+    letter-spacing: .12em;
+    font-size: 1.05rem;
+    background: linear-gradient(90deg,#fff, var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.menu-group-title {
+    padding: 16px 12px 6px;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--sb-text-dim);
+}
+
+.sidebar-menu a.active {
+    background: var(--accent-soft);
+    color: var(--sb-text-strong);
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(242,183,5,.18);
+}
+
+.sidebar-menu a.active i {
+    color: var(--accent);
+}
+
+.sidebar-menu a.active::before {
+    content: "";
+    position: absolute;
+    left: -2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 60%;
+    background: var(--accent);
+    border-radius: 0 4px 4px 0;
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.menu-divider {
+    border-top: 1px solid var(--sb-border);
+    margin: 14px 10px 4px;
+    padding-top: 12px !important;
+}
+
+.logout-link {
+    color: #f28b8b !important;
+}
+
+.logout-link i {
+    color: #f28b8b !important;
+}
+
+.logout-link:hover {
+    background: rgba(239,68,68,.1) !important;
+}
+
+.content-box {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(20,22,34,.06);
+}
+
+.footer {
+    color: #9aa1b8;
+    font-size: .8rem;
+}

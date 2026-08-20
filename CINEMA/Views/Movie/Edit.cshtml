@@ -247,105 +247,10 @@
     </form>
 </div>
 
-<style>
-    /* Styling form controls to look cohesive and premium */
-    .input-group:focus-within {
-        border-color: #6366f1 !important;
-        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
-    }
-    
-    .form-control:focus, .form-select:focus, .form-check-input:focus {
-        border-color: #6366f1 !important;
-        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
-    }
-    
-    /* Background gradients / colors for layout */
-    .bg-success-soft {
-        background-color: rgba(25, 135, 84, 0.08) !important;
-    }
-
-    .hover-scale {
-        transition: all 0.2s ease-in-out;
-    }
-    .hover-scale:hover {
-        transform: translateY(-2px);
-    }
-    
-    .fw-extrabold {
-        font-weight: 800;
-    }
-
-    /* Dashed border for empty states */
-    .border-dashed {
-        border-style: dashed !important;
-        border-width: 2px !important;
-        border-color: #cbd5e1 !important;
-    }
-</style>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/movie/edit.css" asp-append-version="true" />
+}
 
 @section Scripts {
-    <script>
-        // Hàm hiển thị ảnh xem trước khi tải lên từ tệp tin cục bộ
-        function previewImageFromFile(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const posterPreview = document.getElementById('poster-preview');
-                    posterPreview.src = e.target.result;
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        // Hàm cập nhật ảnh xem trước khi nhập liên kết URL
-        function previewImageFromUrl(url) {
-            const posterPreview = document.getElementById('poster-preview');
-            const trimmedUrl = url.trim();
-            if (trimmedUrl) {
-                posterPreview.src = trimmedUrl;
-            } else {
-                posterPreview.src = "https://placehold.co/300x450?text=No+Poster";
-            }
-        }
-
-        // Hàm phân tích và tải trước video trailer thời gian thực
-        function previewTrailer(url) {
-            const trimmedUrl = url.trim();
-            const iframe = document.getElementById('trailer-iframe');
-            const wrapper = document.getElementById('trailer-video-wrapper');
-            const noPreview = document.getElementById('trailer-no-preview');
-
-            if (!trimmedUrl) {
-                wrapper.classList.add('d-none');
-                noPreview.classList.remove('d-none');
-                iframe.src = "";
-                return;
-            }
-
-            let embedUrl = "";
-            if (trimmedUrl.includes("youtube.com") || trimmedUrl.includes("youtu.be")) {
-                let videoId = "";
-                if (trimmedUrl.includes("v=")) {
-                    videoId = trimmedUrl.split("v=")[1].split("&")[0];
-                } else if (trimmedUrl.includes("youtu.be/")) {
-                    videoId = trimmedUrl.split("youtu.be/")[1].split("?")[0];
-                }
-                if (videoId) {
-                    embedUrl = "https://www.youtube.com/embed/" + videoId;
-                }
-            } else {
-                embedUrl = trimmedUrl; // Direct file or other embeds
-            }
-
-            if (embedUrl) {
-                iframe.src = embedUrl;
-                wrapper.classList.remove('d-none');
-                noPreview.classList.add('d-none');
-            } else {
-                wrapper.classList.add('d-none');
-                noPreview.classList.remove('d-none');
-                iframe.src = "";
-            }
-        }
-    </script>
+    <script src="~/js/pages/movie/edit.js" asp-append-version="true"></script>
 }

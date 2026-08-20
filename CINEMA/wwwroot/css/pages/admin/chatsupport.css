@@ -1,0 +1,138 @@
+/* White-pink moving gradient background for chat row */
+.chat-row-gradient {
+    background: linear-gradient(-45deg, #ffffff, #fff0f5, #ffe4e1, #ffd1df);
+    background-size: 400% 400%;
+    animation: gradientMove 12s ease infinite;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px 0 rgba(219, 39, 119, 0.1);
+    border: 1px solid rgba(255, 192, 203, 0.4);
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Glassmorphism Panels */
+.bg-dark-custom {
+    background: rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+#chat-messages-container {
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+.bg-dark-header {
+    background: rgba(255, 255, 255, 0.35) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Search & Inputs */
+#search-customer {
+    background: rgba(255, 255, 255, 0.6) !important;
+    color: #111827 !important;
+    border: 1px solid rgba(219, 39, 119, 0.2) !important;
+}
+#search-customer::placeholder {
+    color: #6b7280;
+}
+#admin-message-input {
+    background: rgba(255, 255, 255, 0.7) !important;
+    color: #111827 !important;
+    border: 1px solid rgba(219, 39, 119, 0.2) !important;
+}
+#admin-message-input::placeholder {
+    color: #6b7280;
+}
+
+/* Borders */
+.border-secondary, .border-end {
+    border-color: rgba(219, 39, 119, 0.15) !important;
+}
+
+.fs-xs {
+    font-size: 8px;
+}
+
+/* Customer list item style overrides */
+.customer-item {
+    transition: background-color 0.2s;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(219, 39, 119, 0.1);
+}
+.customer-item:hover {
+    background-color: rgba(255, 255, 255, 0.45) !important;
+}
+.customer-item.active {
+    background-color: rgba(255, 192, 203, 0.45) !important;
+    border-left: 4px solid #db2777 !important;
+}
+
+.customer-name {
+    color: #111827 !important;
+}
+.last-message {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-all;
+    color: #4b5563 !important;
+}
+.chat-time-lbl {
+    color: #6b7280 !important;
+    font-weight: 500;
+}
+
+/* Chat bubble text and placeholder formatting */
+#chat-messages-container .text-muted, 
+#chat-messages-container h5 {
+    color: #4b5563 !important;
+}
+#chat-customer-name {
+    color: #111827 !important;
+}
+
+/* Chat bubbles */
+.chat-bubble {
+    max-width: 70%;
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.chat-bubble.customer {
+    align-self: flex-start;
+    background-color: #ffffff;
+    color: #1f2937;
+    border-bottom-left-radius: 4px;
+    border: 1px solid rgba(219, 39, 119, 0.1);
+}
+.chat-bubble.admin {
+    align-self: flex-end;
+    background-color: #db2777;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+.chat-time {
+    font-size: 10px;
+    margin-top: 5px;
+    display: block;
+    opacity: 0.75;
+}
+.chat-bubble.customer .chat-time {
+    text-align: left;
+    color: #9ca3af !important;
+}
+.chat-bubble.admin .chat-time {
+    text-align: right;
+    color: #ffeef4 !important;
+}

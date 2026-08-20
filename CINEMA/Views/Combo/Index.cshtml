@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CINEMA.Models.Combo>
+@model IEnumerable<CINEMA.Models.Combo>
 @{
     ViewData["Title"] = "Quản lý Bắp Nước";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
@@ -40,13 +40,6 @@
     </div>
 </div>
 
-<style>
-    .combo-card {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-        .combo-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        }
-</style>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/combo/index.css" asp-append-version="true" />
+}

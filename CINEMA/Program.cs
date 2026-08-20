@@ -1,8 +1,13 @@
+using System.Text;
+using System.Text.Json.Serialization;
 using CINEMA.Controllers;
 using CINEMA.Models;
 using CINEMA.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Stripe;
 
 namespace CINEMA
@@ -14,7 +19,11 @@ namespace CINEMA
             var builder = WebApplication.CreateBuilder(args);
 
             // 🟢 Add services
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddControllersWithViews()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                });
             builder.Services.AddSignalR();
 
             builder.Services.AddDbContext<CinemaContext>(options =>
@@ -29,13 +38,56 @@ namespace CINEMA
             builder.Services.AddScoped<CustomerClusteringService>();
             builder.Services.AddHttpClient<CINEMA.Services.GeminiService>();
             builder.Services.AddScoped<IMovieService, MovieService>();
+            builder.Services.AddScoped<IJwtService, JwtService>();
 
             // Email Notifications Configuration
             builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
             builder.Services.AddScoped<IEmailService, EmailService>();
-            // Trong file Program.cs
-            builder.Services.AddHttpContextAccessor(); // Thêm dòng này để lấy Session
+            builder.Services.AddScoped<IReminderService, ReminderService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddHttpContextAccessor();
+
+            // 🟢 Swagger / OpenAPI Configuration
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "Cinezone RESTful Web API",
+                    Version = "v1",
+                    Description = "Hệ thống API toàn diện cho ứng dụng đặt vé xem phim Cinezone"
+                });
+
+                // Cấu hình Nút Authorize Bearer Token trên Swagger UI
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Description = "Nhập Token theo định dạng: Bearer {your_jwt_token}",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer"
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            });
+
             // 🟢 AUTH (PHẢI đặt trước Build)
+            var jwtSettings = builder.Configuration.GetSection("Jwt");
+            var secretKey = jwtSettings["SecretKey"] ?? "Cinezone_Super_Secret_Jwt_Security_Key_2026_DotNet8_API!";
+
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -44,11 +96,54 @@ namespace CINEMA
             {
                 options.LoginPath = "/Customer/Login";
             })
+            .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+            {
+                options.RequireHttpsMetadata = false;
+                options.SaveToken = true;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtSettings["Issuer"] ?? "CinezoneAPI",
+                    ValidateAudience = true,
+                    ValidAudience = jwtSettings["Audience"] ?? "CinezoneClient",
+                    ClockSkew = TimeSpan.Zero
+                };
+            })
             // GG
-            ;
+       ;
+
             //Stripe
             builder.Services.AddScoped<IPaymentService, PaymentService>();
             var app = builder.Build();
+
+            // 🟢 Tự động kiểm tra & cập nhật cột Permissions cho bảng Admins trong DB nếu thiếu
+            using (var scope = app.Services.CreateScope())
+            {
+                try
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<CinemaContext>();
+                    db.Database.ExecuteSqlRaw(@"
+                        IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Admins' AND COLUMN_NAME = 'Permissions')
+                        BEGIN
+                            ALTER TABLE Admins ADD Permissions NVARCHAR(1000) NULL;
+                        END
+                    ");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Database Auto-Migration Error] {ex.Message}");
+                }
+            }
+
+            // 🟢 Enable Swagger Middleware
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Cinezone API v1");
+                c.RoutePrefix = "swagger";
+            });
 
      
 
@@ -84,36 +179,11 @@ namespace CINEMA
 
             app.MapHub<CINEMA.Hubs.ChatHub>("/chatHub");
             app.MapHub<CINEMA.Hubs.GroupBookingHub>("/groupBookingHub");
+            app.MapHub<CINEMA.Hubs.SeatHub>("/seatHub");
 
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
-
-            using (var scope = app.Services.CreateScope())
-            {
-                var context = scope.ServiceProvider.GetRequiredService<CinemaContext>();
-                if (!context.VoucherConditions.Any())
-                {
-                    var ticketOnly = new VoucherCondition { Name = "Chỉ áp dụng mua vé" };
-                    ticketOnly.Rules.Add(new VoucherRule { Field = "TicketQuantity", Operator = "GreaterThanOrEqual", Value = "1" });
-                    ticketOnly.Rules.Add(new VoucherRule { Field = "ComboQuantity", Operator = "Equal", Value = "0" });
-
-                    var comboOnly = new VoucherCondition { Name = "Chỉ áp dụng khi mua bắp nước" };
-                    comboOnly.Rules.Add(new VoucherRule { Field = "ComboQuantity", Operator = "GreaterThanOrEqual", Value = "1" });
-                    comboOnly.Rules.Add(new VoucherRule { Field = "TicketQuantity", Operator = "Equal", Value = "0" });
-
-                    var bothOnly = new VoucherCondition { Name = "Chỉ áp dụng khi mua cả 2 (Vé & Bắp nước)" };
-                    bothOnly.Rules.Add(new VoucherRule { Field = "TicketQuantity", Operator = "GreaterThanOrEqual", Value = "1" });
-                    bothOnly.Rules.Add(new VoucherRule { Field = "ComboQuantity", Operator = "GreaterThanOrEqual", Value = "1" });
-
-                    var groupOnly = new VoucherCondition { Name = "Chỉ áp dụng khi mua cùng bạn (Rủ bạn đi cùng)" };
-                    groupOnly.Rules.Add(new VoucherRule { Field = "IsGroupBooking", Operator = "Equal", Value = "True" });
-                    groupOnly.Rules.Add(new VoucherRule { Field = "GroupMemberCount", Operator = "GreaterThanOrEqual", Value = "2" });
-
-                    context.VoucherConditions.AddRange(ticketOnly, comboOnly, bothOnly, groupOnly);
-                    context.SaveChanges();
-                }
-            }
 
             app.Run();
         }

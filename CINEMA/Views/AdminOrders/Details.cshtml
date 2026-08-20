@@ -1,11 +1,11 @@
-﻿@model CINEMA.Models.Order
+@model CINEMA.Models.Order
 @{
     ViewData["Title"] = "Chi tiết vé";
     Layout = "_AdminLayout";
 }
 
 @section Styles {
-    <link rel="stylesheet" href="~/css/order-management.css" />
+    <link rel="stylesheet" href="~/css/pages/admin/order-management.css" asp-append-version="true" />
 }
 
 <div class="container-fluid py-4">
@@ -28,12 +28,18 @@
         </h3>
 
         <div class="d-flex gap-2">
-            <!-- Nút Hủy (Chỉ hiện khi đang chờ thanh toán) -->
+            <!-- Nút Xác nhận & Hủy (Chỉ hiện khi đang chờ thanh toán) -->
             @if (Model.Status == "Chờ thanh toán" || Model.Status == "Đang chờ thanh toán")
             {
+                <form asp-action="ConfirmPayment" method="post" class="m-0">
+                    <input type="hidden" name="id" value="@Model.OrderId" />
+                    <button type="submit" class="btn btn-success rounded-pill px-4 shadow-sm fw-bold" onclick="return confirm('Xác nhận khách hàng đã chuyển khoản thành công?');">
+                        <i class="bi bi-check-circle me-1"></i> Xác nhận đã thanh toán
+                    </button>
+                </form>
                 <form asp-action="CancelOrder" method="post" class="m-0">
                     <input type="hidden" name="id" value="@Model.OrderId" />
-                    <button type="submit" class="btn btn-danger rounded-pill px-4 shadow-sm" onclick="return confirm('Bạn có chắc chắn muốn hủy vé này không?');">
+                    <button type="submit" class="btn btn-outline-danger rounded-pill px-4 shadow-sm" onclick="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?');">
                         <i class="bi bi-x-circle me-1"></i> Hủy vé
                     </button>
                 </form>
@@ -111,10 +117,15 @@
             @if (Model.Tickets != null && Model.Tickets.Any())
             {
                 var ticket = Model.Tickets.First();
+                var theaterName = ticket.Showtime?.Auditorium?.Theater?.Name;
+                var auditoriumName = ticket.Showtime?.Auditorium?.Name;
+                var locationDisplay = !string.IsNullOrEmpty(theaterName)
+                    ? (!string.IsNullOrEmpty(auditoriumName) ? $"{theaterName} ({auditoriumName})" : theaterName)
+                    : (auditoriumName ?? "Chưa cập nhật");
                 <div class="row g-4">
                     <div class="col-md-8">
                         <h4 class="fw-bold text-primary mb-1">@ticket.Showtime?.Movie?.Title</h4>
-                        <p class="text-muted mb-4"><i class="bi bi-geo-alt-fill me-1"></i> Rạp: <strong class="text-dark">@ticket.Showtime?.Auditorium?.Name</strong></p>
+                        <p class="text-muted mb-4"><i class="bi bi-geo-alt-fill me-1"></i> Rạp: <strong class="text-dark">@locationDisplay</strong></p>
 
                         <div class="row g-3">
                             <div class="col-sm-6">

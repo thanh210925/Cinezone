@@ -1,0 +1,117 @@
+.text-gradient-purple {
+    background: linear-gradient(45deg, #e91e63, #8e24aa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.concession-card, .card-glassmorphism {
+    background-color: #ffffff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.concession-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
+.concession-card:hover .concession-img {
+    transform: scale(1.06);
+}
+
+.concession-img {
+    transition: transform 0.4s ease;
+}
+
+.input-qty-group {
+    border-color: #e2e8f0 !important;
+}
+
+.btn-qty {
+    color: #475569;
+    transition: background-color 0.2s;
+}
+.btn-qty:hover {
+    background-color: #cbd5e1 !important;
+    color: #0f172a;
+}
+
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.bill-card {
+    background-color: #ffffff;
+}
+
+.bill-item-row {
+    animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fw-extrabold {
+    font-weight: 800;
+}
+
+.hover-scale {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.hover-scale:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(233, 30, 99, 0.3) !important;
+}
+
+/* DARK THEME STYLING OVERRIDES (Using body.dark-theme wrapper) */
+body.dark-theme .concession-card,
+body.dark-theme .bill-card,
+body.dark-theme .card-glassmorphism {
+    background: rgba(20, 14, 38, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+}
+
+body.dark-theme .font-theme-title {
+    color: #ffffff !important;
+}
+
+body.dark-theme .input-qty-group {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+body.dark-theme .btn-qty {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: #e2e8f0;
+}
+body.dark-theme .btn-qty:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff;
+}
+
+body.dark-theme .qty-input {
+    color: #ffffff !important;
+}
+
+body.dark-theme .bill-item-row {
+    color: #e2e8f0 !important;
+}
+
+body.dark-theme .border-top {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.dark-theme #subtotal-val,
+body.dark-theme .text-dark {
+    color: #ffffff !important;
+}

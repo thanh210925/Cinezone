@@ -1,4 +1,4 @@
-﻿@model CINEMA.Models.Genre
+@model CINEMA.Models.Genre
 @{
     ViewData["Title"] = "Thêm Thể loại";
     Layout = "_AdminLayout";
@@ -85,36 +85,10 @@
     </div>
 
 </div>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 @section Scripts {
-    <script>
-        $(document).ready(function () {
-        $('#movieSelect').select2({
-        placeholder: "🔍 Tìm và chọn phim...",
-        allowClear: true,
-        width: '100%',
-        closeOnSelect: false
-        });
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="~/js/pages/genre/create.js" asp-append-version="true"></script>
 }
-<style>
-    .movie-item {
-    cursor: pointer;
-    transition: all 0.2s ease;
-    }
-
-    .movie-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    .movie-item input:checked + label {
-    color: #198754;
-    font-weight: 600;
-    }
-
-    .movie-item input:checked {
-    accent-color: #198754;
-    }
-</style>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/genre/create.css" asp-append-version="true" />
+}

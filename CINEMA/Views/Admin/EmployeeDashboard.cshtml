@@ -1,4 +1,4 @@
-﻿@model CINEMA.ViewModels.EmployeeDashboardViewModel
+@model CINEMA.ViewModels.EmployeeDashboardViewModel
 @using System.Text.Json
 
 @{
@@ -133,52 +133,15 @@
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<script>
-
-    new Chart(
-    document.getElementById('branchChart'),
-    {
-    type:'bar',
-    data:
-    {
-    labels:
-    @Html.Raw(
-        JsonSerializer.Serialize(
-            Model.BranchLabels)),
-
-    datasets:
-    [{
-    label:'Nhân viên',
-
-    data:
-    @Html.Raw(
-        JsonSerializer.Serialize(
-            Model.BranchValues))
-    }]
-    }
-    });
-
-    new Chart(
-    document.getElementById('positionChart'),
-    {
-    type:'pie',
-    data:
-    {
-    labels:
-    @Html.Raw(
-        JsonSerializer.Serialize(
-            Model.PositionLabels)),
-
-    datasets:
-    [{
-    data:
-    @Html.Raw(
-        JsonSerializer.Serialize(
-            Model.PositionValues))
-    }]
-    }
-    });
-
-</script>
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        window.EmployeeDashboardConfig = {
+            branchLabels: @Html.Raw(JsonSerializer.Serialize(Model.BranchLabels)),
+            branchValues: @Html.Raw(JsonSerializer.Serialize(Model.BranchValues)),
+            positionLabels: @Html.Raw(JsonSerializer.Serialize(Model.PositionLabels)),
+            positionValues: @Html.Raw(JsonSerializer.Serialize(Model.PositionValues))
+        };
+    </script>
+    <script src="~/js/pages/admin/employeedashboard.js" asp-append-version="true"></script>
+}

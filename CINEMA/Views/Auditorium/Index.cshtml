@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CINEMA.Models.Auditorium>
+@model IEnumerable<CINEMA.Models.Auditorium>
 @{
     ViewData["Title"] = "Danh sách phòng chiếu";
     Layout = "_AdminLayout";
@@ -7,23 +7,7 @@
 }
 
 @section Styles {
-    <link rel="stylesheet" href="~/css/auditorium-management.css" />
-    <style>
-        /* Tùy chỉnh màu Gradient cho tab active như yêu cầu */
-        .nav-pills .nav-link {
-            color: #495057;
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
-            transition: all 0.3s ease;
-        }
-
-            .nav-pills .nav-link.active {
-                background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
-                color: white;
-                border: none;
-                box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
-            }
-    </style>
+    <link rel="stylesheet" href="~/css/pages/auditorium/index.css" asp-append-version="true" />
 }
 
 <div class="container-fluid py-4">

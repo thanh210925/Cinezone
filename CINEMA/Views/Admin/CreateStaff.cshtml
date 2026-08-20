@@ -1,4 +1,4 @@
-﻿@model CINEMA.Models.Admin
+@model CINEMA.Models.Admin
 
 @{
     ViewData["Title"] = "Thêm nhân viên";
@@ -128,11 +128,19 @@
                                         class="form-select">
 
                                     <option value="Staff">
-                                        Staff
+                                        Staff (Nhân viên bán vé & QR)
+                                    </option>
+
+                                    <option value="CRM">
+                                        CRM (Chuyên viên CRM & CSKH)
+                                    </option>
+
+                                    <option value="Manager">
+                                        Manager (Quản lý phim & vé)
                                     </option>
 
                                     <option value="SuperAdmin">
-                                        SuperAdmin
+                                        SuperAdmin (Quản trị tối cao)
                                     </option>
 
                                 </select>
@@ -188,10 +196,6 @@
 
 </div>
 
-<script>
-    function previewImage(event)
-    {
-        document.getElementById('preview').src =
-            URL.createObjectURL(event.target.files[0]);
-    }
-</script>
+@section Scripts {
+    <script src="~/js/pages/admin/createstaff.js" asp-append-version="true"></script>
+}

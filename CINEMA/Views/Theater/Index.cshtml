@@ -1,11 +1,11 @@
-﻿@model IEnumerable<CINEMA.Models.Theater>
+@model IEnumerable<CINEMA.Models.Theater>
 @{
     ViewData["Title"] = "Danh sách rạp chiếu";
     Layout = "_AdminLayout";
 }
 
 @section Styles {
-    <link rel="stylesheet" href="~/css/theater-management.css" />
+    <link rel="stylesheet" href="~/css/pages/admin/theater-management.css" asp-append-version="true" />
 }
 
 <div class="container-fluid mt-4">
@@ -111,12 +111,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
-            })
-        });
-    </script>
+    <script src="~/js/pages/theater/index.js" asp-append-version="true"></script>
 }

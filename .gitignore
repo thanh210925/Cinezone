@@ -365,3 +365,10 @@ FodyWeavers.xsd
 # Do not ignore MVC Views/Log directory
 !**/Views/Log/
 !**/Views/Log/**
+
+# Sensitive & Log Files
+gemini_log.txt
+*.log
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Local.json

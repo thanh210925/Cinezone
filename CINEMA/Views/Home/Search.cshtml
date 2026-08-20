@@ -4,105 +4,11 @@
     ViewData["Title"] = "Kết quả tìm kiếm";
 }
 
-<style>
-    .search-banner {
-        background: linear-gradient(135deg,#BCD2EE,#97FFFF);
-        color: black;
-        padding: 30px;
-        border-radius: 20px;
-        margin-bottom: 35px;
-        box-shadow: 0 10px 30px rgba(0,0,0,.15);
-        font-size: 15px;
-    }
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/home/search.css" asp-append-version="true" />
+}
 
-        .search-banner h2 {
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-
-    .movie-card {
-        border: none;
-        border-radius: 20px;
-        overflow: hidden;
-        transition: all .3s ease;
-        height: 100%;
-    }
-
-        .movie-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 15px 35px rgba(0,0,0,.18);
-        }
-
-    .movie-poster {
-        height: 380px;
-        object-fit: cover;
-        transition: .4s;
-    }
-
-    .movie-card:hover .movie-poster {
-        transform: scale(1.05);
-    }
-
-    .movie-title {
-        font-size: 18px;
-        font-weight: 700;
-        min-height: 55px;
-        color: #222;
-    }
-
-    .book-btn {
-        border-radius: 50px;
-        padding: 10px 24px;
-        font-weight: 600;
-    }
-
-    .empty-state {
-        text-align: center;
-        background: #fff;
-        border-radius: 20px;
-        padding: 60px 20px;
-        margin-bottom: 40px;
-        box-shadow: 0 5px 20px rgba(0,0,0,.08);
-    }
-
-    .empty-icon {
-        font-size: 80px;
-    }
-
-    .suggest-title {
-        font-weight: 700;
-        color: #ff9800;
-        margin-bottom: 25px;
-    }
-
-    .movie-badge {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        z-index: 10;
-        font-size: 12px;
-    }
-
-    .poster-wrapper {
-        position: relative;
-        overflow: hidden;
-    }
-
-    .result-count {
-        font-size: 24px;
-        font-weight: 600;
-        color: black;
-        margin-bottom: 10px;
-    }
-
-    .result-total {
-        font-size: 22px;
-        font-weight: 700;
-        color: #0d6efd;
-    }
-</style>
-
-<div class="container mt-4 mb-5">
+<div class="container mb-5" style="padding-top: 100px !important;">
 
     <div class="search-banner">
         <h2>KẾT QUẢ TÌM KIẾM</h2>

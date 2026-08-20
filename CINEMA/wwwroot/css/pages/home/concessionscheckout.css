@@ -1,0 +1,103 @@
+/* Styling */
+.text-gradient-purple {
+    background: linear-gradient(45deg, #e91e63, #8e24aa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.card-glassmorphism {
+    background-color: #ffffff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.payment-method-card {
+    border-color: #e2e8f0;
+    background-color: #ffffff;
+    transition: all 0.2s ease-in-out;
+}
+
+.payment-method-card:hover {
+    border-color: #cbd5e1;
+    background-color: #fafafa;
+}
+
+input[type="radio"]:checked + .icon-wrap {
+    transform: scale(1.05);
+}
+
+.form-check-input:checked ~ .icon-wrap {
+    border-color: #ef4444;
+}
+
+/* Selected Payment card glowing */
+.payment-method-card:has(input[type="radio"]:checked) {
+    border-color: #e91e63 !important;
+    box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.1) !important;
+    background-color: rgba(233, 30, 99, 0.01) !important;
+}
+
+.hover-scale {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.hover-scale:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(233, 30, 99, 0.3) !important;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.border-dashed {
+    border-top: 1px dashed #cbd5e1;
+}
+
+/* DARK THEME STYLING OVERRIDES (Using body.dark-theme wrapper) */
+body.dark-theme .card-glassmorphism,
+body.dark-theme .payment-method-card {
+    background: rgba(20, 14, 38, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+}
+
+body.dark-theme .payment-method-card:hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+body.dark-theme .payment-method-card:has(input[type="radio"]:checked) {
+    border-color: #e91e63 !important;
+    background-color: rgba(233, 30, 99, 0.04) !important;
+}
+
+body.dark-theme .font-theme-title,
+body.dark-theme .text-dark,
+body.dark-theme #summary-subtotal {
+    color: #ffffff !important;
+}
+
+body.dark-theme .border-top,
+body.dark-theme .border-bottom {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.dark-theme .border-dashed {
+    border-top-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+}
+body.dark-theme .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+}

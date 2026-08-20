@@ -1,0 +1,138 @@
+@model IEnumerable<CINEMA.Models.Movie>
+@{
+    ViewData["Title"] = "Phim Đang Chiếu - CineZone";
+    var genres = ViewBag.Genres as List<CINEMA.Models.Genre> ?? new List<CINEMA.Models.Genre>();
+    int? selectedGenreId = ViewBag.SelectedGenreId as int?;
+    string searchKeyword = ViewBag.SearchKeyword as string ?? "";
+}
+
+<div class="now-showing-page py-5" style="padding-top: 90px !important;">
+    <div class="container-fluid px-lg-5 px-3">
+        
+        <!-- Header Banner -->
+        <div class="text-center mb-5">
+            <h1 class="display-4 fw-bold text-danger mb-2">
+                <i class="bi bi-film"></i> PHIM ĐANG CHIẾU
+            </h1>
+            <p class="text-secondary fs-5">Khám phá các bộ phim chiếu rạp mới nhất và hấp dẫn nhất tại CineZone</p>
+            <div class="title-underline mx-auto bg-danger" style="height: 4px; width: 80px; border-radius: 2px;"></div>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div class="card bg-white border-0 rounded-4 p-4 mb-5 shadow-sm">
+            <form method="get" asp-controller="Home" asp-action="NowShowing" class="row g-3 align-items-center">
+                <div class="col-lg-7 col-md-6">
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <span class="fw-semibold text-dark me-2"><i class="bi bi-funnel text-danger"></i> Thể loại:</span>
+                        <a href="@Url.Action("NowShowing", "Home", new { search = searchKeyword })"
+                           class="btn btn-sm rounded-pill px-3 @(selectedGenreId == null || selectedGenreId == 0 ? "btn-danger fw-bold text-white" : "btn-light text-dark border")">
+                            Tất cả
+                        </a>
+                        @foreach (var g in genres)
+                        {
+                            <a href="@Url.Action("NowShowing", "Home", new { genreId = g.GenreId, search = searchKeyword })"
+                               class="btn btn-sm rounded-pill px-3 @(selectedGenreId == g.GenreId ? "btn-danger fw-bold text-white" : "btn-light text-dark border")">
+                                @g.Name
+                            </a>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-lg-5 col-md-6 ms-auto">
+                    <div class="input-group">
+                        <input type="text" name="search" value="@searchKeyword" class="form-control bg-light border-secondary-subtle text-dark" placeholder="Tìm kiếm tên phim..." aria-label="Tìm phim">
+                        @if (selectedGenreId.HasValue && selectedGenreId.Value > 0)
+                        {
+                            <input type="hidden" name="genreId" value="@selectedGenreId.Value" />
+                        }
+                        <button class="btn btn-danger px-4 fw-semibold" type="submit">
+                            <i class="bi bi-search"></i> Tìm
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Movies Grid -->
+        @if (Model != null && Model.Any())
+        {
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4">
+                @foreach (var movie in Model)
+                {
+                    var posterSrc = !string.IsNullOrWhiteSpace(movie.PosterUrl) ? movie.PosterUrl : "/images/unnamed.jpg";
+                    var ageRating = !string.IsNullOrWhiteSpace(movie.AgeRating) ? movie.AgeRating : "P";
+                    
+                    <div class="col">
+                        <div class="movie-card shadow-sm border border-light-subtle rounded-4 overflow-hidden position-relative h-100 bg-white hover-up transition-all">
+                            <!-- Age Rating Badge -->
+                            <div class="age-rating-badge position-absolute top-0 end-0 m-3 badge bg-warning text-dark fw-bold px-2 py-1 rounded-3 shadow-sm" style="z-index: 2;">
+                                @ageRating
+                            </div>
+
+                            <!-- Poster Container -->
+                            <div class="movie-poster-container position-relative overflow-hidden" style="height: 360px; background: #e2e8f0;">
+                                <img src="@posterSrc"
+                                     onerror="this.onerror=null; this.src='/images/unnamed.jpg';"
+                                     alt="@movie.Title"
+                                     class="w-100 h-100 object-fit-cover transition-transform">
+                                
+                                <div class="movie-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-60 opacity-0 transition-opacity">
+                                    <div class="overlay-content text-center p-3">
+                                        <div class="movie-meta mb-3">
+                                            <span class="badge bg-secondary me-2">@ageRating</span>
+                                            <span class="text-white small"><i class="bi bi-clock"></i> @(movie.Duration ?? 0) phút</span>
+                                        </div>
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <a asp-controller="Home" asp-action="MovieDetails" asp-route-id="@movie.MovieId"
+                                               class="btn btn-outline-light rounded-pill px-3 py-1 btn-sm fw-semibold">
+                                                Chi tiết
+                                            </a>
+                                            <a asp-controller="Home" asp-action="BookTicket" asp-route-id="@movie.MovieId"
+                                               class="btn btn-danger rounded-pill px-3 py-1 btn-sm fw-semibold shadow-sm">
+                                                Đặt vé
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Info -->
+                            <div class="p-3 text-center">
+                                <h6 class="fw-bold text-dark text-truncate mb-1" title="@movie.Title">@movie.Title</h6>
+                                <p class="text-muted small mb-0">Khởi chiếu: @(movie.ReleaseDate.HasValue ? movie.ReleaseDate.Value.ToString("dd/MM/yyyy") : "Đang chiếu")</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5 my-5 bg-white rounded-4 shadow-sm p-5">
+                <i class="bi bi-camera-reels display-1 text-muted opacity-50 mb-3 d-block"></i>
+                <h4 class="text-dark">Không tìm thấy phim nào khớp với điều kiện tìm kiếm.</h4>
+                <p class="text-secondary mb-4">Vui lòng thử chọn thể loại khác hoặc từ khóa tìm kiếm khác.</p>
+                <a href="@Url.Action("NowShowing", "Home")" class="btn btn-outline-danger rounded-pill px-4">
+                    <i class="bi bi-arrow-counterclockwise"></i> Xem tất cả phim
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .now-showing-page .movie-card {
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease !important;
+    }
+    .now-showing-page .movie-card:hover {
+        transform: translateY(-10px) scale(1.04) !important;
+        box-shadow: 0 20px 40px rgba(229, 9, 20, 0.3) !important;
+        z-index: 10;
+    }
+    .now-showing-page .movie-card:hover .movie-overlay {
+        opacity: 1 !important;
+    }
+    .now-showing-page .movie-card:hover img {
+        transform: scale(1.08);
+    }
+</style>

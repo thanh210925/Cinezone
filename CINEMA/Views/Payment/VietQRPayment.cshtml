@@ -1,0 +1,406 @@
+@model CINEMA.Models.Order
+@{
+    ViewData["Title"] = "Thanh toán VietQR";
+    Layout = "_Layout";
+    var expiredAt = (DateTime)ViewBag.ExpiredAt;
+    var remainingSeconds = Math.Max(10, (int)(expiredAt - DateTime.Now).TotalSeconds);
+    var totalAmount = (long)ViewBag.TotalAmount;
+    var firstTicket = Model.Tickets.FirstOrDefault();
+    var movieTitle = firstTicket?.Showtime?.Movie?.Title ?? "Vé xem phim CineZone";
+    var showtimeStr = firstTicket?.Showtime?.StartTime?.ToString("HH:mm - dd/MM/yyyy") ?? "";
+    var theaterStr = firstTicket?.Showtime?.Auditorium?.Theater?.Name ?? "";
+    var auditoriumStr = firstTicket?.Showtime?.Auditorium?.Name ?? "";
+}
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+<style>
+    .vietqr-page {
+        font-family: 'Outfit', sans-serif;
+        padding: 40px 0;
+        background: radial-gradient(circle at top center, rgba(13, 110, 253, 0.12) 0%, transparent 70%);
+        min-height: 85vh;
+    }
+
+    .vietqr-card {
+        background: #111625;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 24px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(13, 110, 253, 0.15);
+        overflow: hidden;
+        color: #fff;
+    }
+
+    .vietqr-header {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a48a3 100%);
+        padding: 24px 32px;
+        position: relative;
+    }
+
+    .vietqr-header-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .vietqr-header-sub {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin-top: 4px;
+        margin-bottom: 0;
+    }
+
+    .timer-badge {
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 8px 16px;
+        border-radius: 50px;
+        font-family: 'Roboto Mono', monospace;
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #ffc107;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .qr-frame {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        display: inline-block;
+        position: relative;
+    }
+
+    .qr-frame img {
+        width: 100%;
+        max-width: 260px;
+        height: auto;
+        display: block;
+        border-radius: 12px;
+    }
+
+    .qr-pulse-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #0d6efd, transparent);
+        animation: qrScan 2.5s infinite linear;
+    }
+
+    @@keyframes qrScan {
+        0% { top: 5%; opacity: 0; }
+        50% { opacity: 1; }
+        100% { top: 95%; opacity: 0; }
+    }
+
+    .bank-info-box {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 20px;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        color: #9ab0cf;
+        font-size: 0.9rem;
+    }
+
+    .info-value {
+        font-weight: 700;
+        font-size: 1rem;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .info-value.highlight {
+        color: #20c997;
+        font-size: 1.2rem;
+    }
+
+    .info-value.memo {
+        color: #ffc107;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 1.1rem;
+    }
+
+    .btn-copy {
+        background: rgba(13, 110, 253, 0.15);
+        border: 1px solid rgba(13, 110, 253, 0.4);
+        color: #6ea8fe;
+        font-size: 0.75rem;
+        padding: 3px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-copy:hover {
+        background: #0d6efd;
+        color: #fff;
+    }
+
+    .status-polling-bar {
+        background: rgba(13, 110, 253, 0.1);
+        border-radius: 12px;
+        padding: 12px;
+        border: 1px solid rgba(13, 110, 253, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        font-size: 0.9rem;
+        color: #6ea8fe;
+    }
+
+    .spinner-grow-sm {
+        width: 0.8rem;
+        height: 0.8rem;
+    }
+
+    .btn-verify-now {
+        background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+        color: #fff;
+        font-weight: 700;
+        border: none;
+        padding: 14px 28px;
+        border-radius: 14px;
+        width: 100%;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(25, 135, 84, 0.4);
+    }
+
+    .btn-verify-now:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(25, 135, 84, 0.6);
+        color: #fff;
+    }
+</style>
+
+<div class="vietqr-page">
+    <div class="container" style="max-width: 960px;">
+        <div class="vietqr-card">
+            
+            <!-- HEADER -->
+            <div class="vietqr-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <h1 class="vietqr-header-title">
+                        <i class="bi bi-qr-code-scan"></i> Thanh toán qua VietQR (Napas 24/7)
+                    </h1>
+                    <p class="vietqr-header-sub">Mở App Ngân hàng hoặc Ví điện tử quét mã QR để thanh toán tự động</p>
+                </div>
+                <div class="timer-badge" id="timerBadge">
+                    <i class="bi bi-clock-history"></i> <span id="countdown">05:00</span>
+                </div>
+            </div>
+
+            <!-- BODY -->
+            <div class="p-4 p-md-5">
+                <div class="row g-4 align-items-center">
+
+                    <!-- LEFT: QR CODE IMAGE -->
+                    <div class="col-lg-5 text-center">
+                        <div class="qr-frame mb-3">
+                            <div class="qr-pulse-bar"></div>
+                            <img src="@ViewBag.QrUrl" alt="Mã VietQR Thanh Toán" id="vietQrImg" />
+                        </div>
+                        <div class="d-flex justify-content-center align-items-center gap-2 text-muted small">
+                            <i class="bi bi-shield-check text-success"></i> Hỗ trợ tất cả ngân hàng tại Việt Nam
+                        </div>
+                        <div class="mt-2 d-flex justify-content-center align-items-center gap-3 opacity-75">
+                            <span class="badge bg-secondary">MBBank</span>
+                            <span class="badge bg-secondary">Vietcombank</span>
+                            <span class="badge bg-secondary">Techcombank</span>
+                            <span class="badge bg-secondary">MoMo</span>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: BANKING DETAILS & ACTIONS -->
+                    <div class="col-lg-7">
+
+                        <!-- STATUS POLLING INDICATOR -->
+                        <div class="status-polling-bar mb-4">
+                            <div class="spinner-grow spinner-grow-sm text-primary" role="status"></div>
+                            <span>Đang chờ chuyển khoản... Hệ thống sẽ <strong>tự động nhận diện</strong> khi tiền vào tài khoản.</span>
+                        </div>
+
+                        <!-- BANK INFO BOX -->
+                        <div class="bank-info-box mb-4">
+                            <div class="info-row">
+                                <span class="info-label">Ngân hàng thụ hưởng</span>
+                                <span class="info-value">@ViewBag.BankName</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Số tài khoản</span>
+                                <span class="info-value">
+                                    <span id="txtAccountNo">@ViewBag.AccountNo</span>
+                                    <button type="button" class="btn-copy" onclick="copyText('txtAccountNo')"><i class="bi bi-copy"></i> Sao chép</button>
+                                </span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Chủ tài khoản</span>
+                                <span class="info-value">@ViewBag.AccountName</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Số tiền chuyển khoản</span>
+                                <span class="info-value highlight">
+                                    <span id="txtAmount">@totalAmount.ToString("N0") ₫</span>
+                                    <button type="button" class="btn-copy" onclick="copyText('txtAmountValue')"><i class="bi bi-copy"></i> Sao chép</button>
+                                    <input type="hidden" id="txtAmountValue" value="@totalAmount" />
+                                </span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Nội dung chuyển khoản (Bắt buộc)</span>
+                                <span class="info-value memo">
+                                    <span id="txtMemo">@ViewBag.TransferMemo</span>
+                                    <button type="button" class="btn-copy" onclick="copyText('txtMemo')"><i class="bi bi-copy"></i> Sao chép</button>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- BOOKING SUMMARY -->
+                        <div class="mb-4 p-3 rounded-3" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+                            <div class="d-flex justify-content-between align-items-center text-muted small mb-1">
+                                <span>Phim: <strong>@movieTitle</strong></span>
+                                <span>Mã đơn: <strong>@("CZ" + Model.OrderId.ToString("D6"))</strong></span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(showtimeStr))
+                            {
+                                <div class="text-muted small">
+                                    Suất chiếu: <strong>@showtimeStr</strong> (@auditoriumStr - @theaterStr)
+                                </div>
+                            }
+                        </div>
+
+                        <div class="text-center mt-4 d-grid gap-2">
+                            <button type="button" class="btn btn-success btn-lg fw-bold rounded-pill shadow-sm" id="btnConfirmManual" onclick="confirmManualPayment()">
+                                <i class="bi bi-check-circle-fill me-2"></i> Tôi đã chuyển khoản thành công
+                            </button>
+                            <a href="@Url.Action("Profile", "Customer")" class="text-secondary text-decoration-none small mt-2">
+                                <i class="bi bi-arrow-left me-1"></i> Hủy & Quay lại chọn phương thức khác
+                            </a>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const orderId = @Model.OrderId;
+        let totalRemainingSeconds = @remainingSeconds;
+
+        // Copy to clipboard helper
+        function copyText(elementId) {
+            const el = document.getElementById(elementId);
+            let textToCopy = el ? (el.value || el.innerText) : elementId;
+            textToCopy = textToCopy.replace(/[^\d]/g, '') === '' ? textToCopy : (elementId === 'txtAmountValue' ? textToCopy : el.innerText);
+
+            navigator.clipboard.writeText(textToCopy.replace(' ₫', '').replace(/\./g, '')).then(() => {
+                alert("Đã sao chép: " + textToCopy);
+            }).catch(err => {
+                console.error("Lỗi khi sao chép", err);
+            });
+        }
+
+        // Countdown Timer (15 Minutes)
+        function startCountdown() {
+            const timerEl = document.getElementById("countdown");
+            const interval = setInterval(() => {
+                if (totalRemainingSeconds <= 0) {
+                    clearInterval(interval);
+                    timerEl.innerText = "00:00";
+                    alert("Đơn hàng đã hết hạn thanh toán (15 phút). Vui lòng thực hiện đặt vé lại.");
+                    window.location.href = "/Home/Index";
+                    return;
+                }
+
+                totalRemainingSeconds--;
+                const minutes = Math.floor(totalRemainingSeconds / 60);
+                const seconds = totalRemainingSeconds % 60;
+
+                timerEl.innerText = (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+            }, 1000);
+        }
+
+        // Auto Polling Status every 3 seconds
+        function pollPaymentStatus() {
+            const pollInterval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/Payment/CheckPaymentStatus?orderId=${orderId}`);
+                    const data = await res.json();
+
+                    if (data.success && data.isPaid) {
+                        clearInterval(pollInterval);
+                        window.location.href = "/Payment/Success?orderId=" + orderId;
+                    } else if (data.isExpired) {
+                        clearInterval(pollInterval);
+                        alert("Đơn hàng đã quá thời hạn thanh toán.");
+                        window.location.href = "/Customer/Profile";
+                    }
+                } catch (err) {
+                    console.error("Lỗi kiểm tra trạng thái thanh toán", err);
+                }
+            }, 3000);
+        }
+
+        // Manual confirm button handler - chỉ thành công khi SePay đã cập nhật DB
+        async function confirmManualPayment() {
+            try {
+                const btn = document.getElementById("btnConfirmManual");
+                if (btn) { btn.disabled = true; btn.textContent = "Đang kiểm tra..."; }
+
+                const res = await fetch(`/Payment/ConfirmVietQRManual?orderId=${orderId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.success && data.isPaid) {
+                    window.location.href = data.redirectUrl || "/Customer/Profile";
+                } else {
+                    alert(data.message || "Hệ thống chưa nhận được tiền. Vui lòng đợi vài giây và thử lại.");
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Tôi đã chuyển khoản thành công'; }
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Lỗi kết nối. Vui lòng thử lại.");
+                const btn = document.getElementById("btnConfirmManual");
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Tôi đã chuyển khoản thành công'; }
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            startCountdown();
+            pollPaymentStatus();
+        });
+    </script>
+}

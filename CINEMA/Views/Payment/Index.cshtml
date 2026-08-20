@@ -8,395 +8,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-<style>
-    :root {
-        --color-gold: #f0b429;
-        --color-gold-soft: #ffe6a3;
-        --color-crimson: #e0263d;
-        --color-crimson-dark: #b81430;
-        --color-ink: #0c0c10;
-        --color-charcoal: #17171d;
-        --color-charcoal-soft: #201f27;
-        --color-canvas: #edeae2;
-        --color-paper: #ffffff;
-        --color-line: rgba(12, 12, 16, 0.1);
-        --font-display: 'Roboto', sans-serif;
-        --font-body: 'Inter', sans-serif;
-    }
-
-    body {
-        background: var(--color-canvas);
-        font-family: var(--font-body);
-    }
-
-    .checkout-container {
-        max-width: 1120px;
-        margin: 2.5rem auto 4rem;
-    }
-
-    /* ---------- Marquee header ---------- */
-    .checkout-marquee {
-        background: var(--color-ink);
-        border-radius: 18px;
-        padding: 1.75rem 2rem;
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        position: relative;
-        overflow: hidden;
-        border: 1px solid #000;
-    }
-
-    .checkout-marquee::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: repeating-linear-gradient(90deg, var(--color-gold) 0 10px, transparent 10px 22px);
-        opacity: 0.5;
-        height: 4px;
-        top: 0;
-    }
-
-    .checkout-marquee::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: repeating-linear-gradient(90deg, var(--color-gold) 0 10px, transparent 10px 22px);
-        opacity: 0.5;
-        height: 4px;
-        bottom: 0;
-        top: auto;
-    }
-
-    .checkout-marquee-title {
-        font-family: var(--font-display);
-        font-size: 2.1rem;
-        letter-spacing: 1px;
-        color: var(--color-gold-soft);
-        margin: 0;
-        line-height: 1;
-    }
-
-    .checkout-marquee-sub {
-        color: rgba(255,255,255,0.55);
-        font-size: 0.85rem;
-        margin-top: 0.3rem;
-        letter-spacing: 0.2px;
-    }
-
-    .checkout-marquee-icon {
-        width: 46px;
-        height: 46px;
-        border-radius: 50%;
-        background: var(--color-gold);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--color-ink);
-        font-size: 1.3rem;
-        flex: none;
-    }
-
-    /* ---------- Cards ---------- */
-    .checkout-card {
-        background: var(--color-paper);
-        border-radius: 16px;
-        border: 1px solid var(--color-line);
-        overflow: hidden;
-        margin-bottom: 1.25rem;
-    }
-
-    .checkout-card-header {
-        background: var(--color-charcoal);
-        color: var(--color-gold-soft);
-        padding: 0.9rem 1.5rem;
-        font-weight: 700;
-        font-size: 0.8rem;
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
-        display: flex;
-        align-items: center;
-        gap: 9px;
-    }
-
-    .checkout-card-body {
-        padding: 1.5rem;
-    }
-
-    /* ---------- Field grid ---------- */
-    .field-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem 1.25rem;
-    }
-
-    .field-grid .field-full { grid-column: 1 / -1; }
-
-    .field-label {
-        display: block;
-        font-size: 0.7rem;
-        font-weight: 700;
-        letter-spacing: 0.8px;
-        text-transform: uppercase;
-        color: #9a9aa5;
-        margin-bottom: 2px;
-    }
-
-    .field-value {
-        font-weight: 700;
-        color: var(--color-ink);
-        font-size: 0.95rem;
-    }
-
-    /* ---------- Movie strip ---------- */
-    .movie-strip {
-        background: var(--color-ink);
-        border-radius: 14px;
-        padding: 1.25rem 1.5rem;
-        color: #fff;
-        margin-bottom: 1.25rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-    }
-
-    .movie-strip-title {
-        font-family: var(--font-display);
-        font-size: 1.7rem;
-        letter-spacing: 0.5px;
-        color: var(--color-gold-soft);
-        margin: 0;
-        line-height: 1.1;
-    }
-
-    .movie-strip-tag {
-        font-size: 0.72rem;
-        color: rgba(255,255,255,0.45);
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        margin-top: 4px;
-    }
-
-    .movie-strip-reel {
-        font-size: 1.6rem;
-        color: var(--color-gold);
-        flex: none;
-        opacity: 0.85;
-    }
-
-    /* ---------- Seat pills ---------- */
-    .seat-pill {
-        background: #fdf3da;
-        color: #93650a;
-        border: 1px solid #f2dfa3;
-        padding: 3px 11px;
-        border-radius: 8px;
-        font-weight: 800;
-        font-size: 0.82rem;
-        display: inline-block;
-        margin: 0 6px 6px 0;
-    }
-
-    /* ---------- List rows ---------- */
-    .checkout-list-group {
-        border-radius: 12px;
-        overflow: hidden;
-        border: 1px solid var(--color-line);
-    }
-
-    .checkout-list-item {
-        padding: 0.7rem 1rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: var(--color-paper);
-        border-bottom: 1px solid var(--color-line);
-        font-size: 0.9rem;
-    }
-
-    .checkout-list-item:last-child { border-bottom: none; }
-    .checkout-list-item:nth-child(even) { background: #fafaf8; }
-
-    .section-label {
-        font-family: var(--font-display);
-        font-size: 1.05rem;
-        letter-spacing: 0.5px;
-        color: var(--color-charcoal);
-        margin-bottom: 0.65rem;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    /* ---------- Perforation + total ---------- */
-    .ticket-perforation {
-        position: relative;
-        height: 0;
-        border-top: 2px dashed #d8d5cc;
-        margin: 1.5rem 0;
-    }
-
-    .ticket-perforation::before,
-    .ticket-perforation::after {
-        content: "";
-        position: absolute;
-        top: -11px;
-        width: 22px;
-        height: 22px;
-        background: var(--color-canvas);
-        border-radius: 50%;
-    }
-
-    .ticket-perforation::before { left: -1.5rem; }
-    .ticket-perforation::after { right: -1.5rem; }
-
-    .total-price-box {
-        background: var(--color-ink);
-        border-radius: 14px;
-        padding: 1.1rem 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 0.25rem;
-    }
-
-    .total-price-label {
-        color: rgba(255,255,255,0.6);
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        font-weight: 700;
-    }
-
-    .total-price-value {
-        font-family: var(--font-display);
-        font-size: 2rem;
-        color: var(--color-gold);
-        letter-spacing: 0.5px;
-    }
-
-    /* ---------- Right column / payment ---------- */
-    .payment-sticky { position: sticky; top: 1.5rem; }
-
-    .gateway-info {
-        background: #fff7e6;
-        border: 1px solid #f6e3ae;
-        color: #7a5205;
-        border-radius: 12px;
-        padding: 0.85rem 1rem;
-        font-size: 0.83rem;
-        line-height: 1.5;
-        margin-bottom: 1.1rem;
-        display: flex;
-        gap: 10px;
-    }
-
-    .gateway-info i { color: var(--color-gold); margin-top: 2px; }
-
-    .custom-check-box {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 0.7rem 0.9rem;
-        border: 1.5px solid var(--color-line);
-        border-radius: 12px;
-        margin-bottom: 0.75rem;
-        cursor: pointer;
-        transition: border-color 0.15s ease, background 0.15s ease;
-        background: var(--color-paper);
-    }
-
-    .custom-check-box:hover {
-        border-color: var(--color-gold);
-        background: #fffdf5;
-    }
-
-    .custom-check-box input[type="checkbox"] { margin-top: 2px; accent-color: var(--color-crimson); }
-
-    .custom-check-box label {
-        font-size: 0.82rem;
-        color: #55555f;
-        line-height: 1.45;
-        cursor: pointer;
-    }
-
-    .btn-pay-vnpay {
-        background: var(--color-crimson);
-        color: #ffffff;
-        font-weight: 800;
-        font-size: 1.02rem;
-        letter-spacing: 0.3px;
-        padding: 13px 20px;
-        border-radius: 12px;
-        border: none;
-        width: 100%;
-        margin-top: 0.5rem;
-        transition: background 0.15s ease, transform 0.1s ease;
-    }
-
-    .btn-pay-vnpay:hover {
-        background: var(--color-crimson-dark);
-        transform: translateY(-1px);
-        color: #ffffff;
-    }
-
-    .btn-pay-vnpay:active { transform: translateY(0); }
-
-    @@media (max-width: 767px) {
-        .field-grid { grid-template-columns: 1fr; }
-        .payment-sticky { position: static; }
-        .checkout-marquee { flex-direction: column; align-items: flex-start; text-align: left; }
-    }
-
-
-
-    /* ---------- Payment Methods ---------- */
-    .payment-method-box {
-        border: 1.5px solid var(--color-line);
-        border-radius: 12px;
-        padding: 0.85rem 1rem;
-        margin-bottom: 0.75rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        background: var(--color-paper);
-    }
-    .payment-method-box:hover {
-        border-color: var(--color-gold);
-        background: #fffdf5;
-    }
-    .payment-method-box.active {
-        border-color: var(--color-gold);
-        background: #fffdf5;
-        box-shadow: 0 0 0 1px var(--color-gold);
-    }
-    .payment-method-box input[type="radio"] {
-        accent-color: var(--color-crimson);
-        transform: scale(1.15);
-        cursor: pointer;
-    }
-    .payment-method-icon {
-        font-size: 1.6rem;
-    }
-    .payment-method-details {
-        display: flex;
-        flex-direction: column;
-    }
-    .payment-method-name {
-        font-weight: 700;
-        font-size: 0.9rem;
-        color: var(--color-ink);
-    }
-    .payment-method-desc {
-        font-size: 0.75rem;
-        color: #55555f;
-    }
-</style>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/payment/index.css" asp-append-version="true" />
+}
 
 <div class="container checkout-container">
 
@@ -591,7 +205,7 @@
                 <div class="checkout-card">
                     <div class="checkout-card-header"><i class="bi bi-credit-card"></i> Cổng thanh toán</div>
                     <div class="checkout-card-body">
-                        <form asp-controller="Payment" asp-action="Confirm" method="post">
+                        <form asp-controller="Payment" asp-action="Confirm" method="post" id="checkoutPaymentForm">
                             @Html.AntiForgeryToken()
 
                             <input type="hidden" asp-for="MovieId" />
@@ -627,11 +241,20 @@
                                 <p class="section-label mb-2" style="font-size: 0.85rem;"><i class="bi bi-wallet2"></i> Chọn phương thức thanh toán</p>
 
                                 <label class="payment-method-box active" onclick="selectPaymentBox(this)">
-                                    <input type="radio" name="method" value="Chuyển khoản" checked onchange="updatePaymentUI()" />
+                                    <input type="radio" name="method" value="VietQR" checked onchange="updatePaymentUI()" />
+                                    <i class="bi bi-qr-code payment-method-icon text-success"></i>
+                                    <div class="payment-method-details">
+                                        <span class="payment-method-name">Thanh toán VietQR (Thật)</span>
+                                        <span class="payment-method-desc">Quét mã QR tự động xác nhận tức thì (Napas 24/7)</span>
+                                    </div>
+                                </label>
+
+                                <label class="payment-method-box" onclick="selectPaymentBox(this)">
+                                    <input type="radio" name="method" value="Chuyển khoản" onchange="updatePaymentUI()" />
                                     <i class="bi bi-qr-code-scan payment-method-icon text-primary"></i>
                                     <div class="payment-method-details">
                                         <span class="payment-method-name">Ví VNPAY / App Ngân hàng</span>
-                                        <span class="payment-method-desc">Quét mã QR tiện lợi, nhanh chóng</span>
+                                        <span class="payment-method-desc">Cổng thanh toán trực tuyến VNPAY</span>
                                     </div>
                                 </label>
 
@@ -646,7 +269,7 @@
 
                                 <label class="payment-method-box" onclick="selectPaymentBox(this)">
                                     <input type="radio" name="method" value="Tại quầy" onchange="updatePaymentUI()" />
-                                    <i class="bi bi-shop payment-method-icon text-success"></i>
+                                    <i class="bi bi-shop payment-method-icon text-info"></i>
                                     <div class="payment-method-details">
                                         <span class="payment-method-name">Thanh toán tại quầy</span>
                                         <span class="payment-method-desc">Giữ ghế và thanh toán khi đến rạp</span>
@@ -686,98 +309,31 @@
 
 </div>
 
-
-
-
-
+<!-- OVERLAY TRẠNG THÁI CHỜ THANH TOÁN (Modern Glassmorphic Overlay Modal) -->
+<div id="paymentLoadingOverlay" class="payment-loading-overlay">
+    <div class="payment-loading-card">
+        <div class="payment-icon-wrapper mb-3">
+            <div class="payment-icon-pulse"></div>
+            <div class="payment-icon-box" id="paymentLoadingIcon">
+                <i class="bi bi-bank2"></i>
+            </div>
+        </div>
+        <h3 class="payment-loading-title mb-2">Đặt hàng thành công!</h3>
+        <p class="payment-loading-sub mb-4" id="paymentLoadingText">Đang chuyển đến trang thanh toán QR ngân hàng...</p>
+        <div class="payment-progress-container">
+            <div class="payment-progress-bar"></div>
+        </div>
+    </div>
+</div>
 
 @* //NEWWWWWWW *@
 @section Scripts {
     <script>
-        function selectPaymentBox(selectedLabel) {
-            // Xóa class active của tất cả các hộp
-            document.querySelectorAll('.payment-method-box').forEach(box => {
-                box.classList.remove('active');
-            });
-            // Thêm class active cho hộp được chọn
-            selectedLabel.classList.add('active');
-        }
-
-        function updatePaymentUI() {
-            const method = document.querySelector('input[name="method"]:checked').value;
-            const gatewayInfo = document.getElementById('gateway-info-text');
-            const submitBtn = document.getElementById('btn-submit-payment');
-
-            if (method === 'Chuyển khoản') {
-                gatewayInfo.innerHTML = 'Bạn sẽ được chuyển hướng an toàn sang cổng thanh toán trực tuyến <strong>VNPAY</strong> để xác thực tài khoản.';
-                submitBtn.innerHTML = '<i class="bi bi-qr-code-scan me-2"></i>Thanh toán VNPAY';
-                submitBtn.style.backgroundColor = 'var(--color-crimson)';
-            } 
-            else if (method === 'Online') {
-                gatewayInfo.innerHTML = 'Bạn sẽ được chuyển hướng sang cổng thanh toán <strong>Stripe</strong>. Hỗ trợ thẻ tín dụng và ghi nợ quốc tế an toàn.';
-                submitBtn.innerHTML = '<i class="bi bi-credit-card-fill me-2"></i>Thanh toán Stripe';
-                submitBtn.style.backgroundColor = '#635BFF'; // Màu tím đặc trưng của Stripe
-            } 
-            else {
-                gatewayInfo.innerHTML = 'Bạn đã chọn giữ chỗ. Vui lòng đến rạp trước <strong>15 phút</strong> so với giờ chiếu để thanh toán tiền mặt hoặc quẹt thẻ.';
-                submitBtn.innerHTML = '<i class="bi bi-shop me-2"></i>Xác nhận giữ vé';
-                submitBtn.style.backgroundColor = '#198754'; // Màu xanh lá
-            }
-        }
-
-        async function applyCheckoutVoucher() {
-            const codeInput = document.getElementById("checkoutVoucherCode");
-            const code = codeInput.value.trim();
-            const message = document.getElementById("checkoutVoucherMessage");
-
-            if (!code) {
-                message.innerText = "❌ Vui lòng nhập mã voucher";
-                message.className = "mt-2 small fw-semibold text-danger";
-                return;
-            }
-
-            message.innerText = "⏳ Đang kiểm tra...";
-            message.className = "mt-2 small fw-semibold text-warning";
-
-            // Tính toán các giá trị số từ Model
-            const originalPrice = parseFloat("@Model.OriginalPrice");
-            const membershipDiscount = parseFloat("@Model.MembershipDiscountAmount");
-            const priceAfterMembership = originalPrice - membershipDiscount;
-            const comboTotal = parseFloat("@(Model.Combos?.Sum(c => c.Price * c.Quantity) ?? 0)");
-
-            try {
-                let res = await fetch(`/Home/CheckVoucher?code=${encodeURIComponent(code)}&total=${priceAfterMembership}&comboTotal=${comboTotal}`);
-                let data = await res.json();
-
-                if (!data.success) {
-                    message.innerText = "❌ " + data.message;
-                    message.className = "mt-2 small fw-semibold text-danger";
-                    return;
-                }
-
-                // Cập nhật các input ẩn của Form để gửi lên server khi submit
-                document.getElementById("VoucherCode").value = code;
-                
-                const finalTotal = priceAfterMembership - data.discount;
-                document.getElementById("TotalPrice").value = finalTotal < 0 ? 0 : finalTotal;
-
-                // Cập nhật giao diện chi tiết thanh toán và tổng số tiền
-                document.getElementById("row-voucher-discount").style.display = "flex";
-                document.getElementById("disp-voucher-code").innerText = code;
-                document.getElementById("disp-voucher-discount").innerText = "-" + data.discount.toLocaleString("vi-VN") + " ₫";
-                document.getElementById("disp-total-price").innerText = (finalTotal < 0 ? 0 : finalTotal).toLocaleString("vi-VN") + " ₫";
-
-                let msgHtml = "✅ Áp dụng voucher thành công! Được giảm " + data.discount.toLocaleString("vi-VN") + "đ";
-                if (data.terms) {
-                    msgHtml += `<div class="text-muted mt-1" style="font-size: 0.8rem; line-height: 1.4;"><i class="bi bi-info-circle"></i> Điều kiện: ${data.terms.replace(/\n/g, '<br/>')}</div>`;
-                }
-                message.innerHTML = msgHtml;
-                message.className = "mt-2 small fw-semibold text-success";
-            } catch (err) {
-                console.error(err);
-                message.innerText = "❌ Lỗi hệ thống khi kiểm tra voucher";
-                message.className = "mt-2 small fw-semibold text-danger";
-            }
-        }
+        window.PaymentIndexConfig = {
+            originalPrice: "@Model.OriginalPrice",
+            membershipDiscountAmount: "@Model.MembershipDiscountAmount",
+            comboTotal: "@(Model.Combos?.Sum(c => c.Price * c.Quantity) ?? 0)"
+        };
     </script>
+    <script src="~/js/pages/payment/index.js" asp-append-version="true"></script>
 }

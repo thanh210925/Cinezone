@@ -1,0 +1,137 @@
+/* Custom Styling for CineZone Theaters System Page */
+
+.text-gradient-danger {
+    background: linear-gradient(135deg, #e50914 0%, #ff5252 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.max-w-700 {
+    max-width: 700px;
+}
+
+.title-underline {
+    box-shadow: 0 0 12px rgba(229, 9, 20, 0.6);
+}
+
+/* City Filter Buttons */
+.btn-city-filter {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #e0e0e0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50px;
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-city-filter:hover {
+    background-color: rgba(229, 9, 20, 0.15);
+    color: #fff;
+    border-color: rgba(229, 9, 20, 0.5);
+    transform: translateY(-1px);
+}
+
+.btn-city-filter.active {
+    background: linear-gradient(135deg, #e50914 0%, #b20710 100%);
+    color: #fff;
+    border-color: #e50914;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
+}
+
+/* Leaflet Map Customization */
+#cinezone-map {
+    border-radius: 0 0 1rem 1rem;
+}
+
+.custom-map-pin {
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pin-pulse {
+    width: 36px;
+    height: 36px;
+    background: #e50914;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.3);
+    animation: pinPulse 2s infinite;
+    cursor: pointer;
+}
+
+@keyframes pinPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(229, 9, 20, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 12px rgba(229, 9, 20, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(229, 9, 20, 0);
+    }
+}
+
+/* Card Theater Hover */
+.card-theater-hover {
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.card-theater-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+    border-color: rgba(229, 9, 20, 0.4) !important;
+}
+
+/* Image Thumbnails */
+.theater-thumb-wrapper {
+    background-color: #111;
+}
+
+.theater-thumb-img {
+    transition: transform 0.5s ease;
+}
+
+.card-theater-hover:hover .theater-thumb-img {
+    transform: scale(1.06);
+}
+
+/* Gallery Grid Items */
+.gallery-card {
+    height: 160px;
+    background-color: #1a1e29;
+}
+
+.gallery-img {
+    transition: transform 0.4s ease;
+}
+
+.gallery-card:hover .gallery-img {
+    transform: scale(1.08);
+}
+
+.gallery-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 12px;
+    background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+}
+
+/* Transitions */
+.transition-transform {
+    transition: transform 0.3s ease;
+}
+
+.rotate-180 {
+    transform: rotate(180deg);
+}

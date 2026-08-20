@@ -5,84 +5,7 @@
 }
 
 @section Styles {
-    <link rel="stylesheet" href="~/css/revenue-dashboard.css" />
-    <style>
-        /* CSS nội bộ hỗ trợ các yếu tố Glassmorphism & Visual Premium */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: 16px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .glass-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
-        }
-        .gradient-primary {
-            background: linear-gradient(135deg, #0d6efd 0%, #00d2ff 100%);
-            color: white;
-        }
-        .gradient-success {
-            background: linear-gradient(135deg, #198754 0%, #56ab2f 100%);
-            color: white;
-        }
-        .gradient-warning {
-            background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
-            color: white;
-        }
-        .gradient-danger {
-            background: linear-gradient(135deg, #dc3545 0%, #ff758c 100%);
-            color: white;
-        }
-        .gradient-purple {
-            background: linear-gradient(135deg, #6f42c1 0%, #b883ff 100%);
-            color: white;
-        }
-        .nav-pills-premium {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            padding: 5px;
-            border-radius: 30px;
-        }
-        .nav-pills-premium .nav-link {
-            border-radius: 25px;
-            color: #5a626a;
-            font-weight: 600;
-            padding: 8px 20px;
-            transition: all 0.25s ease;
-        }
-        .nav-pills-premium .nav-link:hover {
-            color: #0d6efd;
-            background: rgba(13, 110, 253, 0.05);
-        }
-        .nav-pills-premium .nav-link.active {
-            background: linear-gradient(90deg, #0d6efd 0%, #0284c7 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.2);
-        }
-        .table-premium th {
-            background-color: #f8f9fa;
-            font-weight: 700;
-            text-transform: uppercase;
-            font-size: 0.78rem;
-            color: #495057;
-            letter-spacing: 0.6px;
-            border-bottom: 2px solid #eef2f5;
-        }
-        .table-premium td {
-            font-size: 0.9rem;
-            padding: 14px 16px;
-        }
-        .badge-vip {
-            background: linear-gradient(135deg, #f2b705 0%, #d4af37 100%);
-            color: #12141c;
-            font-weight: 700;
-            text-shadow: 0 1px 1px rgba(255,255,255,0.3);
-        }
-    </style>
+    <link rel="stylesheet" href="~/css/pages/statistics/index.css" asp-append-version="true" />
 }
 
 <div class="container-fluid py-4">
@@ -751,439 +674,70 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- Đồng bộ hóa bộ lọc nhanh theo tháng và hai date input -->
     <script>
-        document.getElementById('quickMonthFilter').addEventListener('change', function() {
-            const selectedMonthValue = this.value; // Dạng "YYYY-MM"
-            if (!selectedMonthValue) return;
+        window.StatisticsIndexConfig = {
+            labelsByDate: @Html.Raw(Json.Serialize(Model.LabelsByDate)),
+            revenueByDate: @Html.Raw(Json.Serialize(Model.RevenueByDate)),
+            ticketCountByDate: @Html.Raw(Json.Serialize(Model.TicketCountByDate)),
 
-            const [year, month] = selectedMonthValue.split('-').map(Number);
-            const fromDate = `${year}-${String(month).padStart(2, '0')}-01`;
-            const lastDay = new Date(year, month, 0).getDate();
-            const toDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+            labelsByMonth: @Html.Raw(Json.Serialize(Model.LabelsByMonth)),
+            revenueByMonth: @Html.Raw(Json.Serialize(Model.RevenueByMonth)),
+            ticketCountByMonth: @Html.Raw(Json.Serialize(Model.TicketCountByMonth)),
 
-            document.getElementById('inputFrom').value = fromDate;
-            document.getElementById('inputTo').value = toDate;
-            document.getElementById('filterForm').submit();
-        });
+            labelsByYear: @Html.Raw(Json.Serialize(Model.LabelsByYear)),
+            revenueByYear: @Html.Raw(Json.Serialize(Model.RevenueByYear)),
+            ticketCountByYear: @Html.Raw(Json.Serialize(Model.TicketCountByYear)),
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const fromVal = document.getElementById('inputFrom').value;
-            const toVal = document.getElementById('inputTo').value;
+            movieLabels: @Html.Raw(Json.Serialize(Model.MovieLabels)),
+            revenueByMovie: @Html.Raw(Json.Serialize(Model.RevenueByMovie)),
+            ticketData: @Html.Raw(Json.Serialize(Model.TicketsByMovie)),
 
-            if (fromVal && toVal) {
-                const fromPrefix = fromVal.substring(0, 7);
-                const toPrefix = toVal.substring(0, 7);
+            showtimeLabels: @Html.Raw(Json.Serialize(Model.ShowtimeLabels)),
+            revenueByShowtime: @Html.Raw(Json.Serialize(Model.RevenueByShowtime)),
 
-                if (fromPrefix === toPrefix && fromVal.endsWith('-01')) {
-                    const selectElement = document.getElementById('quickMonthFilter');
-                    const option = selectElement.querySelector(`option[value="${fromPrefix}"]`);
-                    if(option) {
-                        selectElement.value = fromPrefix;
-                    }
-                }
-            }
-        });
+            comboPieLabels: @Html.Raw(Json.Serialize(Model.ComboPieLabels)),
+            comboPieValues: @Html.Raw(Json.Serialize(Model.ComboPieValues)),
 
-        // Tự động submit form khi chọn rạp hoặc phim từ dropdown
-        const selectFilters = document.querySelectorAll('#filterForm select[name="theaterId"], #filterForm select[name="movieId"]');
-        selectFilters.forEach(sel => {
-            sel.addEventListener('change', () => {
-                document.getElementById('filterForm').submit();
-            });
-        });
+            theaterLabels: @Html.Raw(Json.Serialize(Model.TheaterRevenues.Select(t => t.TheaterName))),
+            theaterRevenueData: @Html.Raw(Json.Serialize(Model.TheaterRevenues.Select(t => t.TotalRevenue))),
+
+            peakHoursLabels: @Html.Raw(Json.Serialize(Model.PeakHours.Select(p => p.TimeSlot))),
+            peakHoursTickets: @Html.Raw(Json.Serialize(Model.PeakHours.Select(p => p.TicketCount))),
+            peakHoursRevenue: @Html.Raw(Json.Serialize(Model.PeakHours.Select(p => p.Revenue))),
+
+            peakDaysLabels: @Html.Raw(Json.Serialize(Model.PeakDays.Select(p => p.DayOfWeek))),
+            peakDaysTickets: @Html.Raw(Json.Serialize(Model.PeakDays.Select(p => p.TicketCount))),
+            peakDaysRevenue: @Html.Raw(Json.Serialize(Model.PeakDays.Select(p => p.Revenue))),
+
+            paymentMethodLabels: @Html.Raw(Json.Serialize(Model.PaymentMethodStats.Select(p => p.PaymentMethod))),
+            paymentMethodValues: @Html.Raw(Json.Serialize(Model.PaymentMethodStats.Select(p => p.TotalRevenue))),
+
+            avgOrderValueToday: @Model.AvgOrderValueToday,
+            avgOrderValueMonth: @Model.AvgOrderValueMonth,
+            avgOrderValueQuarter: @Model.AvgOrderValueQuarter,
+            avgOrderValueYear: @Model.AvgOrderValueYear,
+
+            revenueLastMonth: @Model.RevenueLastMonth,
+            revenueCurrentMonth: @Model.RevenueCurrentMonth,
+
+            topComboLabels: @Html.Raw(Json.Serialize(Model.TopComboLabels)),
+            topComboValues: @Html.Raw(Json.Serialize(Model.TopComboValues)),
+            topRevenueComboLabels: @Html.Raw(Json.Serialize(Model.TopRevenueComboLabels)),
+            topRevenueComboValues: @Html.Raw(Json.Serialize(Model.TopRevenueComboValues)),
+
+            voucherLabels: @Html.Raw(Json.Serialize(Model.VoucherLabels)),
+            voucherValues: @Html.Raw(Json.Serialize(Model.VoucherValues)),
+
+            netRevenue: @Model.NetRevenue,
+            ticketRevenue: @Model.TicketRevenue,
+            grossComboRevenue: @Model.GrossComboRevenue,
+            totalDiscount: @Model.TotalDiscount,
+            totalTickets: @Model.TotalTickets,
+            comboSold: @Model.ComboSold,
+
+            theaterRevenuesList: @Html.Raw(Json.Serialize(Model.TheaterRevenues.Select(r => new { r.TheaterName, r.TicketsSold, r.TicketRevenue, r.ComboRevenue, r.TotalRevenue, r.OccupancyRate }))),
+            topCustomersList: @Html.Raw(Json.Serialize(Model.TopCustomers.Select(c => new { c.FullName, c.Email, c.Phone, c.MembershipLevel, c.TicketsBooked, c.TotalSpent })))
+        };
     </script>
-
-    <!-- KHỞI TẠO BIỂU ĐỒ CHART.JS -->
-    <script>
-        // Lấy dữ liệu serialize từ Model C#
-        const labelsByDate = @Html.Raw(Json.Serialize(Model.LabelsByDate));
-        const revenueByDate = @Html.Raw(Json.Serialize(Model.RevenueByDate));
-        const ticketCountByDate = @Html.Raw(Json.Serialize(Model.TicketCountByDate));
-
-        const labelsByMonth = @Html.Raw(Json.Serialize(Model.LabelsByMonth));
-        const revenueByMonth = @Html.Raw(Json.Serialize(Model.RevenueByMonth));
-        const ticketCountByMonth = @Html.Raw(Json.Serialize(Model.TicketCountByMonth));
-
-        const labelsByYear = @Html.Raw(Json.Serialize(Model.LabelsByYear));
-        const revenueByYear = @Html.Raw(Json.Serialize(Model.RevenueByYear));
-        const ticketCountByYear = @Html.Raw(Json.Serialize(Model.TicketCountByYear));
-
-        const movieLabels = @Html.Raw(Json.Serialize(Model.MovieLabels));
-        const revenueByMovie = @Html.Raw(Json.Serialize(Model.RevenueByMovie));
-        const ticketData = @Html.Raw(Json.Serialize(Model.TicketsByMovie));
-
-        const showtimeLabels = @Html.Raw(Json.Serialize(Model.ShowtimeLabels));
-        const revenueByShowtime = @Html.Raw(Json.Serialize(Model.RevenueByShowtime));
-
-        const comboPieLabels = @Html.Raw(Json.Serialize(Model.ComboPieLabels));
-        const comboPieValues = @Html.Raw(Json.Serialize(Model.ComboPieValues));
-
-        // Dữ liệu rạp chiếu
-        const theaterLabels = @Html.Raw(Json.Serialize(Model.TheaterRevenues.Select(t => t.TheaterName)));
-        const theaterRevenueData = @Html.Raw(Json.Serialize(Model.TheaterRevenues.Select(t => t.TotalRevenue)));
-
-        // Dữ liệu khung giờ & ngày vàng
-        const peakHoursLabels = @Html.Raw(Json.Serialize(Model.PeakHours.Select(p => p.TimeSlot)));
-        const peakHoursTickets = @Html.Raw(Json.Serialize(Model.PeakHours.Select(p => p.TicketCount)));
-        const peakHoursRevenue = @Html.Raw(Json.Serialize(Model.PeakHours.Select(p => p.Revenue)));
-
-        const peakDaysLabels = @Html.Raw(Json.Serialize(Model.PeakDays.Select(p => p.DayOfWeek)));
-        const peakDaysTickets = @Html.Raw(Json.Serialize(Model.PeakDays.Select(p => p.TicketCount)));
-        const peakDaysRevenue = @Html.Raw(Json.Serialize(Model.PeakDays.Select(p => p.Revenue)));
-
-        // Dữ liệu thanh toán
-        const paymentMethodLabels = @Html.Raw(Json.Serialize(Model.PaymentMethodStats.Select(p => p.PaymentMethod)));
-        const paymentMethodValues = @Html.Raw(Json.Serialize(Model.PaymentMethodStats.Select(p => p.TotalRevenue)));
-
-        // Helper tạo biểu đồ doanh số kết hợp đường và cột
-        function createMixedChart(id, labels, data1, data2) {
-            new Chart(document.getElementById(id), {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { 
-                            label: 'Doanh thu (₫)', 
-                            data: data1, 
-                            yAxisID: 'y', 
-                            backgroundColor: 'rgba(13, 110, 253, 0.85)', 
-                            borderRadius: 6, 
-                            maxBarThickness: 45 
-                        },
-                        { 
-                            label: 'Số vé bán', 
-                            data: data2, 
-                            type: 'line', 
-                            yAxisID: 'y1', 
-                            borderColor: '#ff8c00', 
-                            backgroundColor: 'rgba(255, 140, 0, 0.1)',
-                            borderWidth: 3, 
-                            tension: 0.3,
-                            fill: false
-                        }
-                    ]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top', labels: { boxWidth: 15, font: { weight: 600 } } }
-                    },
-                    scales: {
-                        y: { position: 'left', grid: { drawOnChartArea: true } },
-                        y1: { position: 'right', grid: { drawOnChartArea: false } }
-                    }
-                }
-            });
-        }
-
-        // Khởi tạo các biểu đồ chính
-        createMixedChart("revenueByDateChart", labelsByDate, revenueByDate, ticketCountByDate);
-        createMixedChart("revenueByMonthChart", labelsByMonth, revenueByMonth, ticketCountByMonth);
-        createMixedChart("revenueByYearChart", labelsByYear, revenueByYear, ticketCountByYear);
-
-        // Biểu đồ hình tròn tỷ trọng phương thức thanh toán
-        new Chart(document.getElementById("paymentMethodChart"), {
-            type: 'doughnut',
-            data: {
-                labels: paymentMethodLabels,
-                datasets: [{
-                    data: paymentMethodValues,
-                    backgroundColor: ['#20c997', '#0d6efd', '#fd7e14', '#6c757d'],
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right', labels: { boxWidth: 12 } }
-                },
-                cutout: '65%'
-            }
-        });
-
-        // Biểu đồ phim doanh thu
-        new Chart(document.getElementById("movieRevenueChart"), {
-            type: 'bar',
-            data: {
-                labels: movieLabels,
-                datasets: [{ 
-                    label: 'Doanh thu phim (₫)', 
-                    data: revenueByMovie, 
-                    backgroundColor: 'rgba(25, 135, 84, 0.85)', 
-                    borderRadius: 6, 
-                    maxBarThickness: 45 
-                }]
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } }
-            }
-        });
-
-        // Biểu đồ so sánh lượng vé phim
-        new Chart(document.getElementById("ticketComparisonChart"), {
-            type: 'doughnut',
-            data: {
-                labels: movieLabels,
-                datasets: [{ 
-                    data: ticketData, 
-                    backgroundColor: ['#0dcaf0', '#6f42c1', '#fd7e14', '#20c997', '#ffc107'],
-                    hoverOffset: 6 
-                }]
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false, 
-                plugins: { legend: { position: 'bottom' } } 
-            }
-        });
-
-        // Biểu đồ cột so sánh AOV
-        new Chart(document.getElementById("aovChart"), {
-            type: 'bar',
-            data: {
-                labels: ['Hôm nay', 'Tháng này', 'Quý này', 'Năm nay'],
-                datasets: [{
-                    label: 'AOV (VND)',
-                    data: [@Model.AvgOrderValueToday, @Model.AvgOrderValueMonth, @Model.AvgOrderValueQuarter, @Model.AvgOrderValueYear],
-                    backgroundColor: ['#f06292', '#4fc3f7', '#fff176', '#4db6ac'],
-                    borderRadius: 6,
-                    maxBarThickness: 45
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-
-        // So sánh 2 tháng
-        new Chart(document.getElementById("monthCompareChart"), {
-            type: 'bar',
-            data: {
-                labels: ['Tháng trước', 'Tháng này'],
-                datasets: [{
-                    label: 'Doanh thu (VND)',
-                    data: [@Model.RevenueLastMonth, @Model.RevenueCurrentMonth],
-                    backgroundColor: ['#adb5bd', '#198754'],
-                    borderRadius: 6,
-                    maxBarThickness: 50
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-
-        // Doanh thu theo suất chiếu
-        new Chart(document.getElementById("showtimeRevenueChart"), {
-            type: 'bar',
-            data: {
-                labels: showtimeLabels,
-                datasets: [{ 
-                    label: 'Doanh thu vé (₫)', 
-                    data: revenueByShowtime, 
-                    backgroundColor: 'rgba(111, 66, 193, 0.85)', 
-                    borderRadius: 6, 
-                    maxBarThickness: 45 
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-
-        // Biểu đồ so sánh Rạp chiếu
-        new Chart(document.getElementById("theaterComparisonChart"), {
-            type: 'bar',
-            data: {
-                labels: theaterLabels,
-                datasets: [{ 
-                    label: 'Tổng doanh thu (₫)', 
-                    data: theaterRevenueData, 
-                    backgroundColor: 'rgba(239, 68, 68, 0.85)', 
-                    borderRadius: 6, 
-                    maxBarThickness: 45 
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-
-        // Biểu đồ Khung Giờ Vàng
-        new Chart(document.getElementById("peakHoursChart"), {
-            type: 'bar',
-            data: {
-                labels: peakHoursLabels,
-                datasets: [
-                    { 
-                        label: 'Số lượng vé đặt', 
-                        data: peakHoursTickets, 
-                        yAxisID: 'y', 
-                        backgroundColor: '#0dcaf0', 
-                        borderRadius: 4 
-                    },
-                    { 
-                        label: 'Doanh thu (₫)', 
-                        data: peakHoursRevenue, 
-                        type: 'line', 
-                        yAxisID: 'y1', 
-                        borderColor: '#6f42c1', 
-                        borderWidth: 2, 
-                        tension: 0.3,
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { position: 'left' },
-                    y1: { position: 'right', grid: { drawOnChartArea: false } }
-                }
-            }
-        });
-
-        // Biểu đồ Ngày Vàng trong tuần
-        new Chart(document.getElementById("peakDaysChart"), {
-            type: 'line',
-            data: {
-                labels: peakDaysLabels,
-                datasets: [
-                    { 
-                        label: 'Doanh thu bán vé (₫)', 
-                        data: peakDaysRevenue, 
-                        borderColor: '#198754', 
-                        backgroundColor: 'rgba(25, 135, 84, 0.05)',
-                        borderWidth: 3, 
-                        tension: 0.3,
-                        fill: true
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-
-        // Biểu đồ Combo bán chạy & doanh thu
-        new Chart(document.getElementById('topComboChart'), {
-            type: 'bar',
-            data: {
-                labels: @Html.Raw(Json.Serialize(Model.TopComboLabels)),
-                datasets: [{ 
-                    label: 'Số lượng bán', 
-                    data: @Html.Raw(Json.Serialize(Model.TopComboValues)), 
-                    backgroundColor: '#0d6efd', 
-                    borderRadius: 6, 
-                    maxBarThickness: 45 
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-        });
-
-        new Chart(document.getElementById('topRevenueComboChart'), {
-            type: 'bar',
-            data: {
-                labels: @Html.Raw(Json.Serialize(Model.TopRevenueComboLabels)),
-                datasets: [{ 
-                    label: 'Doanh thu (₫)', 
-                    data: @Html.Raw(Json.Serialize(Model.TopRevenueComboValues)), 
-                    backgroundColor: '#56ab2f', 
-                    borderRadius: 6, 
-                    maxBarThickness: 45 
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-        });
-
-        new Chart(document.getElementById("comboPieChart"), {
-            type: 'pie',
-            data: {
-                labels: comboPieLabels,
-                datasets: [{ data: comboPieValues, backgroundColor: ['#0d6efd', '#20c997', '#fd7e14', '#e91e63', '#adb5bd'], hoverOffset: 4 }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-        });
-
-        // Voucher chart
-        const voucherCtx = document.getElementById('voucherChart');
-        if (voucherCtx) {
-            new Chart(voucherCtx, {
-                type: 'bar',
-                data: {
-                    labels: @Html.Raw(Json.Serialize(Model.VoucherLabels)),
-                    datasets: [{ 
-                        label: 'Lượt sử dụng', 
-                        data: @Html.Raw(Json.Serialize(Model.VoucherValues)), 
-                        backgroundColor: '#e91e63', 
-                        borderRadius: 6, 
-                        maxBarThickness: 45 
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
-    </script>
-
-    <!-- SCRIPT XUẤT CSV TIẾNG VIỆT CHUẨN UTF-8 BOM -->
-    <script>
-        function exportToCSV() {
-            let csvContent = "\uFEFF"; // Thêm Byte Order Mark (BOM) để Excel đọc đúng tiếng Việt
-            
-            // Header báo cáo
-            csvContent += "BÁO CÁO THỐNG KÊ DOANH THU CINEZONE\r\n";
-            csvContent += "Thời gian:," + (document.getElementById('inputFrom').value || "Toàn thời gian") + " - " + (document.getElementById('inputTo').value || "Toàn thời gian") + "\r\n\r\n";
-
-            // Phần 1: Các chỉ số tài chính cơ bản
-            csvContent += "1. TỔNG QUAN CHỈ SỐ TÀI CHÍNH\r\n";
-            csvContent += "Chỉ số,Giá trị\r\n";
-            csvContent += "Doanh thu thuần (Thực nhận)," + @Model.NetRevenue + " ₫\r\n";
-            csvContent += "Doanh thu bán Vé gộp," + @Model.TicketRevenue + " ₫\r\n";
-            csvContent += "Doanh thu bán Combo gộp," + @Model.GrossComboRevenue + " ₫\r\n";
-            csvContent += "Khấu hao giảm giá Voucher," + @Model.TotalDiscount + " ₫\r\n";
-            csvContent += "Tổng số vé bán ra," + @Model.TotalTickets + "\r\n";
-            csvContent += "Tổng số combo bán ra," + @Model.ComboSold + "\r\n\r\n";
-
-            // Phần 2: Hiệu suất rạp chi nhánh
-            csvContent += "2. HIỆU SUẤT THEO RẠP CHIẾU\r\n";
-            csvContent += "Tên rạp,Số vé đã bán,Doanh thu vé,Doanh thu Combo,Tổng doanh số,Tỷ lệ lấp đầy\r\n";
-            @foreach (var r in Model.TheaterRevenues)
-            {
-                <text>
-                csvContent += "\"@r.TheaterName\",@r.TicketsSold,@r.TicketRevenue,@r.ComboRevenue,@r.TotalRevenue,@r.OccupancyRate%\r\n";
-                </text>
-            }
-            csvContent += "\r\n";
-
-            // Phần 3: Phân tích theo phim
-            csvContent += "3. DOANH THU THEO PHIM\r\n";
-            csvContent += "Tên phim,Doanh thu gộp,Số vé bán ra\r\n";
-            for(let i = 0; i < movieLabels.length; i++) {
-                csvContent += "\"" + movieLabels[i] + "\"," + revenueByMovie[i] + "," + ticketData[i] + "\r\n";
-            }
-            csvContent += "\r\n";
-
-            // Phần 4: VIP Customers
-            csvContent += "4. TOP KHÁCH HÀNG THÂN THIẾT\r\n";
-            csvContent += "Họ tên,Email,Số điện thoại,Hạng thành viên,Số vé đã đặt,Tổng chi tiêu thực nhận\r\n";
-            @foreach (var c in Model.TopCustomers)
-            {
-                <text>
-                csvContent += "\"@c.FullName\",\"@c.Email\",\"@c.Phone\",\"@c.MembershipLevel\",@c.TicketsBooked,@c.TotalSpent\r\n";
-                </text>
-            }
-            csvContent += "\r\n";
-
-            // Tạo download link
-            let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            let link = document.createElement("a");
-            let url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", "CineZone_BaoCaoDoanhThu_" + new Date().toISOString().slice(0, 10) + ".csv");
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-    </script>
+    <script src="~/js/pages/statistics/index.js" asp-append-version="true"></script>
 }

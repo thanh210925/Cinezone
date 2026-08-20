@@ -1,0 +1,77 @@
+@import url('/css/pages/statistics/revenue-dashboard.css');
+
+/* CSS nội bộ hỗ trợ các yếu tố Glassmorphism & Visual Premium */
+.glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glass-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+}
+.gradient-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #00d2ff 100%);
+    color: white;
+}
+.gradient-success {
+    background: linear-gradient(135deg, #198754 0%, #56ab2f 100%);
+    color: white;
+}
+.gradient-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
+    color: white;
+}
+.gradient-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #ff758c 100%);
+    color: white;
+}
+.gradient-purple {
+    background: linear-gradient(135deg, #6f42c1 0%, #b883ff 100%);
+    color: white;
+}
+.nav-pills-premium {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    padding: 5px;
+    border-radius: 30px;
+}
+.nav-pills-premium .nav-link {
+    border-radius: 25px;
+    color: #5a626a;
+    font-weight: 600;
+    padding: 8px 20px;
+    transition: all 0.25s ease;
+}
+.nav-pills-premium .nav-link:hover {
+    color: #0d6efd;
+    background: rgba(13, 110, 253, 0.05);
+}
+.nav-pills-premium .nav-link.active {
+    background: linear-gradient(90deg, #0d6efd 0%, #0284c7 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.2);
+}
+.table-premium th {
+    background-color: #f8f9fa;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    color: #495057;
+    letter-spacing: 0.6px;
+    border-bottom: 2px solid #eef2f5;
+}
+.table-premium td {
+    font-size: 0.9rem;
+    padding: 14px 16px;
+}
+.badge-vip {
+    background: linear-gradient(135deg, #f2b705 0%, #d4af37 100%);
+    color: #12141c;
+    font-weight: 700;
+    text-shadow: 0 1px 1px rgba(255,255,255,0.3);
+}

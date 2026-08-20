@@ -1,4 +1,4 @@
-﻿@model CINEMA.ViewModels.RevenueDashboardViewModel
+@model CINEMA.ViewModels.RevenueDashboardViewModel
 @{
     ViewData["Title"] = "Thống kê chuyên sâu";
     Layout = "_AdminLayout";
@@ -83,205 +83,23 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    // 1. KHAI BÁO BIẾN TOÀN CỤC (QUAN TRỌNG)
-    let cinemaChart, movieChart, ticketsByDateChart, ticketsByMonthChart, ticketsByYearChart;
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        window.AdvancedStatsConfig = {
+            cinemaLabels: @Html.Raw(Json.Serialize(Model.CinemaLabels)),
+            cinemaRevenue: @Html.Raw(Json.Serialize(Model.CinemaRevenue)),
+            labelsByDate: @Html.Raw(Json.Serialize(Model.LabelsByDate)),
+            ticketCountByDate: @Html.Raw(Json.Serialize(Model.TicketCountByDate)),
+            labelsByMonth: @Html.Raw(Json.Serialize(Model.LabelsByMonth)),
+            ticketCountByMonth: @Html.Raw(Json.Serialize(Model.TicketCountByMonth)),
+            labelsByYear: @Html.Raw(Json.Serialize(Model.LabelsByYear)),
+            ticketCountByYear: @Html.Raw(Json.Serialize(Model.TicketCountByYear))
+        };
+    </script>
+    <script src="~/js/pages/statistics/advancedstats.js" asp-append-version="true"></script>
+}
 
-    window.onload = function() {
-    // Cấu hình chung cho biểu đồ cột: vừa mảnh, vừa cố định trục Y ở 20
-    const barOptions = {
-    barPercentage: 0.4,
-    categoryPercentage: 0.5,
-    scales: {
-    y: {
-    beginAtZero: true,
-    max: 20, // Cố định đỉnh biểu đồ tại 20
-    ticks: {
-    stepSize: 2 // Nhảy cách 2 đơn vị cho dễ đọc
-    }
-    }
-    }
-    };
-
-    // 1. Biểu đồ Rạp
-    cinemaChart = new Chart(document.getElementById("cinemaChart"), {
-    type: 'bar',
-    data: {
-    labels: @Html.Raw(Json.Serialize(Model.CinemaLabels)),
-    datasets: [{ label: 'Số vé', data: @Html.Raw(Json.Serialize(Model.CinemaRevenue)), backgroundColor: '#3b82f6' }]
-    },
-    options: barOptions
-    });
-
-    // 2. Các biểu đồ Số vé (Date, Month, Year)
-    ticketsByDateChart = new Chart(document.getElementById("ticketsByDateChart"), {
-    type: 'bar',
-    data: { labels: @Html.Raw(Json.Serialize(Model.LabelsByDate)), datasets: [{ label: 'Số vé', data: @Html.Raw(Json.Serialize(Model.TicketCountByDate)), backgroundColor: '#10b981' }] },
-    options: barOptions
-    });
-
-    ticketsByMonthChart = new Chart(document.getElementById("ticketsByMonthChart"), {
-    type: 'bar',
-    data: { labels: @Html.Raw(Json.Serialize(Model.LabelsByMonth)), datasets: [{ label: 'Số vé', data: @Html.Raw(Json.Serialize(Model.TicketCountByMonth)), backgroundColor: '#8b5cf6' }] },
-    options: barOptions
-    });
-
-    ticketsByYearChart = new Chart(document.getElementById("ticketsByYearChart"), {
-    type: 'bar',
-    data: { labels: @Html.Raw(Json.Serialize(Model.LabelsByYear)), datasets: [{ label: 'Số vé', data: @Html.Raw(Json.Serialize(Model.TicketCountByYear)), backgroundColor: '#f59e0b' }] },
-    options: barOptions
-    });
-
-    loadMovieData();
-    };
-
-    const labelsByDate = @Html.Raw(Json.Serialize(Model.LabelsByDate));
-    const ticketCountByDate = @Html.Raw(Json.Serialize(Model.TicketCountByDate));
-
-    const labelsByMonth = @Html.Raw(Json.Serialize(Model.LabelsByMonth));
-    const ticketCountByMonth = @Html.Raw(Json.Serialize(Model.TicketCountByMonth));
-
-    const labelsByYear = @Html.Raw(Json.Serialize(Model.LabelsByYear));
-    const ticketCountByYear = @Html.Raw(Json.Serialize(Model.TicketCountByYear));
-    // Hàm gọi AJAX cho Rạp
-    async function loadTheaterData() {
-    const tId = document.querySelector('select[name="tId"]').value;
-    const response = await fetch('/Statistics/GetTheaterData?tId=' + tId);
-    const data = await response.json();
-    cinemaChart.data.labels = data.labels;
-    cinemaChart.data.datasets[0].data = data.values;
-    cinemaChart.update();
-    }
-
-    async function loadMovieData() {
-    const mId = document.getElementById("movieSelect").value;
-
-    // Chỉ gửi mId vì Controller của bạn hiện tại không nhận tId2 nữa
-    const response = await fetch(`/Statistics/GetMovieTicketData?mId=${mId}`);
-    const data = await response.json();
-
-    // Hủy biểu đồ cũ để tránh chồng chéo khi update
-    if (movieChart) {
-    movieChart.destroy();
-    }
-
-    // Vẽ lại biểu đồ
-    const ctx = document.getElementById("movieChart").getContext('2d');
-    movieChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-    labels: data.labels,
-    datasets: [{
-    label: 'Số vé bán ra',
-    data: data.values,
-    backgroundColor: '#6610f2'
-    }]
-    },
-    options: {
-    barPercentage: 0.4,
-    categoryPercentage: 0.5,
-    scales: {
-    y: {
-    beginAtZero: true,
-    max: 20, // Cố định đỉnh biểu đồ tại 20
-    ticks: {
-    stepSize: 2, // Chia bước nhảy cho đồng bộ với các biểu đồ khác
-    precision: 0
-    }
-    }
-    }
-    }
-    });
-    }
-    // options: {
-    // scales: {
-    // y: {
-    // beginAtZero: true,
-    // min: 0,        Bắt đầu từ 0
-    // max: 20,       Cố định đỉnh biểu đồ tại 20
-    // ticks: {
-    // stepSize: 2 Chia bước nhảy cho đẹp (0, 2, 4... 20)
-    // }
-    // }
-    // }
-    // }
-    let showtimeChart;
-
-    async function loadShowtimeChart() {
-    const mId = document.getElementById("showtimeMovieSelect").value;
-    const tId2 = document.getElementById("showtimeTheaterSelect").value;
-
-    const res = await fetch(`/Statistics/GetShowtimeTicketData?mId=${mId}&tId2=${tId2}`);
-    const data = await res.json();
-
-    if (showtimeChart) showtimeChart.destroy();
-
-    const ctx = document.getElementById("showtimeChart").getContext('2d');
-    showtimeChart = new Chart(ctx, {
-    type: 'line', // Sử dụng line để thấy xu hướng theo thời gian
-    data: {
-    labels: data.labels,
-    datasets: [{
-    label: 'Số vé bán ra',
-    data: data.values,
-    borderColor: '#10b981',
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    fill: true,
-    tension: 0.3
-    }]
-    },
-    options: {
-    scales: {
-    y: {
-    beginAtZero: true,
-    min: 0,        // Bắt đầu từ 0
-    max: 20,       // Cố định đỉnh biểu đồ tại 20
-    ticks: {
-    stepSize: 2 // Chia bước nhảy cho đẹp (0, 2, 4... 20)
-    }
-    }
-    }
-    }
-    });
-    }
-
-    // Gọi hàm ngay khi load trang
-    window.addEventListener('load', loadShowtimeChart);
-
-</script>
-
-<style>
-    /* Sử dụng lại các class từ trang dashboard cũ để đồng bộ */
-    .card-box {
-    padding: 20px;
-    border-radius: 16px;
-    background: white;
-    text-align: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-
-    .chart-box {
-    padding: 20px;
-    border-radius: 16px;
-    background: white;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-
-    .label {
-    font-size: 14px;
-    color: #6c757d;
-    margin-bottom: 5px;
-    }
-
-    .value {
-    font-size: 28px;
-    font-weight: bold;
-    }
-
-    .text-gradient {
-    background: linear-gradient(90deg, #007bff, #6610f2);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    }
-</style>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/statistics/advancedstats.css" asp-append-version="true" />
+}

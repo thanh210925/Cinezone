@@ -1,0 +1,33 @@
+@import url('/css/pages/statistics/revenue-dashboard.css');
+
+.card-box {
+    padding: 20px;
+    border-radius: 16px;
+    background: white;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.chart-box {
+    padding: 20px;
+    border-radius: 16px;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.label {
+    font-size: 14px;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.value {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.text-gradient {
+    background: linear-gradient(90deg, #007bff, #6610f2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}

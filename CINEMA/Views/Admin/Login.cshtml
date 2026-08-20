@@ -1,110 +1,197 @@
-﻿@{
-    ViewData["Title"] = "Đăng nhập Admin";
-    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+@{
+    ViewData["Title"] = "Hệ Thống Quản Trị Admin - CineZone";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
 }
 
-<div class="container-fluid vh-100 d-flex p-0">
-    <!-- Cột bên trái: Video background -->
-    <div class="col-md-6 position-relative p-0 d-flex align-items-center justify-content-center text-white">
-        <!-- Video nền -->
-        <video autoplay muted loop playsinline class="w-100 h-100" style="object-fit: cover;">
-            <source src="~/videos/Cinemavideo.mp4" type="video/mp4" />
-            Trình duyệt của bạn không hỗ trợ video.
-        </video>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/admin/login.css" asp-append-version="true" />
+}
 
-        <!-- Overlay để làm tối video -->
-        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0,0,0,0.5);"></div>
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 d-flex justify-content-center">
+            
+            <div class="login-card bg-white">
+                <!-- Header Banner -->
+                <div class="login-header">
+                    <div class="d-inline-flex align-items-center justify-content-center mb-2 bg-white bg-opacity-10 p-3 rounded-circle" style="width: 70px; height: 70px;">
+                        <i class="bi bi-film text-warning fs-1"></i>
+                    </div>
+                    <h2 class="fw-bold text-uppercase mb-1 tracking-wide">HỆ THỐNG QUẢN TRỊ ADMIN</h2>
+                    <p class="text-white-50 mb-0">Đăng nhập theo phân quyền chức năng hệ thống CineZone</p>
+                </div>
 
-        <!-- Nội dung chào mừng -->
-        <div class="position-absolute text-center w-75">
-            <i class="bi bi-film fs-1 mb-3"></i>
-            <h2 class="fw-bold">Chào mừng Admin!</h2>
-            <p class="text-light">
-                Trải nghiệm thế giới điện ảnh đỉnh cao. <br />
-                Đặt vé nhanh chóng, dễ dàng và tiện lợi chỉ trong vài bước.
-            </p>
+                <!-- Card Body Form -->
+                <div class="p-4 p-md-5">
+                    
+                    <!-- Alert Notification Banner -->
+                    @if (ViewBag.Error != null)
+                    {
+                        <div class="alert alert-danger border-0 rounded-3 text-center fw-semibold mb-4 py-2" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>@ViewBag.Error
+                        </div>
+                    }
+                    else if (Context.Request.Query.ContainsKey("loggedOut"))
+                    {
+                        <div class="alert alert-success border-0 rounded-3 text-center fw-bold mb-4 py-2" style="background-color: #d1e7dd; color: #0f5132;" role="alert">
+                            <i class="bi bi-check-circle-fill me-2"></i>Đã đăng xuất tài khoản quản trị!
+                        </div>
+                    }
 
-            <!-- Slider indicator -->
-            <div class="d-flex justify-content-center mt-4">
-                <span class="mx-1 rounded" style="width:30px;height:4px;background:white;display:inline-block;"></span>
-                <span class="mx-1 rounded" style="width:30px;height:4px;background:rgba(255,255,255,0.5);display:inline-block;"></span>
-                <span class="mx-1 rounded" style="width:30px;height:4px;background:rgba(255,255,255,0.3);display:inline-block;"></span>
+                    <!-- Section: Chọn Vai Trò Đăng Nhập Nhanh -->
+                    <div class="mb-4">
+                        <label class="fw-bold text-dark mb-3 d-flex align-items-center">
+                            <i class="bi bi-person-gear text-primary me-2 fs-5"></i>Chọn vai trò đăng nhập nhanh:
+                        </label>
+
+                        <div class="row g-2">
+                            <!-- Super Admin Card -->
+                            <div class="col-4">
+                                <div class="role-card active" id="cardSuperAdmin" onclick="selectRole('SuperAdmin', 'admin@cinezone.vn', '👑 Super Admin (Toàn Quyền)', '#d9534f')">
+                                    <span class="role-icon text-danger">👑</span>
+                                    <div class="fw-bold text-dark small">Super Admin</div>
+                                    <div class="text-muted extra-small" style="font-size: 0.75rem;">Toàn Quyền</div>
+                                </div>
+                            </div>
+
+                            <!-- Manager Card -->
+                            <div class="col-4">
+                                <div class="role-card" id="cardManager" onclick="selectRole('Manager', 'manager@cinezone.vn', '🎬 Manager (Phim & Lịch Chiếu)', '#0275d8')">
+                                    <span class="role-icon text-primary">🎬</span>
+                                    <div class="fw-bold text-dark small">Manager</div>
+                                    <div class="text-muted extra-small" style="font-size: 0.75rem;">Phim & Lịch Chiếu</div>
+                                </div>
+                            </div>
+
+                            <!-- Staff Card -->
+                            <div class="col-4">
+                                <div class="role-card" id="cardStaff" onclick="selectRole('Staff', 'staff@cinezone.vn', '🎟️ Staff (Bán Vé & QR)', '#5cb85c')">
+                                    <span class="role-icon text-success">🎟️</span>
+                                    <div class="fw-bold text-dark small">Staff</div>
+                                    <div class="text-muted extra-small" style="font-size: 0.75rem;">Bán Vé & QR</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form asp-action="Login" method="post">
+                        
+                        <!-- Email Input -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark small">Email Quản Trị Viên (*)</label>
+                            <div class="input-group">
+                                <span class="input-group-text rounded-start-3 text-muted">
+                                    <i class="bi bi-envelope-fill"></i>
+                                </span>
+                                <input type="email" 
+                                       id="emailInput" 
+                                       name="email" 
+                                       class="form-control form-control-custom rounded-end-3 text-dark fw-medium" 
+                                       placeholder="admin@cinezone.vn" 
+                                       value="admin@cinezone.vn" 
+                                       required />
+                            </div>
+                        </div>
+
+                        <!-- Password Input -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark small">Mật khẩu (*)</label>
+                            <div class="input-group">
+                                <span class="input-group-text rounded-start-3 text-muted">
+                                    <i class="bi bi-lock-fill"></i>
+                                </span>
+                                <input type="password" 
+                                       id="passwordInput" 
+                                       name="password" 
+                                       class="form-control form-control-custom text-dark fw-medium" 
+                                       placeholder="••••••••" 
+                                       required />
+                                <button type="button" class="btn bg-light border border-start-0 rounded-end-3 text-muted" id="togglePasswordBtn">
+                                    <i class="bi bi-eye-fill" id="togglePasswordIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Remember Me & Dynamic Role Badge -->
+                        <div class="d-flex flex-wrap align-items-center justify-content-between mb-4 gap-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="rememberMe" checked />
+                                <label class="form-check-label small text-muted fw-medium" for="rememberMe">
+                                    Duy trì phiên đăng nhập
+                                </label>
+                            </div>
+
+                            <span class="badge text-white px-3 py-2 rounded-3 shadow-sm extra-small fw-bold" id="roleBadgeDisplay" style="background-color: #d9534f;">
+                                👑 Super Admin (Toàn Quyền)
+                            </span>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-login w-100 py-3 rounded-pill fs-6 shadow-sm mb-3">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>ĐĂNG NHẬP TRANG QUẢN TRỊ
+                        </button>
+
+                        <!-- Link Return Home -->
+                        <div class="text-center">
+                            <a asp-controller="Home" asp-action="Index" class="text-muted text-decoration-none small fw-semibold">
+                                <i class="bi bi-arrow-left me-1"></i>Quay về Trang Chủ CineZone
+                            </a>
+                        </div>
+                    </form>
+
+                </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Cột bên phải: Form đăng nhập -->
-    <div class="col-md-6 d-flex align-items-center justify-content-center bg-light">
-        <div class="w-75 bg-white p-4 rounded shadow">
-            <h2 class="fw-bold mb-3 text-center">Đăng nhập</h2>
-            <p class="text-muted text-center">Nhập thông tin của bạn để tiếp tục</p>
-
-            <form asp-action="Login" method="post">
-                <!-- Email -->
-                <div class="mb-3">
-                    <label class="form-label">Email</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-white">
-                            <i class="bi bi-envelope"></i>
-                        </span>
-                        <input type="email" name="email" class="form-control" placeholder="ten@email.com" required />
-                    </div>
-                </div>
-
-                <!-- Mật khẩu -->
-                <div class="mb-3">
-                    <label class="form-label">Mật khẩu</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-white">
-                            <i class="bi bi-lock"></i>
-                        </span>
-                        <input type="password" id="password" name="password" class="form-control" placeholder="••••••" required />
-                        <span class="input-group-text bg-white" id="togglePassword" style="cursor: pointer;">
-                            <i class="bi bi-eye" id="toggleIcon"></i>
-                        </span>
-                    </div>
-                    <div class="d-flex justify-content-end mt-1">
-                        <a asp-controller="Admin" asp-action="ForgotPassword" class="small text-decoration-none">Quên mật khẩu?</a>
-                    </div>
-                </div>
-
-                <!-- Button đăng nhập -->
-                <button type="submit" class="btn btn-dark w-100 py-2 rounded-3">Đăng nhập</button>
-                <!-- Link đăng ký -->
-                <div class="text-center mt-3">
-                    <small>Chưa có tài khoản? <a href="/Admin/Register">Đăng ký ngay</a></small>
-                </div>
-            </form>
-
-            <!-- Hiển thị lỗi -->
-            @if (ViewBag.Error != null)
-            {
-                <p class="text-danger mt-2 text-center">@ViewBag.Error</p>
-            }
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
+        function selectRole(roleCode, email, badgeText, badgeColor) {
+            // Remove active class from all cards
+            document.getElementById('cardSuperAdmin').classList.remove('active');
+            document.getElementById('cardManager').classList.remove('active');
+            document.getElementById('cardStaff').classList.remove('active');
+
+            // Add active class to clicked card
+            if (roleCode === 'SuperAdmin') {
+                document.getElementById('cardSuperAdmin').classList.add('active');
+            } else if (roleCode === 'Manager') {
+                document.getElementById('cardManager').classList.add('active');
+            } else {
+                document.getElementById('cardStaff').classList.add('active');
+            }
+
+            // Fill email input
+            const emailInput = document.getElementById('emailInput');
+            if (emailInput) {
+                emailInput.value = email;
+            }
+
+            // Update bottom badge
+            const badge = document.getElementById('roleBadgeDisplay');
+            if (badge) {
+                badge.innerText = badgeText;
+                badge.style.backgroundColor = badgeColor;
+            }
+        }
+
+        // Toggle password visibility
         document.addEventListener("DOMContentLoaded", function () {
-            const passwordInput = document.getElementById("password");
-            const togglePassword = document.getElementById("togglePassword");
-            const toggleIcon = document.getElementById("toggleIcon");
+            const toggleBtn = document.getElementById('togglePasswordBtn');
+            const passwordInput = document.getElementById('passwordInput');
+            const toggleIcon = document.getElementById('togglePasswordIcon');
 
-            togglePassword.addEventListener("click", function () {
-                const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
-                passwordInput.setAttribute("type", type);
-
-                // Đổi icon
-                if (type === "password") {
-                    toggleIcon.classList.remove("bi-eye-slash");
-                    toggleIcon.classList.add("bi-eye");
-                } else {
-                    toggleIcon.classList.remove("bi-eye");
-                    toggleIcon.classList.add("bi-eye-slash");
-                }
-            });
+            if (toggleBtn && passwordInput && toggleIcon) {
+                toggleBtn.addEventListener('click', function () {
+                    const isPassword = passwordInput.getAttribute('type') === 'password';
+                    passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+                    toggleIcon.classList.toggle('bi-eye-fill', !isPassword);
+                    toggleIcon.classList.toggle('bi-eye-slash-fill', isPassword);
+                });
+            }
         });
     </script>
 }

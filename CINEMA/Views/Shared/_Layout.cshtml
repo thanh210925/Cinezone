@@ -13,45 +13,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CINEMA.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
-<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-<style>
-/* Nút Back To Top */
-#btnBackToTop {
-    position: fixed;
-    bottom: 90px; /* Đặt cao hơn nút Chatbox một chút */
-    right: 20px;
-    display: none; /* Ẩn mặc định */
-    z-index: 999;
-    border: none;
-    outline: none;
-    background: linear-gradient(135deg, #dc3545, #b02a37);
-    color: white;
-    cursor: pointer;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    font-size: 1.5rem;
-    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.4);
-    transition: all 0.3s ease-in-out;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    visibility: hidden;
-}
-
-/* Hiệu ứng mượt mà khi hiện lên */
-#btnBackToTop.show {
-    opacity: 1;
-    visibility: visible;
-}
-
-#btnBackToTop:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 15px rgba(220, 53, 69, 0.6);
-    background: linear-gradient(135deg, #b02a37, #842029);
-}
-</style>
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -64,178 +26,226 @@
     </script>
 
     <header>
-        <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow fixed-top">
-            <div class="container">
+        <nav class="navbar navbar-expand-lg fixed-top navbar-transparent-overlay py-2.5">
+            <div class="container-fluid px-4 px-lg-5">
 
-                <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">
-                    <img src="/images/unnamed.jpg" class="footer-logo" />
-                    CineZone
+                <!-- Logo CINEZONE -->
+                <a class="navbar-brand fw-bold d-flex align-items-center gap-2" asp-controller="Home" asp-action="Index">
+                    <img src="/images/unnamed.jpg" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover;" />
+                    <span class="text-white fw-bold letter-spacing-1">CINEZONE</span>
                 </a>
 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#navbarContent">
-                    <span class="navbar-toggler-icon"></span>
+                <button class="navbar-toggler border-0 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                    <i class="bi bi-list fs-2 text-white"></i>
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarContent">
 
-                    <ul class="navbar-nav me-auto">
-                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="Schedule">
-                                <i class="bi bi-calendar-event"></i> Lịch chiếu
+                    <!-- Centered Navigation Links matching Screenshot -->
+                    <ul class="navbar-nav mx-auto align-items-center gap-lg-1 my-2 my-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link nav-pill-active me-1" asp-controller="Home" asp-action="Schedule">
+                                Lịch Chiếu
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="NowShowing">
+                                Phim Đang Hot
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="ComingSoon">
+                                Phim Sắp Chiếu
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="Theaters">
+                                Cụm Rạp
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/Home/Index#promotionSection">
+                                Ưu Đãi
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Home" asp-action="Concessions">
-                                <i class="bi bi-cup-straw"></i> Đặt bắp nước
+                                Bắp Nước
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link fw-bold text-primary" href="#" data-bs-toggle="modal" data-bs-target="#modalMembershipSummary">
-                                <i class="bi bi-gem"></i> Thành viên
-                            </a>
-                        </li>
-                      
                     </ul>
 
-                    <!-- CENTER SEARCH BAR ON HEADER -->
-                    <div class="mx-auto my-2 my-lg-0 position-relative" style="width: 320px; max-width: 100%;">
-                        <form asp-controller="Home" asp-action="Search" method="get" class="w-100 position-relative">
-                            <i class="bi bi-search position-absolute top-50 translate-middle-y ms-3 text-muted"></i>
-                            <input type="text"
-                                   name="keyword"
-                                   class="form-control rounded-pill ps-5 pe-4 py-1"
-                                   placeholder="Tìm kiếm phim..."
-                                   style="font-size: 0.88rem; background: #F1F5F9; border: 1px solid #E2E8F0; color: #1E293B;"
-                                   required />
-                        </form>
-                    </div>
+                    <!-- Right Action Icons & Red TÀI KHOẢN Button -->
+                    <div class="d-flex align-items-center gap-3 ms-auto">
 
-                    <ul class="navbar-nav ms-auto align-items-center">
-                        <li class="nav-item me-2">
-                            <button class="btn btn-link nav-link p-1 border-0" id="btn-theme-toggle" onclick="toggleTheme()" title="Đổi chế độ sáng/tối" style="box-shadow: none;">
-                                <i class="bi bi-moon-fill fs-5" id="theme-icon"></i>
-                            </button>
-                        </li>
-                        @if (Context.Session.GetString("CustomerName") == null)
+                        <!-- Search Form -->
+                        <div class="position-relative">
+                            <form asp-controller="Home" asp-action="Search" method="get" class="d-flex align-items-center">
+                                <input type="text"
+                                       name="keyword"
+                                       class="form-control form-control-sm rounded-pill bg-dark bg-opacity-50 text-white border-secondary border-opacity-50 ps-3 pe-4 py-1.5 opacity-90"
+                                       placeholder="Tìm phim..."
+                                       style="width: 140px; font-size: 0.85rem;" />
+                                <button type="submit" class="btn text-light border-0 p-0 position-absolute end-0 me-2">
+                                    <i class="bi bi-search small opacity-75"></i>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Dark Mode Toggle Icon -->
+                        <button class="btn btn-link text-white p-1 border-0" id="btn-theme-toggle" onclick="toggleTheme()" title="Đổi chế độ sáng/tối">
+                            <i class="bi bi-moon-fill fs-5" id="theme-icon"></i>
+                        </button>
+
+                        <!-- User Account Red Button (Matching Reference Mockup) -->
+                        @{
+                            var customerName = Context.Session.GetString("CustomerName");
+                            var customerEmail = Context.Session.GetString("CustomerEmail") ?? "user@cinezone.vn";
+                            var firstLetter = !string.IsNullOrEmpty(customerName) ? customerName.Trim().Substring(0, 1).ToUpper() : "U";
+                        }
+                        @if (customerName == null)
                         {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Customer" asp-action="Login">
-                                    <i class="bi bi-box-arrow-in-right"></i> Đăng nhập
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Customer" asp-action="Register">
-                                    <i class="bi bi-person-plus"></i> Đăng ký
-                                </a>
-                            </li>
+                            <a asp-controller="Customer" asp-action="Login" class="btn account-btn-red text-white rounded-pill px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2">
+                                <i class="bi bi-person-fill fs-5"></i>
+                                <span>TÀI KHOẢN</span>
+                            </a>
                         }
                         else
                         {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
-                                    <i class="bi bi-person-circle"></i>
-                                    Xin chào, @Context.Session.GetString("CustomerName")
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Customer" asp-action="Profile">Hồ sơ cá nhân</a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Tickets" asp-action="MyTickets">Vé của tôi</a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item text-danger" asp-controller="Customer" asp-action="Logout">Đăng xuất</a>
-                                    </li>
-                                </ul>
-                            </li>
+                            <div class="dropdown">
+                                <button class="btn account-btn-red text-white rounded-pill px-3 py-2 fw-bold shadow-sm dropdown-toggle d-inline-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle fs-5"></i>
+                                    <span class="text-truncate" style="max-width: 150px;">@customerName</span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 p-3" style="min-width: 270px; border-radius: 20px !important;">
+                                    <!-- Header Avatar & User Info -->
+                                    <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">
+                                        <div class="user-avatar-circle flex-shrink-0">
+                                            @firstLetter
+                                        </div>
+                                        <div class="overflow-hidden">
+                                            <h6 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 180px;" title="@customerName">@customerName</h6>
+                                            <small class="text-muted text-truncate d-block" style="max-width: 180px; font-size: 0.78rem;" title="@customerEmail">@customerEmail</small>
+                                        </div>
+                                    </div>
+
+                                    <!-- Menu Links matching screenshot -->
+                                    <div class="d-flex flex-column gap-1">
+                                        <a class="dropdown-item py-2.5 px-3 rounded-3 d-flex align-items-center gap-3 text-dark fw-semibold user-dropdown-link" asp-controller="Tickets" asp-action="MyTickets">
+                                            <i class="bi bi-ticket-perforated-fill fs-5 text-secondary"></i>
+                                            <span>Đơn Hàng Của Bạn</span>
+                                        </a>
+
+                                        <a class="dropdown-item py-2.5 px-3 rounded-3 d-flex align-items-center gap-3 text-dark fw-semibold user-dropdown-link" asp-controller="Customer" asp-action="Profile">
+                                            <i class="bi bi-person-gear fs-5 text-secondary"></i>
+                                            <span>Trang Cá Nhân</span>
+                                        </a>
+
+                                        <a class="dropdown-item py-2.5 px-3 rounded-3 d-flex align-items-center gap-3 text-dark fw-semibold user-dropdown-link" asp-controller="Customer" asp-action="Profile">
+                                            <i class="bi bi-lock-fill fs-5 text-secondary"></i>
+                                            <span>Đổi Mật Khẩu</span>
+                                        </a>
+
+                                        <hr class="dropdown-divider my-2 opacity-50">
+
+                                        <a class="dropdown-item py-2.5 px-3 rounded-3 d-flex align-items-center gap-3 text-dark fw-semibold user-dropdown-link text-danger" asp-controller="Customer" asp-action="Logout">
+                                            <i class="bi bi-box-arrow-right fs-5 text-danger opacity-75"></i>
+                                            <span class="text-danger">Đăng Xuất</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                         }
-                    </ul>
+                    </div>
+
                 </div>
             </div>
         </nav>
     </header>
 
-    <main class="container py-3 main-content flex-grow-1" style="margin-top: 90px;">
+    <main class="container-fluid px-0 py-0 main-content flex-grow-1" style="margin-top: 0;">
         @RenderBody()
     </main>
 
-    <footer class="footer-cinezone text-white pt-5 pb-4 mt-auto">
-        <div class="container">
+    <footer class="footer-teal-custom pt-5 pb-3 mt-auto">
+        <div class="container-fluid px-4 px-lg-5">
             <div class="row gy-4">
 
-                <div class="col-lg-3 col-md-6 text-center text-md-start pe-lg-4">
-                    <a asp-controller="Home" asp-action="Index" class="d-inline-block mb-3">
-                        <img src="/images/unnamed.jpg" class="rounded-circle shadow-sm" style="width: 80px; height: 80px; object-fit: cover;" alt="CineZone Logo" />
-                    </a>
-                    <p class="small mb-3 fw-bold text-uppercase letter-spacing-1">Điểm hẹn điện ảnh</p>
+                <!-- Cột 1: CÔNG TY CỔ PHẦN GIẢI TRÍ CINEZONE -->
+                <div class="col-lg-4 col-md-6 text-start">
+                    <h6 class="footer-heading">CÔNG TY CỔ PHẦN GIẢI TRÍ CINEZONE</h6>
+                    <p class="small text-light opacity-90 mb-3">
+                        Hệ thống rạp chiếu phim hàng đầu Việt Nam cung cấp trải nghiệm điện ảnh đỉnh cao, âm thanh sống động và dịch vụ tiện ích toàn diện cho khán giả.
+                    </p>
 
-                    <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-start mb-4">
-                        <a asp-controller="Home" asp-action="Schedule" class="btn btn-warning fw-bold px-4 rounded-0 text-dark" style="letter-spacing: 1px;">ĐẶT VÉ</a>
+                    <div class="d-flex flex-column gap-2 small">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-geo-alt-fill text-warning mt-1"></i>
+                            <span><strong>Địa chỉ:</strong> 806 Lê Quang Đạo</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-telephone-fill text-warning"></i>
+                            <span><strong>Điện thoại / Fax:</strong> 012 345 6789</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-envelope-fill text-warning"></i>
+                            <span><strong>Email:</strong> contact@cinezone.vn</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cột 2: VỀ CHÚNG TÔI -->
+                <div class="col-lg-2 col-md-6 col-6 text-start">
+                    <h6 class="footer-heading">VỀ CHÚNG TÔI</h6>
+                    <ul class="list-unstyled d-flex flex-column gap-2 mb-0 small">
+                        <li><a asp-controller="Home" asp-action="Index">Giới thiệu thương hiệu</a></li>
+                        <li><a asp-controller="Home" asp-action="Index">Đội ngũ chuyên gia</a></li>
+                        <li><a asp-controller="Home" asp-action="Theaters">Hệ thống cụm rạp</a></li>
+                        <li><a href="#">Tuyển dụng nhân sự</a></li>
+                        <li><a href="#">Liên hệ & Góp ý</a></li>
+                    </ul>
+                </div>
+
+                <!-- Cột 3: CHÍNH SÁCH HỖ TRỢ -->
+                <div class="col-lg-3 col-md-6 col-6 text-start">
+                    <h6 class="footer-heading">CHÍNH SÁCH HỖ TRỢ</h6>
+                    <ul class="list-unstyled d-flex flex-column gap-2 mb-0 small">
+                        <li><a asp-controller="Home" asp-action="TermsAndPolicies">Hướng dẫn mua vé online</a></li>
+                        <li><a asp-controller="Home" asp-action="TermsAndPolicies">Chính sách đổi trả & hoàn vé</a></li>
+                        <li><a asp-controller="Home" asp-action="TermsAndPolicies">Quy định độ tuổi xem phim</a></li>
+                        <li><a asp-controller="Home" asp-action="TermsAndPolicies">Bảo mật thông tin khách hàng</a></li>
+                        <li><a href="#" data-bs-toggle="modal" data-bs-target="#modalMembershipSummary">Đăng ký đại lý phân phối</a></li>
+                    </ul>
+                </div>
+
+                <!-- Cột 4: TƯ VẤN TRỰC TUYẾN -->
+                <div class="col-lg-3 col-md-6 text-start">
+                    <h6 class="footer-heading">TƯ VẤN TRỰC TUYẾN</h6>
+                    
+                    <!-- Hotline Box -->
+                    <div class="hotline-box mb-3 text-start">
+                        <div class="text-white-50 extra-small mb-1">Hotline / Zalo hỗ trợ:</div>
+                        <a href="tel:012 345 6789" class="h4 fw-bold text-warning d-block mb-0 text-decoration-none" style="color: #f59e0b !important;">
+                            012 345 6789
+                        </a>
                     </div>
 
-                    <div class="social-icons d-flex gap-2 justify-content-center justify-content-md-start">
-                        <a href="#"><i class="bi bi-facebook"></i></a>
-                        <a href="#"><i class="bi bi-youtube"></i></a>
-                        <a href="#"><i class="bi bi-tiktok"></i></a>
+                    <!-- Social Icons -->
+                    <div class="d-flex gap-2 align-items-center">
+                        <a href="#" class="social-circle-btn" title="Facebook"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="social-circle-btn" title="YouTube"><i class="bi bi-youtube"></i></a>
+                        <a href="#" class="social-circle-btn" title="TikTok"><i class="bi bi-tiktok"></i></a>
+                        <a href="#" class="social-circle-btn" title="Instagram"><i class="bi bi-instagram"></i></a>
                     </div>
                 </div>
 
-                <div class="col-lg-2 col-md-6 col-6">
-                    <h6 class="footer-title text-uppercase fw-bold mb-4">Tài khoản</h6>
-                    <ul class="list-unstyled footer-links mb-4">
-                        <li><a asp-controller="Customer" asp-action="Login">Đăng nhập</a></li>
-                        <li><a asp-controller="Customer" asp-action="Register">Đăng ký</a></li>
-                        <li><a href="#" data-bs-toggle="modal" data-bs-target="#modalMembershipSummary">Membership</a></li>
-                    </ul>
-
-                    <h6 class="footer-title text-uppercase fw-bold mb-4">Xem phim</h6>
-                    <ul class="list-unstyled footer-links">
-                        <li><a asp-controller="Home" asp-action="Index">Phim đang chiếu</a></li>
-                        <li><a asp-controller="Home" asp-action="Index">Phim sắp chiếu</a></li>
-                    </ul>
-                </div>
-
-                <div class="col-lg-3 col-md-6 col-6">
-                    <h6 class="footer-title text-uppercase fw-bold mb-4">CineZone</h6>
-                    <ul class="list-unstyled footer-links mb-4">
-                        <li><a href="#">Giới thiệu</a></li>
-                        <li><a href="#">Liên hệ</a></li>
-                        <li><a href="#">Tuyển dụng</a></li>
-                    </ul>
-
-                    <h6 class="footer-title text-uppercase fw-bold mb-4">Dịch vụ</h6>
-                    <ul class="list-unstyled footer-links">
-                        <li><a href="#">Thuê rạp</a></li>
-                        <li><a href="#">Tổ chức sự kiện</a></li>
-                    </ul>
-                </div>
-
-                <div class="col-lg-4 col-md-6">
-                    <h6 class="footer-title text-uppercase fw-bold mb-4">Hệ thống rạp</h6>
-                    <ul class="list-unstyled footer-links" style="column-count: 2; column-gap: 20px;">
-                        @await Component.InvokeAsync("TheaterList")
-                    </ul>
-                </div>
             </div>
 
-            <hr class="border-light opacity-25 my-4">
+            <!-- Bottom Line Copyright -->
+            <hr class="border-light opacity-15 my-4">
 
-            <div class="footer-bottom d-flex flex-column flex-lg-row justify-content-between align-items-center text-center text-lg-start">
-                <div class="mb-3 mb-lg-0 small text-light opacity-75">
-                    © 2026 <strong>CineZone</strong>. All rights reserved.
-                </div>
-
-                <div class="d-flex flex-wrap gap-4 small justify-content-center">
-                    <a asp-controller="Home" asp-action="Privacy" class="footer-link-bottom">Chính sách bảo mật</a>
-                    <a href="#" class="footer-link-bottom">Tin điện ảnh</a>
-
-                    <a href="javascript:void(0)" onclick="toggleChat()" class="footer-link-bottom fw-bold text-warning">
-                        <i class="bi bi-chat-dots me-1"></i> Hỏi và đáp
-                    </a>
-                </div>
+            <div class="text-center extra-small text-white-50 py-1">
+                © 2026 <strong>CÔNG TY CỔ PHẦN GIẢI TRÍ CINEZONE</strong>. Bản quyền thuộc về cinezone.vn
             </div>
         </div>
     </footer>
@@ -585,6 +595,23 @@
         document.addEventListener("DOMContentLoaded", function () {
             const isDark = document.body.classList.contains("dark-theme");
             updateThemeIcon(isDark);
+
+            // Smooth Hover Dropdown Buffer (250ms buffer prevents flickering)
+            const dropdowns = document.querySelectorAll(".navbar .dropdown");
+            dropdowns.forEach(dropdown => {
+                let timeout;
+                dropdown.addEventListener("mouseenter", function () {
+                    clearTimeout(timeout);
+                    const menu = this.querySelector(".dropdown-menu");
+                    if (menu) menu.classList.add("show");
+                });
+                dropdown.addEventListener("mouseleave", function () {
+                    const menu = this.querySelector(".dropdown-menu");
+                    timeout = setTimeout(() => {
+                        if (menu) menu.classList.remove("show");
+                    }, 250);
+                });
+            });
         });
     </script>
 </body>

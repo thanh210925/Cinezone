@@ -1,0 +1,20 @@
+@import url('/css/pages/genre/genre-management.css');
+
+.movie-item {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.movie-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.movie-item input:checked + label {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.movie-item input:checked {
+    accent-color: #ffc107;
+}

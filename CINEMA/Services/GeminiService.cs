@@ -19,14 +19,14 @@ namespace CINEMA.Services // Đổi namespace cho khớp với dự án của b�
             get
             {
                 var apiKey = _config["GeminiApiKey"];
-                return !string.IsNullOrEmpty(apiKey) && apiKey != "AQ.KeyAPI" && apiKey != "apiKey";
+                return !string.IsNullOrEmpty(apiKey) && apiKey != "YOUR_GEMINI_API_KEY" && apiKey != "apiKey";
             }
         }
 
         public async Task<string> Ask(string message)
         {
             var apiKey = _config["GeminiApiKey"];
-            if (string.IsNullOrEmpty(apiKey) || apiKey == "AQ.KeyAPI" || apiKey == "apiKey")
+            if (string.IsNullOrEmpty(apiKey) || apiKey == "YOUR_GEMINI_API_KEY" || apiKey == "apiKey")
             {
                 // Bỏ qua hoặc cấu hình dự phòng
             }
@@ -50,19 +50,6 @@ namespace CINEMA.Services // Đổi namespace cho khớp với dự án của b�
                     var jsonContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
                     var response = await _httpClient.PostAsync(url, jsonContent);
                     var rawJson = await response.Content.ReadAsStringAsync();
-
-                    // Ghi log ra file để chẩn đoán
-                    try
-                    {
-                        System.IO.File.AppendAllText(@"c:\Users\LENOVO\source\repos\Cinezone\CINEMA\gemini_log.txt", 
-                            $"--------------------------------------------------\n" +
-                            $"[Time: {DateTime.Now}]\n" +
-                            $"Model tried: {model}\n" +
-                            $"API Key: {apiKey}\n" +
-                            $"Response: {rawJson}\n" +
-                            $"--------------------------------------------------\n\n");
-                    }
-                    catch {}
 
                     if (response.IsSuccessStatusCode)
                     {

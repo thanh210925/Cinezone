@@ -1,0 +1,63 @@
+/* Custom Soft Background Colors for Cells */
+.bg-success-soft {
+    background-color: rgba(25, 135, 84, 0.08) !important;
+}
+.bg-warning-soft {
+    background-color: rgba(255, 193, 7, 0.08) !important;
+}
+.bg-danger-soft {
+    background-color: rgba(220, 53, 69, 0.08) !important;
+}
+.bg-primary-soft {
+    background-color: rgba(13, 110, 253, 0.08) !important;
+}
+.bg-cyan-soft {
+    background-color: rgba(13, 202, 240, 0.08) !important;
+}
+.bg-orange-soft {
+    background-color: rgba(253, 126, 20, 0.08) !important;
+}
+.bg-indigo-soft {
+    background-color: rgba(102, 16, 242, 0.08) !important;
+}
+
+.text-orange {
+    color: #fd7e14 !important;
+}
+.text-indigo {
+    color: #6610f2 !important;
+}
+.bg-indigo {
+    background-color: #6610f2 !important;
+}
+
+/* Print styles to hide sidebar and header on printing */
+@media print {
+    .sidebar, .logo, .navbar, .footer, .btn, form {
+        display: none !important;
+    }
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+    .table-responsive {
+        overflow: visible !important;
+        max-height: none !important;
+    }
+    table {
+        min-width: 100% !important;
+        font-size: 0.7rem !important;
+    }
+    th, td {
+        position: static !important;
+        background-color: #fff !important;
+        color: #000 !important;
+    }
+}
+
+/* Hover Scale Micro-animation */
+.hover-scale:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+}

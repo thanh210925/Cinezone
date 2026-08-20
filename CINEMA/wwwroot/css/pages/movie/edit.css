@@ -1,0 +1,35 @@
+@import url('/css/pages/movie/movie-management.css');
+
+/* Styling form controls to look cohesive and premium */
+.input-group:focus-within {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
+}
+
+.form-control:focus, .form-select:focus, .form-check-input:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Background gradients / colors for layout */
+.bg-success-soft {
+    background-color: rgba(25, 135, 84, 0.08) !important;
+}
+
+.hover-scale {
+    transition: all 0.2s ease-in-out;
+}
+.hover-scale:hover {
+    transform: translateY(-2px);
+}
+
+.fw-extrabold {
+    font-weight: 800;
+}
+
+/* Dashed border for empty states */
+.border-dashed {
+    border-style: dashed !important;
+    border-width: 2px !important;
+    border-color: #cbd5e1 !important;
+}

@@ -1,0 +1,16 @@
+@import url('/css/pages/movie/movie-management.css');
+
+.movie-row {
+    background: #f8f9fa;
+    border-radius: 12px;
+}
+
+.form-control {
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #ced4da;
+}
+
+.fw-bold {
+    color: #495057;
+}

@@ -1,0 +1,326 @@
+@import url('/css/pages/home/style-home.css');
+
+.movies-section {
+    position: relative;
+    padding: 20px 0;
+}
+
+.popularSwiper {
+    padding: 35px 5px 45px 5px;
+    width: 100%;
+    overflow: hidden !important;
+}
+
+.popularSwiper .swiper-slide {
+    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease, filter 0.45s ease !important;
+    cursor: pointer;
+    box-sizing: border-box;
+    height: auto;
+    transform: scale(0.85);
+    opacity: 0.45;
+    filter: blur(2px) brightness(0.8);
+    user-select: none;
+}
+
+.popularSwiper .swiper-slide-active {
+    transform: scale(1.15) !important;
+    opacity: 1 !important;
+    filter: blur(0) brightness(1) !important;
+    z-index: 15 !important;
+}
+
+.popularSwiper .swiper-slide-active .movie-card {
+    box-shadow: 0 16px 36px rgba(220, 53, 69, 0.35) !important;
+    border: 2px solid #dc3545 !important;
+}
+
+.popularSwiper .swiper-slide:not(.swiper-slide-active):hover {
+    opacity: 0.75;
+    filter: blur(0.5px) brightness(0.9);
+    transform: scale(0.9);
+}
+
+.popular-prev, .popular-next {
+    color: #dc3545 !important;
+    transition: all 0.3s ease;
+    top: 50% !important;
+    margin-top: -22px !important;
+}
+
+.popular-prev::after, .popular-next::after {
+    font-size: 1.1rem !important;
+    font-weight: bold;
+}
+
+.popular-prev:hover, .popular-next:hover {
+    background-color: #dc3545 !important;
+    color: #ffffff !important;
+    transform: scale(1.1);
+}
+
+.movie-card {
+    border-radius: 20px;
+    overflow: hidden;
+    background: #fff;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+}
+
+.movie-card:hover {
+    transform: translateY(-10px) scale(1.04);
+    box-shadow: 0 20px 40px rgba(229, 9, 20, 0.3) !important;
+    border-color: rgba(229, 9, 20, 0.5) !important;
+    z-index: 10;
+}
+.movie-poster-container {
+    position: relative;
+    overflow: hidden;
+    height: 350px !important;
+    background: #1e293b;
+}
+
+.movie-poster-container img {
+    width: 100%;
+    height: 350px !important;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.movie-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: .35s;
+}
+
+.overlay-content {
+    text-align: center;
+    transform: translateY(20px);
+    transition: .35s;
+}
+
+.movie-meta {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.movie-meta .badge {
+    font-size: 14px;
+    padding: 7px 12px;
+}
+
+.movie-card:hover .movie-overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+.movie-card:hover .overlay-content {
+    transform: translateY(0);
+}
+
+.movie-card:hover img {
+    transform: scale(1.08);
+}
+
+/* 🌟 GIANT RANK NUMBER OVERLAY (MATCHING REFERENCE APP SCREENSHOT) */
+.rank-number-overlay {
+    position: absolute;
+    bottom: -8px;
+    left: 6px;
+    font-size: 4.8rem;
+    font-weight: 900;
+    line-height: 1;
+    font-family: 'Impact', 'Trebuchet MS', 'Arial Black', sans-serif;
+    color: #ffffff;
+    -webkit-text-stroke: 2.5px #111827;
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.85), 0 0 10px rgba(0, 0, 0, 0.7);
+    z-index: 10;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* 🏷️ AGE RATING BADGE OVERLAY */
+.age-rating-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: #eab308;
+    color: #000000;
+    font-weight: 800;
+    font-size: 0.82rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    z-index: 10;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* 🏆 TOP 1 2 3 LUXURY BADGES */
+.top-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 12;
+    font-size: 0.82rem;
+    font-weight: 900;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.top-badge.top-1 {
+    background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+    color: #000000;
+    border: 1.5px solid #ffffff;
+}
+
+.top-badge.top-2 {
+    background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+    color: #0f172a;
+    border: 1.5px solid #ffffff;
+}
+
+.top-badge.top-3 {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: #ffffff;
+    border: 1.5px solid #ffffff;
+}
+
+/* 🎟️ OVERLAP BOOKING FORM: Đặt vé nhanh chìm dưới chân banner */
+.booking-overlap-card {
+    background: #ffffff;
+    border-radius: 20px;
+    margin-top: -65px; 
+    position: relative;
+    z-index: 10;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.booking-btn-red {
+    background-color: #e50914; /* Đỏ điện ảnh chuẩn */
+    border: none;
+    color: #ffffff;
+    transition: all 0.3s ease;
+}
+.booking-btn-red:hover {
+    background-color: #b20710;
+    color: #ffffff;
+    transform: scale(1.03);
+}
+
+.hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12) !important;
+}
+.hover-lift:hover i {
+    transform: translateX(4px);
+    transition: transform 0.3s ease;
+}
+
+/* ============================================================
+   🎥 CINEZONE MODERN DESIGN MOCKUP (DARK CINEMATIC & OVERLAP FORM)
+============================================================ */
+
+/* 1. HERO BANNER: Nền tối điện ảnh (Dark Cinematic) */
+.hero-section-modern {
+    position: relative;
+    min-height: 540px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+.hero-overlay-dark {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, rgba(15, 23, 42, 0.95) 15%, rgba(15, 23, 42, 0.65) 60%, rgba(15, 23, 42, 0.25) 100%);
+    display: flex;
+    align-items: center;
+}
+
+/* 2. OVERLAP BOOKING FORM: Đẩy form lên đè vào banner */
+.booking-overlap-card {
+    background: #ffffff;
+    border-radius: 20px;
+    margin-top: -65px; 
+    position: relative;
+    z-index: 10;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.booking-btn-modern {
+    background-color: #e50914; /* Màu đỏ điện ảnh chuẩn */
+    border: none;
+    transition: all 0.3s ease;
+}
+.booking-btn-modern:hover {
+    background-color: #b20710;
+    transform: scale(1.03);
+}
+
+/* 3. THẺ PHIM (MOVIE CARD MODERN): Tỷ lệ 2:3 chuẩn rạp chiếu */
+.movie-card-modern {
+    aspect-ratio: 2/3; /* Fix cứng tỷ lệ 2:3 chuẩn rạp */
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #1e293b;
+}
+
+.movie-card-modern img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+}
+
+/* Hiệu ứng nổi lên khi trỏ chuột */
+.movie-card-modern:hover {
+    transform: translateY(-12px);
+    box-shadow: 0 20px 40px rgba(229, 9, 20, 0.3); /* Bóng đổ màu đỏ nhẹ */
+}
+.movie-card-modern:hover img {
+    transform: scale(1.08);
+}
+
+/* Gradient làm nền cho nút Đặt vé nổi lên */
+.movie-overlay-action {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 35px 15px 20px;
+    background: linear-gradient(to top, rgba(0,0,0,0.92) 20%, transparent 100%);
+    transform: translateY(100%); /* Ẩn xuống dưới */
+    transition: transform 0.4s ease;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.movie-card-modern:hover .movie-overlay-action {
+    transform: translateY(0); /* Trượt lên khi hover */
+}
+
+.badge-spacing {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+}
+

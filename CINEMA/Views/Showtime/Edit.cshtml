@@ -1,4 +1,4 @@
-﻿@model CINEMA.Models.Showtime
+@model CINEMA.Models.Showtime
 @{
     ViewData["Title"] = "Sửa lịch chiếu";
     Layout = "_AdminLayout";
@@ -139,38 +139,5 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const movieSelect = document.getElementById("movieSelect");
-            const startTimeInput = document.getElementById("startTimeInput");
-            const endTimeInput = document.getElementById("endTimeInput");
-
-            // Lắng nghe sự kiện thay đổi
-            movieSelect.addEventListener("change", autoCalculateEndTime);
-            startTimeInput.addEventListener("change", autoCalculateEndTime);
-
-            function autoCalculateEndTime() {
-                let selectedOption = movieSelect.options[movieSelect.selectedIndex];
-                let durationStr = selectedOption.getAttribute("data-duration");
-                let startTimeVal = startTimeInput.value;
-
-                if (durationStr && startTimeVal) {
-                    let durationMinutes = parseInt(durationStr);
-                    let startTime = new Date(startTimeVal);
-
-                    // Cộng phút
-                    startTime.setMinutes(startTime.getMinutes() + durationMinutes);
-
-                    // Format lại (YYYY-MM-DDThh:mm)
-                    let year = startTime.getFullYear();
-                    let month = String(startTime.getMonth() + 1).padStart(2, '0');
-                    let day = String(startTime.getDate()).padStart(2, '0');
-                    let hours = String(startTime.getHours()).padStart(2, '0');
-                    let minutes = String(startTime.getMinutes()).padStart(2, '0');
-
-                    endTimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
-                }
-            }
-        });
-    </script>
+    <script src="~/js/pages/showtime/edit.js" asp-append-version="true"></script>
 }

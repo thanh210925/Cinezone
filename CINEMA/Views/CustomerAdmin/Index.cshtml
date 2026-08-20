@@ -1,11 +1,11 @@
-﻿@model IEnumerable<CINEMA.Models.Customer>
+@model IEnumerable<CINEMA.Models.Customer>
 @{
     ViewData["Title"] = "Quản lý khách hàng";
     Layout = "_AdminLayout";
 }
 
 @section Styles {
-    <link rel="stylesheet" href="~/css/customer-management.css" />
+    <link rel="stylesheet" href="~/css/pages/customer/customer-management.css" asp-append-version="true" />
 }
 
 <div class="container-fluid py-4">
@@ -134,31 +134,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        // Kích hoạt Tooltip
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-
-        // Hàm tìm kiếm mượt mà
-        function searchCustomers() {
-            const input = document.getElementById('searchInput').value.toLowerCase();
-            const rows = document.querySelectorAll('.customer-row');
-            let count = 0;
-
-            rows.forEach(row => {
-                const text = row.innerText.toLowerCase();
-                if (text.includes(input)) {
-                    row.style.display = '';
-                    count++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-
-            // Cập nhật bộ đếm trên badge
-            document.getElementById('totalCustomersBadge').innerHTML = `Tổng: ${count}`;
-        }
-    </script>
+    <script src="~/js/pages/customer/customeradmin-index.js" asp-append-version="true"></script>
 }

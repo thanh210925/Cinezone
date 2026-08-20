@@ -5,6 +5,7 @@
 <html>
 <head>
     <title>Chuyển hướng thanh toán...</title>
+    <link rel="stylesheet" href="~/css/pages/groupbooking/redirecttopaymentindex.css" asp-append-version="true" />
 </head>
 <body style="background-color: #121212; color: #ffffff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
     <div style="text-align: center;">
@@ -22,15 +23,6 @@
         <input type="hidden" name="TotalPrice" value="@ViewBag.TotalPrice" />
     </form>
 
-    <style>
-        @@keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
-
-    <script>
-        document.getElementById("autoForm").submit();
-    </script>
+    <script src="~/js/pages/groupbooking/redirecttopaymentindex.js" asp-append-version="true"></script>
 </body>
 </html>

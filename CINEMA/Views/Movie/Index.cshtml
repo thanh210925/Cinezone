@@ -3,9 +3,9 @@
     ViewData["Title"] = "Quản lý phim";
     Layout = "_AdminLayout";
     var today = DateTime.Today;
-    var nowShowing = Model?.Where(m => m.IsActive == true && m.ReleaseDate?.ToDateTime(TimeOnly.MinValue) <= today).ToList() ?? new();
-    var comingSoon = Model?.Where(m => m.ReleaseDate?.ToDateTime(TimeOnly.MinValue) > today).ToList() ?? new();
-    var stopped = Model?.Where(m => m.IsActive == false).ToList() ?? new();
+    var nowShowing = Model?.Where(m => m.IsActive == true && m.ReleaseDate.HasValue && m.ReleaseDate.Value.ToDateTime(TimeOnly.MinValue) <= today && (!m.EndDate.HasValue || m.EndDate.Value.ToDateTime(TimeOnly.MinValue) >= today)).ToList() ?? new();
+    var comingSoon = Model?.Where(m => m.IsActive == true && m.ReleaseDate.HasValue && m.ReleaseDate.Value.ToDateTime(TimeOnly.MinValue) > today).ToList() ?? new();
+    var stopped = Model?.Where(m => m.IsActive == false || (m.EndDate.HasValue && m.EndDate.Value.ToDateTime(TimeOnly.MinValue) < today)).ToList() ?? new();
 }
 
 <div class="container-fluid py-4">

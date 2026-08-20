@@ -71,7 +71,7 @@
 
                                             @if (r.Customer != null && r.Customer.Email != "anonymous@cinezone.com")
                                             {
-                                                int score = r.Customer.ReputationScore;
+                                                int score = (int)r.Customer.ReputationScore;
                                                 string badgeClass = score >= 80 ? "bg-success" : (score >= 50 ? "bg-warning text-dark" : "bg-danger");
                                                 <span class="badge @badgeClass fw-normal" style="font-size: 0.65rem;" title="Điểm uy tín: @score%">Uy tín: @score%</span>
                                             }
@@ -198,24 +198,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        function openReplyModal(id, customerName, comment) {
-            document.getElementById("replyReviewId").value = id;
-            
-            // Dùng innerText thay vì innerHTML để hiển thị an toàn và xuống dòng tự nhiên
-            document.getElementById("customerCommentText").innerText = `"${customerName}": ${comment}`;
-            document.getElementById("replyText").value = "";
-            
-            var modal = new bootstrap.Modal(document.getElementById('replyModal'));
-            modal.show();
-        }
-
-        // Kích hoạt Tooltip hiển thị lý do báo cáo của Bootstrap
-        document.addEventListener("DOMContentLoaded", function () {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
-            });
-        });
-    </script>
+    <script src="~/js/pages/reviews/index.js" asp-append-version="true"></script>
 }

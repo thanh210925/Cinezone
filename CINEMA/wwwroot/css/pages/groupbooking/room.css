@@ -1,0 +1,148 @@
+.letter-spacing-1 { letter-spacing: 1px; }
+.letter-spacing-2 { letter-spacing: 3px; }
+
+.cinema-screen-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.cinema-screen {
+    height: 12px;
+    background: linear-gradient(to bottom, #38bdf8, transparent);
+    border-top-left-radius: 50% 100%;
+    border-top-right-radius: 50% 100%;
+    border-top: 4px solid #0ea5e9;
+    box-shadow: 0 10px 30px rgba(14, 165, 233, 0.3);
+    margin-bottom: 12px;
+}
+
+.legend-box {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+}
+
+.seat-container {
+    position: relative;
+    display: inline-block;
+}
+
+.btn-seat {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px 10px 4px 4px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    background-color: #334155;
+    border: 1px solid #475569;
+    color: #e2e8f0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.btn-seat:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background-color: #475569;
+    border-color: #64748b;
+    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.1);
+}
+
+.seat-vip {
+    background-color: #854d0e;
+    border-color: #a16207;
+    color: #fef08a;
+}
+.seat-vip:hover:not(:disabled) {
+    background-color: #a16207 !important;
+    border-color: #ca8a04 !important;
+}
+
+.seat-couple {
+    background-color: #9d174d;
+    border-color: #be185d;
+    color: #fce7f3;
+}
+.seat-couple:hover:not(:disabled) {
+    background-color: #be185d !important;
+    border-color: #db2777 !important;
+}
+
+.seat-disabled {
+    background-color: #1e3a8a;
+    border-color: #1d4ed8;
+    color: #dbeafe;
+}
+.seat-disabled:hover:not(:disabled) {
+    background-color: #1d4ed8 !important;
+    border-color: #2563eb !important;
+}
+
+.seat-booked {
+    background-color: #1e293b !important;
+    border-color: #1e293b !important;
+    color: #475569 !important;
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Ghế do thành viên khác trong nhóm chọn */
+.seat-group-selected {
+    background-color: #06b6d4 !important;
+    border-color: #0891b2 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.6) !important;
+}
+
+/* Ghế do chính mình chọn */
+.seat-my-selected {
+    background-color: #22c55e !important;
+    border-color: #16a34a !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.7) !important;
+    animation: pulseSelected 2s infinite;
+}
+
+@keyframes pulseSelected {
+    0% { box-shadow: 0 0 15px rgba(34, 197, 94, 0.7); }
+    50% { box-shadow: 0 0 25px rgba(34, 197, 94, 0.9); }
+    100% { box-shadow: 0 0 15px rgba(34, 197, 94, 0.7); }
+}
+
+.seat-member-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background-color: #f43f5e;
+    color: white;
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 10px;
+    border: 1.5px solid #0f172a;
+    pointer-events: none;
+    display: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.member-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #334155;
+}
+
+.member-card {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.member-card:hover {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
+}

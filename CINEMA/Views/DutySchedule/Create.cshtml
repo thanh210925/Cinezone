@@ -1,4 +1,4 @@
-﻿@model CINEMA.Models.WorkSchedule
+@model CINEMA.Models.WorkSchedule
 @{
     ViewData["Title"] = "Phân ca làm việc hàng loạt";
     Layout = "_AdminLayout";
@@ -92,90 +92,14 @@
 
 @section Scripts {
     <script>
-        // Lấy danh sách ca làm việc từ C# sang Javascript
-        const shiftList = [
-            @foreach (var s in shifts)
-            {
-                    <text>{ id: '@s.ShiftId', name: '@s.ShiftName' },</text>
-            }
-        ];
-
-        // Hàm dịch thứ sang Tiếng Việt
-        function getVietnameseDay(dayIndex) {
-            const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-            return days[dayIndex];
-        }
-
-        // Hàm vẽ bảng khi trang được tải hoặc khi thay đổi tháng
-        function generateTable() {
-            const monthVal = document.getElementById('MonthYear').value; // Định dạng "yyyy-MM"
-            if (!monthVal) return;
-
-            const parts = monthVal.split('-');
-            const year = parseInt(parts[0]);
-            const month = parseInt(parts[1]);
-
-            // Tìm số ngày trong tháng (bằng cách set ngày = 0 của tháng tiếp theo)
-            const daysInMonth = new Date(year, month, 0).getDate();
-            const tbody = document.getElementById('scheduleBody');
-
-            // Xóa dữ liệu cũ
-            tbody.innerHTML = '';
-
-            // Vẽ các hàng (mỗi hàng 1 ngày)
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dateObj = new Date(year, month - 1, d);
-                const dayOfWeek = dateObj.getDay();
-
-                // Chuẩn hóa chuỗi ngày: "yyyy-MM-dd"
-                const dateString = year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-
-                const tr = document.createElement('tr');
-
-                // Nếu là thứ 7 hoặc CN thì bôi nền xám nhẹ cho dễ nhìn
-                if (dayOfWeek === 0 || dayOfWeek === 6) {
-                    tr.classList.add('table-secondary');
+        window.DutyScheduleConfig = {
+            shiftList: [
+                @foreach (var s in shifts)
+                {
+                    @Html.Raw($"{{ id: '{s.ShiftId}', name: '{s.ShiftName}' }},")
                 }
-
-                // Cột: Hiển thị Ngày tháng
-                const tdDate = document.createElement('td');
-                tdDate.className = 'align-middle';
-                tdDate.innerHTML = `<span class="${dayOfWeek === 0 ? 'text-danger fw-bold' : 'fw-bold'}">${getVietnameseDay(dayOfWeek)}</span>, ${String(d).padStart(2, '0')}/${String(month).padStart(2, '0')}`;
-                tr.appendChild(tdDate);
-
-                // Các cột: Checkbox của từng Ca làm
-                shiftList.forEach(shift => {
-                    const td = document.createElement('td');
-                    td.className = 'text-center align-middle';
-
-                    // Giá trị (value) gửi đi: "yyyy-MM-dd_ShiftId"
-                    const checkboxHtml = `
-                        <input type="checkbox" class="form-check-input matrix-checkbox"
-                               name="SelectedSchedules"
-                               value="${dateString}_${shift.id}"
-                               style="width: 20px; height: 20px; cursor: pointer;">
-                    `;
-                    td.innerHTML = checkboxHtml;
-                    tr.appendChild(td);
-                });
-
-                tbody.appendChild(tr);
-            }
-        }
-
-        // Chức năng tick Chọn tất cả / Bỏ chọn tất cả
-        let isAllChecked = false;
-        function checkAll() {
-            isAllChecked = !isAllChecked;
-            const checkboxes = document.querySelectorAll('.matrix-checkbox');
-            checkboxes.forEach(cb => {
-                cb.checked = isAllChecked;
-            });
-        }
-
-        // Chạy lần đầu khi load trang
-        document.addEventListener("DOMContentLoaded", function() {
-            generateTable();
-        });
+            ]
+        };
     </script>
+    <script src="~/js/pages/dutyschedule/create.js" asp-append-version="true"></script>
 }

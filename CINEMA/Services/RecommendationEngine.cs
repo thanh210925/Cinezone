@@ -449,21 +449,19 @@ namespace CINEMA.Services
             var today = DateOnly.FromDateTime(DateTime.Today);
             var thirtyDaysAgo = today.AddDays(-30);
 
-            // 1. Lấy danh sách phim đã xem/đã mua của khách hàng này để loại trừ
-            var viewedMovieIds = new HashSet<int>();
+            // 1. Lấy danh sách phim đã xem/đã mua của khách hàng này làm ngữ cảnh phân tích sở thích cho AI
             var watchedMovieTitles = new List<string>();
             if (customerId.HasValue)
             {
                 var views = _context.UserMovieViews
                     .Where(v => v.CustomerId == customerId.Value)
-                    .Select(v => new { v.MovieId, v.Movie.Title })
+                    .Select(v => v.Movie.Title)
                     .ToList();
-                foreach (var v in views)
+                foreach (var title in views)
                 {
-                    viewedMovieIds.Add(v.MovieId);
-                    if (!watchedMovieTitles.Contains(v.Title))
+                    if (!watchedMovieTitles.Contains(title))
                     {
-                        watchedMovieTitles.Add(v.Title);
+                        watchedMovieTitles.Add(title);
                     }
                 }
 
@@ -490,17 +488,13 @@ namespace CINEMA.Services
                 {
                     var sessionViews = _context.UserActivityLogs
                         .Where(l => l.SessionId == sessionId && l.MovieId != null)
-                        .Select(l => new { l.MovieId, l.Movie.Title })
+                        .Select(l => l.Movie.Title)
                         .ToList();
-                    foreach (var v in sessionViews)
+                    foreach (var title in sessionViews)
                     {
-                        if (v.MovieId.HasValue)
+                        if (!watchedMovieTitles.Contains(title))
                         {
-                            viewedMovieIds.Add(v.MovieId.Value);
-                            if (!watchedMovieTitles.Contains(v.Title))
-                            {
-                                watchedMovieTitles.Add(v.Title);
-                            }
+                            watchedMovieTitles.Add(title);
                         }
                     }
                 }
@@ -634,10 +628,10 @@ namespace CINEMA.Services
                 }
             }
 
-            // Lấy tất cả phim đang chiếu/sắp chiếu và chưa xem để chấm điểm
+            // Lấy tất cả phim đang chiếu để chấm điểm
             var allMovies = _context.Movies
                 .Include(m => m.Genres)
-                .Where(m => m.IsActive == true && m.ReleaseDate.HasValue && m.ReleaseDate <= today && !viewedMovieIds.Contains(m.MovieId))
+                .Where(m => m.IsActive == true && m.ReleaseDate.HasValue && m.ReleaseDate <= today && (!m.EndDate.HasValue || m.EndDate >= today))
                 .ToList();
 
             // -----------------------------------------------------------------

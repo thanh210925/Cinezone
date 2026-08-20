@@ -1,4 +1,4 @@
-﻿@model CINEMA.Models.Genre
+@model CINEMA.Models.Genre
 @{
     ViewData["Title"] = "Chỉnh sửa Thể loại";
     Layout = "_AdminLayout";
@@ -151,36 +151,10 @@
 
 </div>
 
-<style>
-    .movie-item {
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-        .movie-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .movie-item input:checked + label {
-            color: #ffc107;
-            font-weight: 600;
-        }
-
-        .movie-item input:checked {
-            accent-color: #ffc107;
-        }
-</style>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/genre/edit.css" asp-append-version="true" />
+}
 
 @section Scripts {
-    <script>
-        document.querySelectorAll('.movie-item').forEach(item => {
-            item.addEventListener('click', function (e) {
-                if (e.target.tagName !== "INPUT") {
-                    const checkbox = this.querySelector('input');
-                    checkbox.checked = !checkbox.checked;
-                }
-            });
-        });
-    </script>
+    <script src="~/js/pages/genre/edit.js" asp-append-version="true"></script>
 }

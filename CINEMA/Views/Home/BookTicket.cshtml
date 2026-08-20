@@ -11,743 +11,458 @@
     var seatGroups = seats.GroupBy(s => s.RowLabel);
 }
 
-<div class="container py-4 bg-light">
-    <!-- 🎬 Banner Phim & Chọn suất chiếu -->
-    <div class="card shadow-sm border-0 mb-4 rounded-4 overflow-hidden">
-        <div class="row g-0">
-            <div class="col-md-3 bg-dark d-none d-md-block">
-                <img src="@Model.PosterUrl" class="img-fluid w-100 h-100" alt="@Model.Title" style="object-fit:cover; min-height: 100%;" />
-            </div>
-            <div class="col-md-9 bg-white">
-                <div class="card-body p-4">
-                    <h2 class="fw-bold mb-2">@Model.Title</h2>
+<div class="bookticket-container py-4" style="padding-top: 100px !important;">
+    <div class="container-fluid px-lg-5 px-3">
 
-                    <!-- Thông tin cơ bản -->
-                    <div class="d-flex flex-wrap gap-3 text-muted small mb-3">
-                        <span>
-                            <i class="bi bi-film me-1"></i>
-                            @(Model.Genres != null && Model.Genres.Any() ? string.Join(", ", Model.Genres.Select(g => g.Name)) : "Đang cập nhật")
-                        </span>
-                        <span><i class="bi bi-globe me-1"></i> @Model.Country</span>
-                        <span><i class="bi bi-clock me-1"></i> @Model.Duration phút</span>
-                        <span class="badge bg-danger text-white">@Model.AgeRating</span>
-                    </div>
+        <!-- 🎬 TOP BANNER: Phim & Chọn suất chiếu -->
+        <div class="movie-header-card mb-3">
+            <div class="row g-3 align-items-center">
+                <!-- LEFTSIDE: Poster Phim & Chi tiết -->
+                <div class="col-lg-7">
+                    <div class="d-flex flex-column flex-md-row gap-3 align-items-start">
+                        <img src="@Model.PosterUrl" class="rounded-3 shadow-sm border" alt="@Model.Title" style="width: 110px; height: 160px; object-fit: cover; flex-shrink: 0;" />
+                        <div class="flex-grow-1">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                <span class="badge bg-danger px-2.5 py-1 text-white fw-bold" style="font-size: 0.75rem;">@Model.AgeRating</span>
+                                <span class="text-muted small">
+                                    <i class="bi bi-film me-1"></i>
+                                    @(Model.Genres != null && Model.Genres.Any() ? string.Join(", ", Model.Genres.Select(g => g.Name)) : "Đang cập nhật")
+                                </span>
+                                <span class="text-muted small"><i class="bi bi-globe me-1"></i> @(string.IsNullOrEmpty(Model.Country) ? "Nhật Bản" : Model.Country)</span>
+                                <span class="text-muted small"><i class="bi bi-clock me-1"></i> @Model.Duration phút</span>
+                            </div>
 
-                    <!-- Mô tả phim (Đã khôi phục) -->
-                    <p class="text-muted mb-3" style="font-size: 0.95rem;">
-                        @Model.Description
-                    </p>
+                            <h2 class="fw-bold text-dark mb-2" style="font-size: 1.6rem; letter-spacing: -0.5px;">@Model.Title</h2>
+                            <p class="text-muted small mb-3 line-clamp-2" style="line-height: 1.5;">
+                                @Model.Description
+                            </p>
 
-                    <!-- Nút Trailer & Chia sẻ -->
-                    <style>
-                        .share-title {
-                            font-weight: 600;
-                            font-size: 0.88rem;
-                            color: #495057;
-                        }
-                        .btn-share-custom {
-                            display: inline-flex;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 6px;
-                            font-size: 0.82rem;
-                            font-weight: 600;
-                            padding: 6px 14px;
-                            border-radius: 8px;
-                            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-                            text-decoration: none;
-                            cursor: pointer;
-                            border: none;
-                        }
-                        .btn-share-facebook {
-                            background-color: #e7f0ff;
-                            color: #1877F2;
-                        }
-                        .btn-share-facebook:hover {
-                            background-color: #1877F2;
-                            color: #ffffff;
-                            transform: translateY(-2px);
-                            box-shadow: 0 4px 10px rgba(24, 119, 242, 0.3);
-                        }
-                        .btn-share-zalo {
-                            background-color: #e5f1ff;
-                            color: #0068FF;
-                        }
-                        .btn-share-zalo:hover {
-                            background-color: #0068FF;
-                            color: #ffffff;
-                            transform: translateY(-2px);
-                            box-shadow: 0 4px 10px rgba(0, 104, 255, 0.3);
-                        }
-                        .btn-share-tiktok {
-                            background-color: #f1f1f1;
-                            color: #000000;
-                        }
-                        .btn-share-tiktok:hover {
-                            background-color: #000000;
-                            color: #ffffff;
-                            transform: translateY(-2px);
-                            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-                        }
-                        .btn-share-messenger {
-                            background-color: #e5f4ff;
-                            color: #0084FF;
-                        }
-                        .btn-share-messenger:hover {
-                            background-color: #0084FF;
-                            color: #ffffff;
-                            transform: translateY(-2px);
-                            box-shadow: 0 4px 10px rgba(0, 132, 255, 0.3);
-                        }
-                        .btn-share-success {
-                            background-color: #198754 !important;
-                            color: #ffffff !important;
-                            transform: scale(1.03);
-                        }
-                    </style>
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                @if (!string.IsNullOrEmpty(Model.TrailerUrl))
+                                {
+                                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#trailerModal" data-trailer="@Model.TrailerUrl" data-title="@Model.Title" style="font-size: 0.82rem;">
+                                        <i class="bi bi-play-circle-fill me-1"></i> Xem Trailer
+                                    </button>
+                                }
 
-                    <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
-                        @if (!string.IsNullOrEmpty(Model.TrailerUrl))
-                        {
-                            <button type="button" class="btn btn-outline-danger btn-sm fw-bold me-2" data-bs-toggle="modal" data-bs-target="#trailerModal" data-trailer="@Model.TrailerUrl" data-title="@Model.Title">
-                                <i class="bi bi-play-circle-fill me-1"></i> Xem trailer
-                            </button>
-                        }
-
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <span class="share-title"><i class="bi bi-share-fill text-muted me-1"></i> Chia sẻ:</span>
-                            
-                            <!-- Facebook Share -->
-                            <a href="#" onclick="shareFacebook(window.location.href); return false;" class="btn-share-custom btn-share-facebook" title="Chia sẻ lên Facebook">
-                                <i class="bi bi-facebook"></i> Facebook
-                            </a>
-
-                            <!-- Messenger (Sao chép link) -->
-                            <button type="button" onclick="copyShareLink(this)" class="btn-share-custom btn-share-messenger" title="Sao chép liên kết cho Messenger">
-                                <i class="bi bi-messenger"></i> Messenger
-                            </button>
-
-                            <!-- Zalo (Sao chép link) -->
-                            <button type="button" onclick="copyShareLink(this)" class="btn-share-custom btn-share-zalo" title="Sao chép liên kết cho Zalo">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style="vertical-align: -0.125em;">
-                                    <path d="M12 2C6.477 2 2 5.82 2 10.533c0 2.656 1.42 5.016 3.656 6.575-.126.782-.555 2.455-.66 2.875-.13.522.186.514.39.38 1.543-.996 3.612-2.392 4.544-2.88 3.511.787 7.07-.937 8.07-4.95C19.07 7.82 15.93 2 12 2zm.75 12h-3.5v-1.5l2.25-2.25H9.25V9h3.5v1.5L10.5 12.75h2.25V14z"/>
-                                </svg> Zalo
-                            </button>
-
-                            <!-- TikTok Share (Sao chép link) -->
-                            <button type="button" onclick="copyShareLink(this)" class="btn-share-custom btn-share-tiktok" title="Sao chép liên kết cho TikTok">
-                                <i class="bi bi-tiktok"></i> Sao chép link
-                            </button>
+                                <div class="d-flex align-items-center gap-2 flex-wrap ms-md-2">
+                                    <span class="share-title"><i class="bi bi-share-fill text-muted me-1"></i> Chia sẻ:</span>
+                                    <a href="#" onclick="shareFacebook(window.location.href); return false;" class="btn-share-custom btn-share-facebook">
+                                        <i class="bi bi-facebook"></i>
+                                    </a>
+                                    <button type="button" onclick="copyShareLink(this)" class="btn-share-custom btn-share-messenger">
+                                        <i class="bi bi-messenger"></i>
+                                    </button>
+                                    <button type="button" onclick="copyShareLink(this)" class="btn-share-custom btn-share-zalo">
+                                        <i class="bi bi-chat-dots"></i>
+                                    </button>
+                                    <button type="button" onclick="copyShareLink(this)" class="btn-share-custom btn-share-tiktok">
+                                        <i class="bi bi-link-45deg"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Danh sách suất chiếu (Đã khôi phục) -->
-                  <div class="border-top pt-4">
-    <h6 class="fw-bold mb-3"><i class="bi bi-calendar-event text-primary me-2"></i>Chọn suất chiếu</h6>
-    @if (showtimes.Any())
-    {
-        // 1. Gom nhóm theo Rạp, sau đó bên trong mỗi rạp gom nhóm theo Ngày
-        var theaters = showtimes.Select(s => s.Auditorium.Theater).Distinct().ToList();
-        
-        @foreach (var theater in theaters)
-        {
-            <div class="mb-4">
-                <div class="fw-bold text-dark mb-2 small border-bottom pb-1">
-                    <i class="bi bi-geo-alt-fill text-danger me-1"></i> @theater.Name
                 </div>
-                
-                @foreach (var dateGroup in showtimes.Where(s => s.Auditorium.TheaterId == theater.TheaterId)
-                                                    .GroupBy(s => s.StartTime.Value.Date))
-                {
-                    <div class="row mb-2">
-                        <div class="col-md-3 text-muted small fw-bold pt-1">
-                            @dateGroup.Key.ToString("dd/MM")
-                        </div>
-                        <div class="col-md-9 d-flex flex-wrap gap-2">
-                            @foreach (var s in dateGroup.OrderBy(x => x.StartTime))
+
+                <!-- RIGHTSIDE: Chọn Lịch Chiếu (Showtimes List) -->
+                <div class="col-lg-5 border-start border-slate-200 ps-lg-4">
+                    <h6 class="text-uppercase fw-bold text-dark small tracking-wider mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-geo-alt-fill text-danger"></i> CHỌN LỊCH CHIẾU
+                    </h6>
+
+                    @if (showtimes.Any())
+                    {
+                        var theaters = showtimes.Select(s => s.Auditorium.Theater).Distinct().ToList();
+                        <div class="d-flex flex-column gap-3 overflow-auto pr-1" style="max-height: 210px;">
+                            @foreach (var theater in theaters)
                             {
-                                bool isActive = showtime != null && s.ShowtimeId == showtime.ShowtimeId;
-                                <a asp-controller="Home" asp-action="BookTicket" 
-                                   asp-route-id="@Model.MovieId" 
-                                   asp-route-showtimeId="@s.ShowtimeId"
-                                   class="btn btn-sm fw-bold @(isActive ? "btn-primary shadow-sm" : "btn-outline-secondary")" 
-                                   style="width: 80px;">
-                                    @s.StartTime?.ToString("HH:mm")
-                                </a>
+                                <div>
+                                    <div class="text-dark small fw-bold mb-1 d-flex align-items-center gap-1" style="font-size: 0.8rem;">
+                                        <i class="bi bi-building me-1 text-primary"></i> @theater.Name
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @foreach (var s in showtimes.Where(st => st.Auditorium.TheaterId == theater.TheaterId).OrderBy(st => st.StartTime))
+                                        {
+                                            bool isActive = showtime != null && s.ShowtimeId == showtime.ShowtimeId;
+                                            <a asp-controller="Home" asp-action="BookTicket"
+                                               asp-route-id="@Model.MovieId"
+                                               asp-route-showtimeId="@s.ShowtimeId"
+                                               class="btn btn-sm rounded-3 font-mono fw-bold transition-all @(isActive ? "btn-primary text-white shadow-sm" : "btn-outline-secondary")"
+                                               style="min-width: 65px; font-size: 0.82rem; padding: 4px 10px;">
+                                                @s.StartTime?.ToString("HH:mm")
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
                             }
                         </div>
-                    </div>
-                }
-            </div>
-        }
-    }
-    else
-    {
-        <div class="alert alert-warning py-2 small"><i class="bi bi-exclamation-triangle me-2"></i>Hiện tại chưa có suất chiếu.</div>
-    }
-</div>
-
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning py-2 small mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Hiện tại chưa có lịch chiếu.</div>
+                    }
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- CHỈ HIỂN THỊ FORM ĐẶT VÉ KHI ĐÃ CHỌN SUẤT CHIẾU -->
-    @if (showtime != null)
-    {
-        @if (TempData["Error"] != null)
+
+        <!-- CHỈ HIỂN THỊ FORM KHI ĐÃ CHỌN SUẤT CHIẾU -->
+        @if (showtime != null)
         {
-            <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4" role="alert">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show rounded-4 mb-4" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <!-- ELEGANT STEPPER NAVIGATION BAR -->
+            <div class="wizard-stepper-bar">
+                <div class="wizard-step-pill active">
+                    <span class="wizard-step-num">1</span>
+                    <span>CHỌN VÉ</span>
+                </div>
+                <div class="wizard-step-divider"></div>
+                <div class="wizard-step-pill active">
+                    <span class="wizard-step-num">2</span>
+                    <span>CHỌN GHẾ</span>
+                </div>
+                <div class="wizard-step-divider"></div>
+                <div class="wizard-step-pill active">
+                    <span class="wizard-step-num">3</span>
+                    <span>BẮP & NƯỚC</span>
+                </div>
             </div>
-        }
 
-        <form id="bookingForm" asp-controller="Payment" asp-action="Index" method="post" onsubmit="return validateForm()">
-            <input type="hidden" id="selectedSeats" name="selectedSeats" />
-            <input type="hidden" name="MovieId" value="@Model.MovieId" />
-            <input type="hidden" name="ShowtimeId" value="@showtime.ShowtimeId" />
-            <input type="hidden" id="basePrice" name="BasePrice" value="@basePrice" />
-            <input type="hidden" id="TotalPriceHidden" name="TotalPrice" value="0" />
+            <form id="bookingForm" asp-controller="Payment" asp-action="Index" method="post" onsubmit="return validateForm()">
+                <input type="hidden" id="selectedSeats" name="selectedSeats" />
+                <input type="hidden" name="MovieId" value="@Model.MovieId" />
+                <input type="hidden" name="ShowtimeId" value="@showtime.ShowtimeId" />
+                <input type="hidden" id="basePrice" name="BasePrice" value="@basePrice" />
+                <input type="hidden" id="TotalPriceHidden" name="TotalPrice" value="0" />
 
-            <div class="row g-4">
-                <!-- CỘT TRÁI -->
-                <div class="col-lg-8">
+                <div class="row g-4">
+                    <!-- LEFT COLUMN: TICKET TYPES + SEATS MATRIX + COMBOS -->
+                    <div class="col-lg-8">
 
-                    <!-- BƯỚC 1: Chọn loại vé -->
-                    <div class="card mb-4 shadow-sm border-0 rounded-4">
-                        <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                            <h5 class="fw-bold"><i class="bi bi-1-circle-fill text-primary me-2"></i>Chọn loại vé</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <div class="p-3 border rounded-3 bg-light text-center ticket-box">
-                                        <h6 class="fw-bold mb-1">Người lớn</h6>
-                                        <p class="text-danger fw-semibold mb-3">@basePrice.ToString("N0") đ</p>
-                                        <input type="number" class="form-control ticket-input text-center fw-bold" name="AdultTickets" min="0" value="0" />
+                        <!-- STEP 1: CHỌN LOẠI VÉ -->
+                        <div class="light-panel-card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="light-panel-title">
+                                    <i class="bi bi-ticket-perforated-fill text-primary"></i> CHỌN LOẠI VÉ
+                                </h5>
+                                <span class="text-muted small">Tối đa 10 vé / đơn hàng</span>
+                            </div>
+                            <div class="p-4">
+                                <div class="row g-3">
+                                    <!-- Người lớn -->
+                                    <div class="col-md-4">
+                                        <div class="ticket-type-card">
+                                            <div class="ticket-type-title">NGƯỜI LỚN</div>
+                                            <div class="ticket-type-price">@basePrice.ToString("N0")đ</div>
+                                            <div class="ticket-counter-box">
+                                                <button type="button" class="btn-counter" onclick="changeInputQty('AdultTickets', -1)">-</button>
+                                                <input type="number" class="ticket-input ticket-input-display" name="AdultTickets" min="0" value="0" readonly />
+                                                <button type="button" class="btn-counter" onclick="changeInputQty('AdultTickets', 1)">+</button>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="p-3 border rounded-3 bg-light text-center ticket-box">
-                                        <h6 class="fw-bold mb-1">Trẻ em</h6>
-                                        <p class="text-danger fw-semibold mb-3">@(decimal.Multiply(basePrice, 0.7m).ToString("N0")) đ</p>
-                                        <input type="number" class="form-control ticket-input text-center fw-bold" name="ChildTickets" min="0" value="0" />
+
+                                    <!-- Trẻ em -->
+                                    <div class="col-md-4">
+                                        <div class="ticket-type-card">
+                                            <div class="ticket-type-title">TRẺ EM</div>
+                                            <div class="ticket-type-price">@(decimal.Multiply(basePrice, 0.7m).ToString("N0"))đ</div>
+                                            <div class="ticket-counter-box">
+                                                <button type="button" class="btn-counter" onclick="changeInputQty('ChildTickets', -1)">-</button>
+                                                <input type="number" class="ticket-input ticket-input-display" name="ChildTickets" min="0" value="0" readonly />
+                                                <button type="button" class="btn-counter" onclick="changeInputQty('ChildTickets', 1)">+</button>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="p-3 border rounded-3 bg-light text-center ticket-box">
-                                        <h6 class="fw-bold mb-1">Học sinh/SV</h6>
-                                        <p class="text-danger fw-semibold mb-3">@(decimal.Multiply(basePrice, 0.8m).ToString("N0")) đ</p>
-                                        <input type="number" class="form-control ticket-input text-center fw-bold" name="StudentTickets" min="0" value="0" />
+
+                                    <!-- Học sinh / SV -->
+                                    <div class="col-md-4">
+                                        <div class="ticket-type-card">
+                                            <div class="ticket-type-title">HỌC SINH / SV</div>
+                                            <div class="ticket-type-price">@(decimal.Multiply(basePrice, 0.8m).ToString("N0"))đ</div>
+                                            <div class="ticket-counter-box">
+                                                <button type="button" class="btn-counter" onclick="changeInputQty('StudentTickets', -1)">-</button>
+                                                <input type="number" class="ticket-input ticket-input-display" name="StudentTickets" min="0" value="0" readonly />
+                                                <button type="button" class="btn-counter" onclick="changeInputQty('StudentTickets', 1)">+</button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- BƯỚC 2: Chọn ghế -->
-                    <div class="card mb-4 shadow-sm border-0 rounded-4">
-                        <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                            <h5 class="fw-bold"><i class="bi bi-2-circle-fill text-danger me-2"></i>Chọn ghế ngồi</h5>
-                            <small class="text-muted ms-4">Vui lòng chọn số lượng vé ở trên trước khi chọn ghế</small>
-                        </div>
-                        <div class="card-body overflow-auto">
-                            <div class="cinema-screen-container mb-5 text-center">
-                                <div class="cinema-screen mx-auto"></div>
-                                <small class="text-muted fw-bold letter-spacing-1">MÀN HÌNH</small>
+                        <!-- STEP 2: CHỌN GHẾ NGỒI -->
+                        <div class="light-panel-card">
+                            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <h5 class="light-panel-title">
+                                    <i class="bi bi-grid-3x3-gap-fill text-danger"></i> CHỌN GHẾ NGỒI
+                                </h5>
+                                <button type="button" id="btnAutoPickBestSeats" class="btn btn-warning btn-sm fw-bold rounded-pill px-3 shadow-sm text-dark" onclick="autoPickBestSeats()">
+                                    <i class="bi bi-magic me-1"></i> ✨ Gợi ý ghế đẹp nhất
+                                </button>
                             </div>
 
-                            <div class="d-flex flex-column align-items-center">
-                                @{
-                                    int maxCol = seats.Any() ? seats.Max(s => s.SeatNumber ?? 0) : 0;
-                                }
-                                @foreach (var group in seatGroups)
-                                {
-                                    <div class="d-flex justify-content-center align-items-center mb-2 gap-1 flex-wrap">
-                                        <span class="fw-bold text-muted me-3 text-center" style="width: 20px;">@group.Key</span>
-                                        @for (int col = 1; col <= maxCol; col++)
-                                        {
-                                            var seat = group.FirstOrDefault(s => s.SeatNumber == col);
-                                            if (seat != null)
+                            <div class="p-4">
+                                <!-- Curved Screen Indicator -->
+                                <div class="cinema-screen-container">
+                                    <div class="cinema-screen-arc"></div>
+                                    <div class="screen-label">MÀN HÌNH</div>
+                                </div>
+
+                                <!-- Seat Matrix Layout -->
+                                <div class="d-flex flex-column align-items-center mb-4">
+                                    @{
+                                        int maxCol = seats.Any() ? seats.Max(s => s.SeatNumber ?? 0) : 0;
+                                    }
+                                    @foreach (var group in seatGroups)
+                                    {
+                                        <div class="d-flex justify-content-center align-items-center mb-2 gap-1.5 flex-wrap">
+                                            <span class="fw-extrabold text-muted me-3 text-center" style="width: 22px; font-size: 0.9rem;">@group.Key</span>
+                                            @for (int col = 1; col <= maxCol; col++)
                                             {
-                                                string seatCode = $"{seat.RowLabel}{seat.SeatNumber}";
-                                                bool isBooked = bookedSeats.Contains(seatCode);
-                                                decimal surcharge = 0m;
-                                                string typeClass = "";
-                                                string icon = "";
+                                                var seat = group.FirstOrDefault(s => s.SeatNumber == col);
+                                                if (seat != null)
+                                                {
+                                                    string seatCode = $"{seat.RowLabel}{seat.SeatNumber}";
+                                                    bool isBooked = bookedSeats.Contains(seatCode);
+                                                    decimal surcharge = 0m;
+                                                    string typeClass = "";
+                                                    string icon = "";
 
-                                                if (seat.SeatType == "VIP")
-                                                {
-                                                    surcharge = 30000m;
-                                                    typeClass = "seat-vip";
-                                                }
-                                                else if (seat.SeatType == "Couple")
-                                                {
-                                                    surcharge = 100000m;
-                                                    typeClass = "seat-couple";
-                                                    icon = "<i class=\"bi bi-heart-fill small\"></i>";
-                                                }
-                                                else if (seat.SeatType == "Disabled")
-                                                {
-                                                    typeClass = "seat-disabled";
-                                                    icon = "<i class=\"bi bi-person-badge-fill small\"></i>";
-                                                }
+                                                    if (seat.SeatType == "VIP")
+                                                    {
+                                                        surcharge = 30000m;
+                                                        typeClass = "seat-vip";
+                                                    }
+                                                    else if (seat.SeatType == "Couple")
+                                                    {
+                                                        surcharge = 100000m;
+                                                        typeClass = "seat-couple";
+                                                        icon = "<i class=\"bi bi-heart-fill small\"></i>";
+                                                    }
+                                                    else if (seat.SeatType == "Disabled")
+                                                    {
+                                                        typeClass = "seat-disabled";
+                                                        icon = "<i class=\"bi bi-person-badge-fill small\"></i>";
+                                                    }
 
-                                                <label class="seat-wrapper @(isBooked ? "disabled-seat" : "")" title="@seatCode - @seat.SeatType @(surcharge > 0 ? $"(+{surcharge:N0}đ)" : "")">
-                                                    @if (isBooked)
-                                                    {
-                                                        <input type="checkbox" class="seat-checkbox" value="@seatCode" disabled />
-                                                    }
-                                                    else
-                                                    {
-                                                        <input type="checkbox" class="seat-checkbox" value="@seatCode" data-surcharge="@surcharge" />
-                                                    }
-                                                    <span class="seat-badge shadow-sm @typeClass @(isBooked ? "bg-secondary opacity-50 text-white" : "bg-white border text-dark")">
-                                                        @if (!string.IsNullOrEmpty(icon))
+                                                    <label class="seat-wrapper @(isBooked ? "disabled-seat" : "")" title="@seatCode - @seat.SeatType @(surcharge > 0 ? $"(+{surcharge:N0}đ)" : "")">
+                                                        @if (isBooked)
                                                         {
-                                                            @Html.Raw(icon)
+                                                            <input type="checkbox" class="seat-checkbox" value="@seatCode" disabled style="display:none !important;" />
                                                         }
                                                         else
                                                         {
-                                                            @seat.SeatNumber
+                                                            <input type="checkbox" class="seat-checkbox" value="@seatCode" data-surcharge="@surcharge" style="display:none !important;" />
                                                         }
-                                                    </span>
-                                                </label>
-                                            }
-                                            else
-                                            {
-                                                <div class="seat-empty-spacer" style="width: 36px; height: 36px; display: inline-block;"></div>
-                                            }
-                                        }
-                                    </div>
-                                }
-                            </div>
-
-                            <div class="d-flex justify-content-center gap-4 mt-5 pt-3 border-top flex-wrap">
-                                <div class="d-flex align-items-center"><div class="legend-box bg-white border"></div> <span class="ms-2 text-muted">Trống (Thường)</span></div>
-                                <div class="d-flex align-items-center"><div class="legend-box seat-vip border"></div> <span class="ms-2 text-muted">VIP (+30k)</span></div>
-                                <div class="d-flex align-items-center"><div class="legend-box seat-couple border"></div> <span class="ms-2 text-muted">Couple (+100k)</span></div>
-                                <div class="d-flex align-items-center"><div class="legend-box seat-disabled border"></div> <span class="ms-2 text-muted">Khuyết tật</span></div>
-                                <div class="d-flex align-items-center"><div class="legend-box bg-success border-success"></div> <span class="ms-2 text-muted">Đang chọn</span></div>
-                                <div class="d-flex align-items-center"><div class="legend-box bg-secondary opacity-50"></div> <span class="ms-2 text-muted">Đã bán</span></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- BƯỚC 3: Chọn Combo -->
-                    <div class="card mb-4 shadow-sm border-0 rounded-4">
-                        <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                            <h5 class="fw-bold"><i class="bi bi-3-circle-fill text-warning me-2"></i>Bắp & Nước</h5>
-                        </div>
-                        <div class="card-body">
-                            @if (combos != null && combos.Any())
-                            {
-                                <div class="row g-3">
-                                    @foreach (var rec in combos)
-                                    {
-                                        var combo = rec.Combo;
-                                        <div class="col-md-6">
-                                            <div class="d-flex align-items-center p-3 border rounded-3 bg-white shadow-sm h-100" style="@(rec.IsPurchasedBefore || rec.IsAprioriRecommended ? "border-color: #ffc107 !important; background-color: #fffdf5 !important;" : "")">
-                                                @if (!string.IsNullOrEmpty(combo.ImageUrl))
-                                                {
-                                                    <img src="@combo.ImageUrl" class="rounded me-3" style="width:70px; height:70px; object-fit:cover;" />
+                                                        <span class="seat-badge @typeClass @(isBooked ? "bg-secondary opacity-25 text-white-50" : "")">
+                                                            @if (isBooked)
+                                                            {
+                                                                <i class="bi bi-x-lg text-secondary"></i>
+                                                            }
+                                                            else if (!string.IsNullOrEmpty(icon))
+                                                            {
+                                                                @Html.Raw(icon)
+                                                            }
+                                                            else
+                                                            {
+                                                                @seat.SeatNumber
+                                                            }
+                                                        </span>
+                                                    </label>
                                                 }
-                                                <div class="flex-grow-1">
-                                                    <div class="d-flex flex-wrap gap-1">
-                                                        @if (rec.IsPurchasedBefore)
-                                                        {
-                                                            <span class="badge bg-primary text-white" style="font-size: 0.7rem;"><i class="bi bi-check-circle-fill me-1"></i>Đã từng mua (@rec.PurchaseCount)</span>
-                                                        }
-                                                        @if (rec.IsAprioriRecommended)
-                                                        {
-                                                            <span class="badge bg-danger text-white" style="font-size: 0.7rem;"><i class="bi bi-fire me-1"></i>Gợi ý đi kèm</span>
-                                                        }
-                                                    </div>
-                                                    <h6 class="fw-bold mb-1 mt-1">@combo.Name</h6>
-                                                    <p class="text-muted small mb-1" style="font-size:0.8rem;">@combo.Description</p>
-                                                    <div class="text-danger fw-bold">@combo.Price?.ToString("N0") đ</div>
-                                                </div>
-                                                <div class="ms-2" style="width: 70px;">
-                                                    <input type="number" class="form-control combo-input text-center" name="Combo_@combo.ComboId" min="0" value="0" data-price="@combo.Price" />
-                                                </div>
-                                            </div>
+                                                else
+                                                {
+                                                    <div class="seat-empty-spacer" style="width: 36px; height: 36px; display: inline-block;"></div>
+                                                }
+                                            }
                                         </div>
                                     }
                                 </div>
-                            }
+
+                                <!-- Seat Legend Bar -->
+                                <div class="seat-legend-bar">
+                                    <div class="legend-item">
+                                        <div class="legend-box" style="background:#f1f5f9;"></div> <span>Thường</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-box seat-vip"></div> <span>VIP (+30K)</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-box seat-couple"></div> <span>Couple (+100K)</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-box seat-disabled"></div> <span>Khuyết tật</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-box" style="background:#22c55e;"></div> <span>Đã chọn</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-box" style="background:#fef08a;"></div> <span>Đang chọn</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-box opacity-50" style="background:#cbd5e1;"></div> <span>Đã bán</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- STEP 3: BẮP & NƯỚC -->
+                        <div class="light-panel-card">
+                            <div class="card-header">
+                                <h5 class="light-panel-title">
+                                    <i class="bi bi-cup-straw text-warning"></i> BẮP & NƯỚC
+                                </h5>
+                            </div>
+                            <div class="p-4">
+                                @if (combos != null && combos.Any())
+                                {
+                                    <div class="row g-3">
+                                        @foreach (var rec in combos)
+                                        {
+                                            var combo = rec.Combo;
+                                            <div class="col-md-6">
+                                                <div class="combo-card-light h-100">
+                                                    @if (!string.IsNullOrEmpty(combo.ImageUrl))
+                                                    {
+                                                        <img src="@combo.ImageUrl" class="combo-img-box" alt="@combo.Name" />
+                                                    }
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="fw-bold text-dark mb-1">@combo.Name</h6>
+                                                        <p class="text-muted small mb-2 line-clamp-1" style="font-size:0.78rem;">@combo.Description</p>
+                                                        <div class="combo-price-text">@combo.Price?.ToString("N0")đ</div>
+                                                    </div>
+                                                    <div class="ticket-counter-box">
+                                                        <button type="button" class="btn-counter" onclick="changeComboQty('Combo_@combo.ComboId', -1)">-</button>
+                                                        <input type="number" class="combo-input ticket-input-display" name="Combo_@combo.ComboId" min="0" value="0" data-price="@combo.Price" readonly />
+                                                        <button type="button" class="btn-counter" onclick="changeComboQty('Combo_@combo.ComboId', 1)">+</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="text-muted small mb-0">Không có combo bắp nước khả dụng.</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: ORDER SUMMARY SIDEBAR -->
+                    <div class="col-lg-4">
+                        <div class="position-sticky" style="top: 100px;">
+                            <div class="order-summary-card">
+                                <div class="order-summary-header text-center">
+                                    <h5 class="summary-title">THÔNG TIN ĐƠN HÀNG</h5>
+                                </div>
+                                <div class="p-4">
+                                    <!-- Movie Info Box -->
+                                    <div class="d-flex gap-3 align-items-center summary-movie-info mb-4">
+                                        <img src="@Model.PosterUrl" class="rounded-3" style="width: 54px; height: 74px; object-fit: cover;" />
+                                        <div>
+                                            <div class="fw-extrabold text-dark mb-1" style="font-size: 0.95rem;">@Model.Title</div>
+                                            <div class="text-muted small" style="font-size: 0.8rem;">
+                                                <i class="bi bi-geo-alt-fill text-danger me-1"></i> @showtime.Auditorium?.Theater?.Name <br />
+                                                <i class="bi bi-door-open-fill text-primary me-1"></i> Phòng: @showtime.Auditorium?.Name <br />
+                                                <i class="bi bi-clock-fill text-warning me-1"></i> @showtime.StartTime?.ToString("HH:mm - dd/MM/yyyy")
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Selected Seats Badges -->
+                                    <div class="mb-4">
+                                        <div class="text-muted small font-bold text-uppercase tracking-wider mb-2">GHẾ ĐÃ CHỌN</div>
+                                        <div id="displaySelectedSeats" class="d-flex flex-wrap gap-2">
+                                            <span class="text-muted small">Chưa chọn ghế</span>
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-3" />
+
+                                    <!-- Price Details -->
+                                    <div class="d-flex justify-content-between align-items-center mb-4 summary-total-box">
+                                        <div>
+                                            <div class="text-muted small fw-bold text-uppercase">TỔNG TIỀN</div>
+                                            <div class="summary-total-price"><span id="totalPrice">0</span>đ</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Countdown Holding Timer -->
+                                    <div class="timer-holding-badge mb-3">
+                                        ⏱ Thời gian giữ vé: <span id="countdown" class="fw-bold text-danger">10:00</span>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <button type="submit" class="btn btn-pay-gradient mb-3">
+                                        THANH TOÁN <i class="bi bi-arrow-right ms-1"></i>
+                                    </button>
+
+                                    <button type="button" onclick="event.preventDefault(); document.getElementById('groupBookingCreateForm').submit();" class="btn btn-invite-outline">
+                                        👥 RỦ BẠN ĐI CÙNG
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </form>
 
-                <!-- CỘT PHẢI: TÓM TẮT ĐƠN HÀNG -->
-                <div class="col-lg-4">
-                    <div class="position-sticky" style="top: 2rem;">
-                        <div class="card shadow border-0 rounded-4">
-                            <div class="card-header bg-dark text-white rounded-top-4 py-3">
-                                <h5 class="mb-0 fw-bold text-center">Tóm tắt đơn hàng</h5>
-                            </div>
-                            <div class="card-body bg-white p-4">
-                                <div class="mb-3 text-primary fw-semibold small bg-light p-2 rounded">
-                                    <i class="bi bi-geo-alt me-1"></i> @showtime.Auditorium?.Theater?.Name <br />
-                                    <i class="bi bi-camera-reels me-1"></i> Phòng: @showtime.Auditorium?.Name <br />
-                                    <i class="bi bi-clock me-1"></i> @showtime.StartTime?.ToString("HH:mm - dd/MM/yyyy")
-                                </div>
-
-                                <div class="mb-3">
-                                    <span class="text-muted small d-block mb-1">Ghế đang chọn:</span>
-                                    <div id="displaySelectedSeats" class="fw-bold text-primary fs-5">Chưa chọn ghế</div>
-                                </div>
-                                <hr class="text-muted" />
-
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <span class="text-muted fw-bold">TỔNG TIỀN:</span>
-                                    <span class="fs-3 fw-bold text-danger"><span id="totalPrice">0</span> đ</span>
-                                </div>
-
-                                <div class="alert alert-warning py-2 text-center mb-3" style="font-size: 0.9rem;">
-                                    ⏳ Thời gian giữ vé: <strong id="countdown" class="text-danger">10:00</strong>
-                                </div>
-
-                                <button type="submit" class="btn btn-danger w-100 btn-lg fw-bold rounded-3 shadow-sm py-3 mb-3">
-                                    THANH TOÁN NGAY <i class="bi bi-arrow-right ms-2"></i>
-                                </button>
-                                
-                                <div class="text-center my-2 text-muted small">— HOẶC —</div>
-                                
-                                <button type="button" onclick="event.preventDefault(); document.getElementById('groupBookingCreateForm').submit();" class="btn btn-outline-primary w-100 btn-lg fw-bold rounded-3 py-3">
-                                    🤝 RỦ BẠN ĐI CÙNG
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </form>
-
-        <form id="groupBookingCreateForm" action="/GroupBooking/Create" method="post" style="display: none;">
-            <input type="hidden" name="showtimeId" value="@showtime.ShowtimeId" />
-        </form>
-    }
-
-</div>
-
-<style>
-    body
-    {
-        margin: 0;
-        padding-top: 0;
-
-    }
-    .ticket-box {
-        transition: all 0.3s ease;
-    }
-
-        .ticket-box:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            border-color: #0d6efd !important;
+            <form id="groupBookingCreateForm" action="/GroupBooking/Create" method="post" style="display: none;">
+                <input type="hidden" name="showtimeId" value="@showtime.ShowtimeId" />
+            </form>
         }
 
-    input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button {
-        opacity: 1;
-    }
+    </div>
+</div>
 
-    .cinema-screen-container {
-        width: 100%;
-        max-width: 500px;
-        margin: 0 auto;
-    }
+<!-- Modal Xem Trailer -->
+<div class="modal fade" id="trailerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-white" id="trailerModalTitle">Trailer</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0 ratio ratio-16x9">
+                <iframe id="trailerIframe" src="" allowfullscreen allow="autoplay"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
 
-    .cinema-screen {
-        height: 30px;
-        background: linear-gradient(to bottom, #ccc, transparent);
-        border-top-left-radius: 50% 100%;
-        border-top-right-radius: 50% 100%;
-        border-top: 4px solid #888;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-        margin-bottom: 10px;
-    }
-
-    .letter-spacing-1 {
-        letter-spacing: 2px;
-    }
-
-    .seat-checkbox {
-        display: none;
-    }
-
-    .seat-wrapper {
-        cursor: pointer;
-        display: inline-block;
-    }
-
-    .seat-badge {
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 10px 10px 4px 4px;
-        font-weight: bold;
-        font-size: 0.85rem;
-        transition: all 0.2s ease-in-out;
-    }
-
-    .seat-wrapper:hover:not(.disabled-seat) .seat-badge {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
-        border-color: #198754 !important;
-    }
-
-    .seat-checkbox:checked + .seat-badge {
-        background-color: #198754 !important;
-        color: white !important;
-        border-color: #198754 !important;
-        box-shadow: 0 0 10px rgba(25, 135, 84, 0.4) !important;
-    }
-
-    .disabled-seat {
-        cursor: not-allowed;
-        opacity: 0.7;
-    }
-
-    .legend-box {
-        width: 24px;
-        height: 24px;
-        border-radius: 6px 6px 3px 3px;
-    }
-    .seat-vip {
-        background-color: #fef08a !important;
-        color: #854d0e !important;
-        border-color: #facc15 !important;
-    }
-    .seat-couple {
-        background-color: #fce7f3 !important;
-        color: #9d174d !important;
-        border-color: #fbcfe8 !important;
-    }
-    .seat-disabled {
-        background-color: #dbeafe !important;
-        color: #1e40af !important;
-        border-color: #bfdbfe !important;
-    }
-</style>
+@section Styles {
+    <link rel="stylesheet" href="~/css/pages/home/bookticket.css" asp-append-version="true" />
+}
 
 @section Scripts {
     <script>
-        function calcTotal() {
-            const basePriceElement = document.getElementById("basePrice");
-            if (!basePriceElement) return; // Tránh lỗi js nếu chưa chọn suất chiếu
-
-            const basePrice = parseFloat(basePriceElement.value) || 0;
-            let adult = parseInt(document.getElementsByName("AdultTickets")[0]?.value) || 0;
-            let child = parseInt(document.getElementsByName("ChildTickets")[0]?.value) || 0;
-            let student = parseInt(document.getElementsByName("StudentTickets")[0]?.value) || 0;
-
-            let total = adult * basePrice
-                + child * (basePrice * 0.7)
-                + student * (basePrice * 0.8);
-
-            // Cộng thêm giá vé phụ thu từ các ghế được chọn
-            let surchargeTotal = 0;
-            document.querySelectorAll(".seat-checkbox:checked").forEach(cb => {
-                let sc = parseFloat(cb.getAttribute("data-surcharge")) || 0;
-                surchargeTotal += sc;
-            });
-            total += surchargeTotal;
-
-            document.querySelectorAll(".combo-input").forEach(el => {
-                let qty = parseInt(el.value) || 0;
-                let price = parseFloat(el.dataset.price) || 0;
-                total += qty * price;
-            });
-
-            if (total < 0) total = 0;
-
-            document.getElementById("totalPrice").innerText = total.toLocaleString("vi-VN");
-            document.getElementById("TotalPriceHidden").value = total;
+        function changeInputQty(inputName, delta) {
+            const el = document.getElementsByName(inputName)[0];
+            if (!el) return;
+            let val = parseInt(el.value) || 0;
+            val = Math.max(0, val + delta);
+            el.value = val;
+            el.dispatchEvent(new Event('input'));
         }
 
-        function getMaxSeats() {
-            let adult = parseInt(document.getElementsByName("AdultTickets")[0]?.value) || 0;
-            let child = parseInt(document.getElementsByName("ChildTickets")[0]?.value) || 0;
-            let student = parseInt(document.getElementsByName("StudentTickets")[0]?.value) || 0;
-            return adult + child + student;
-        }
-
-        function limitSeats() {
-            let maxSeats = getMaxSeats();
-            let checked = document.querySelectorAll(".seat-checkbox:checked");
-
-            if (maxSeats === 0) {
-                alert("Vui lòng chọn số lượng vé trước khi chọn ghế!");
-                checked.forEach(cb => cb.checked = false);
-                return;
-            }
-
-            if (checked.length > maxSeats) {
-                alert("Bạn chỉ được chọn tối đa " + maxSeats + " ghế!");
-                checked[checked.length - 1].checked = false;
-            }
-        }
-
-        function updateSelectedSeats() {
-            let selected = [];
-            document.querySelectorAll(".seat-checkbox:checked").forEach(cb => {
-                selected.push(cb.value);
-            });
-
-            const selectedSeatsElem = document.getElementById("selectedSeats");
-            if(selectedSeatsElem) selectedSeatsElem.value = selected.join(",");
-
-            let displayDiv = document.getElementById("displaySelectedSeats");
-            if (displayDiv) {
-                if (selected.length > 0) {
-                    displayDiv.innerHTML = selected.join(", ");
-                    displayDiv.classList.remove("text-muted");
-                    displayDiv.classList.add("text-primary");
-                } else {
-                    displayDiv.innerHTML = "Chưa chọn ghế";
-                    displayDiv.classList.remove("text-primary");
-                    displayDiv.classList.add("text-muted");
-                }
-            }
-        }
-
-        function validateForm() {
-            updateSelectedSeats();
-
-            let maxSeats = getMaxSeats();
-            let selected = document.getElementById("selectedSeats")?.value;
-
-            if (maxSeats === 0) {
-                alert("Vui lòng chọn ít nhất 1 vé để tiếp tục!");
-                return false;
-            }
-
-            if (!selected) {
-                alert("Bạn chưa chọn vị trí ghế ngồi!");
-                return false;
-            }
-
-            if (selected.split(",").length !== maxSeats) {
-                alert("Vui lòng chọn đủ " + maxSeats + " ghế tương ứng với số vé!");
-                return false;
-            }
-
-            return true;
-        }
-
-        // Chạy các event nếu form đặt vé đang tồn tại
-        if(document.getElementById("bookingForm")) {
-            document.querySelectorAll(".seat-checkbox").forEach(cb => {
-                cb.addEventListener("change", function () {
-                    limitSeats();
-                    updateSelectedSeats();
-                    calcTotal();
-                });
-            });
-
-            document.querySelectorAll(".ticket-input").forEach(el => {
-                el.addEventListener("input", function () {
-                    let adult = parseInt(document.getElementsByName("AdultTickets")[0]?.value) || 0;
-                    let child = parseInt(document.getElementsByName("ChildTickets")[0]?.value) || 0;
-                    let student = parseInt(document.getElementsByName("StudentTickets")[0]?.value) || 0;
-                    let sum = adult + child + student;
-
-                    if (sum > 10) {
-                        alert("Bạn chỉ được đặt tối đa 10 vé cho mỗi đơn hàng!");
-                        let currentVal = parseInt(el.value) || 0;
-                        let otherSum = sum - currentVal;
-                        let allowedVal = 10 - otherSum;
-                        if (allowedVal < 0) allowedVal = 0;
-                        el.value = allowedVal;
-                    }
-
-                    document.querySelectorAll(".seat-checkbox").forEach(cb => cb.checked = false);
-                    updateSelectedSeats();
-                    calcTotal();
-                });
-            });
-
-            document.querySelectorAll(".combo-input").forEach(el => {
-                el.addEventListener("input", function () {
-                    calcTotal();
-                });
-            });
-
-            // Timer
-            let timeLeft = 600;
-            setInterval(() => {
-                if (timeLeft <= 0) return;
-                timeLeft--;
-                let m = Math.floor(timeLeft / 60);
-                let s = timeLeft % 60;
-                const countdownElem = document.getElementById("countdown");
-                if (countdownElem) countdownElem.innerText = `${m}:${s.toString().padStart(2, '0')}`;
-            }, 1000);
-
-            calcTotal();
-            updateSelectedSeats();
-        }
-
-        // Chia sẻ mạng xã hội
-        window.shareFacebook = function(url) {
-            window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), 'sharer', 'toolbar=0,status=0,width=626,height=436');
-        };
-
-        // Sao chép liên kết trực tiếp cho các nút khác
-
-
-        window.copyShareLink = function(button) {
-            const url = window.location.href;
-            
-            const showSuccess = () => {
-                const originalContent = button.innerHTML;
-                button.innerHTML = '<i class="bi bi-check2"></i> Đã chép!';
-                button.classList.add('btn-share-success');
-                setTimeout(() => {
-                    button.innerHTML = originalContent;
-                    button.classList.remove('btn-share-success');
-                }, 2000);
-            };
-
-            // Kiểm tra và sử dụng API Clipboard hiện đại nếu khả dụng trong Secure Context (HTTPS/localhost)
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(url).then(showSuccess).catch(err => {
-                    fallbackCopyText(url, showSuccess);
-                });
-            } else {
-                fallbackCopyText(url, showSuccess);
-            }
-        };
-
-        function fallbackCopyText(text, callback) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.top = "0";
-            textArea.style.left = "0";
-            textArea.style.position = "fixed";
-            textArea.style.opacity = "0"; // Ẩn khỏi màn hình
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    callback();
-                } else {
-                    console.error('execCommand copy không thành công');
-                    alert('Không thể tự động sao chép. Bạn hãy copy thủ công từ thanh địa chỉ nhé!');
-                }
-            } catch (err) {
-                console.error('Lỗi khi sao chép liên kết bằng execCommand: ', err);
-                alert('Không thể tự động sao chép. Bạn hãy copy thủ công từ thanh địa chỉ nhé!');
-            }
-
-            document.body.removeChild(textArea);
+        function changeComboQty(inputName, delta) {
+            const el = document.getElementsByName(inputName)[0];
+            if (!el) return;
+            let val = parseInt(el.value) || 0;
+            val = Math.max(0, val + delta);
+            el.value = val;
+            el.dispatchEvent(new Event('input'));
         }
     </script>
+    <script src="~/js/pages/home/bookticket.js" asp-append-version="true"></script>
 }

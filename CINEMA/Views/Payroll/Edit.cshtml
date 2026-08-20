@@ -135,42 +135,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const workingHoursInput = document.getElementById("WorkingHours");
-            const paidLeaveHoursInput = document.getElementById("PaidLeaveHours");
-            const baseSalaryInput = document.getElementById("BaseSalaryPerHour");
-            const coefficientInput = document.getElementById("SalaryCoefficient");
-            const bonusInput = document.getElementById("Bonus");
-            const deductionsInput = document.getElementById("Deductions");
-            const totalSalaryInput = document.getElementById("totalSalaryInput");
-            const totalSalaryDisplay = document.getElementById("totalSalaryDisplay");
-
-            function calculateSalary() {
-                const workingHours = parseFloat(workingHoursInput.value) || 0;
-                const paidLeaveHours = parseFloat(paidLeaveHoursInput.value) || 0;
-                const baseSalary = parseFloat(baseSalaryInput.value) || 0;
-                const coefficient = parseFloat(coefficientInput.value) || 0;
-                const bonus = parseFloat(bonusInput.value) || 0;
-                const deductions = parseFloat(deductionsInput.value) || 0;
-
-                // Công thức: (WorkingHours + PaidLeaveHours) * BaseSalaryPerHour * SalaryCoefficient + Bonus - Deductions
-                let totalSalary = ((workingHours + paidLeaveHours) * baseSalary * coefficient) + bonus - deductions;
-                if (totalSalary < 0) totalSalary = 0;
-
-                // Cập nhật giá trị vào trường input ẩn và hiển thị lên màn hình
-                totalSalaryInput.value = totalSalary.toFixed(0);
-                totalSalaryDisplay.textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalSalary);
-            }
-
-            // Gắn sự kiện lắng nghe sự thay đổi trên tất cả các trường đầu vào
-            const triggers = document.querySelectorAll(".calc-trigger");
-            triggers.forEach(trigger => {
-                trigger.addEventListener("input", calculateSalary);
-            });
-
-            // Chạy tính toán lần đầu khi trang được tải xong
-            calculateSalary();
-        });
-    </script>
+    <script src="~/js/pages/payroll/edit.js" asp-append-version="true"></script>
 }

@@ -1,0 +1,381 @@
+@using System.Text.Encodings.Web
+@model IEnumerable<CINEMA.Models.Theater>
+@{
+    ViewData["Title"] = "Hệ Thống Rạp CineZone";
+
+    var sqlTheaters = (Model != null && Model.Any()) ? Model.ToList() : new List<CINEMA.Models.Theater>();
+
+    var sampleImageGallery = new[] {
+        "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1595769816263-9b910be24d5f?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1585647347483-22b66260dfff?q=80&w=1000&auto=format&fit=crop"
+    };
+}
+
+@section Styles {
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="~/css/pages/customer/theaters.css" asp-append-version="true" />
+}
+
+<div class="theaters-page py-5" style="padding-top: 90px !important; background-color: #0b0f19; color: #fff; min-height: 100vh;">
+    <div class="container-fluid px-lg-5 px-3">
+        
+        <!-- Header Banner Section -->
+        <div class="text-center mb-4">
+            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-3 py-2 rounded-pill fw-bold text-uppercase mb-2">
+                <i class="bi bi-geo-alt-fill me-1"></i> Trải Nghiệm Điện Ảnh Thượng Hạng
+            </span>
+            <h1 class="display-4 fw-bold text-white mb-2 tracking-wide">
+                HỆ THỐNG RẠP <span class="text-gradient-danger">CINEZONE</span>
+            </h1>
+            <p class="text-white-50 fs-5 max-w-700 mx-auto">
+                Không gian điện ảnh đẳng cấp quốc tế với hệ thống âm thanh Dolby Atmos, màn hình IMAX sắc nét và dịch vụ chăm sóc tận tâm.
+            </p>
+            <div class="title-underline mx-auto bg-danger" style="height: 4px; width: 90px; border-radius: 2px;"></div>
+        </div>
+
+        <!-- City Filter Section -->
+        <div class="d-flex justify-content-center flex-wrap gap-2 mb-4">
+            <button class="btn btn-city-filter active" data-city="all">
+                <i class="bi bi-globe me-1"></i> Tất cả rạp (@sqlTheaters.Count)
+            </button>
+            <button class="btn btn-city-filter" data-city="hcm">
+                <i class="bi bi-geo-fill me-1"></i> TP. Hồ Chí Minh
+            </button>
+            <button class="btn btn-city-filter" data-city="hanoi">
+                <i class="bi bi-geo-fill me-1"></i> Hà Nội
+            </button>
+            <button class="btn btn-city-filter" data-city="danang">
+                <i class="bi bi-geo-fill me-1"></i> Đà Nẵng
+            </button>
+            <button class="btn btn-city-filter" data-city="cantho">
+                <i class="bi bi-geo-fill me-1"></i> Cần Thơ
+            </button>
+        </div>
+
+        <!-- Map Section (TOP) -->
+        <div class="card bg-dark border-secondary border-opacity-25 shadow-lg rounded-4 overflow-hidden mb-5">
+            <div class="card-header bg-dark bg-opacity-75 border-secondary border-opacity-25 py-3 px-4 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-map-fill text-danger fs-4"></i>
+                    <h5 class="mb-0 fw-bold text-white">Bản Đồ Vị Trí Cụm Rạp CineZone</h5>
+                </div>
+                <small class="text-white-50"><i class="bi bi-info-circle me-1"></i> Nhấp vào biểu tượng rạp để xem chi tiết vị trí</small>
+            </div>
+            <div class="card-body p-0">
+                <div id="cinezone-map" style="height: 420px; width: 100%; z-index: 1;"></div>
+            </div>
+        </div>
+
+        <!-- Theater List Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary border-opacity-25">
+            <h3 class="fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-building text-danger"></i> DANH SÁCH CỤM RẠP CINEZONE
+            </h3>
+            <span class="text-white-50 small">Click vào từng rạp để xem ảnh không gian và tiện ích</span>
+        </div>
+
+        <!-- Theater Cards List (DỮ LIỆU LẤY TỪ DATABASE SQL SERVER) -->
+        <div class="row g-4" id="theater-list-container">
+            @if (sqlTheaters.Any())
+            {
+                int index = 0;
+                foreach (var theater in sqlTheaters)
+                {
+                    index++;
+                    string addr = theater.Address ?? "";
+                    string cityStr = addr.Contains("Hà Nội") ? "Hà Nội" :
+                                    (addr.Contains("Đà Nẵng") ? "Đà Nẵng" :
+                                    (addr.Contains("Cần Thơ") ? "Cần Thơ" : "TP. Hồ Chí Minh"));
+                    
+                    string cityCode = addr.Contains("Hà Nội") ? "hanoi" :
+                                     (addr.Contains("Đà Nẵng") ? "danang" :
+                                     (addr.Contains("Cần Thơ") ? "cantho" : "hcm"));
+
+                    int roomCount = (theater.Auditoria != null && theater.Auditoria.Any()) ? theater.Auditoria.Count : 5;
+                    string mapUrl = !string.IsNullOrEmpty(theater.GoogleMapUrl) ? theater.GoogleMapUrl : $"https://maps.google.com/?q={Uri.EscapeDataString(theater.Name + " " + addr)}";
+                    string phone = !string.IsNullOrEmpty(theater.Phone) ? theater.Phone : "028 7300 8888";
+
+                    <div class="col-12 theater-item-card" data-city="@cityCode" id="theater-card-@theater.TheaterId">
+                        <div class="card bg-dark border-secondary border-opacity-25 shadow-lg rounded-4 overflow-hidden card-theater-hover">
+                            <div class="card-body p-4">
+                                <div class="row align-items-center g-4">
+                                    
+                                    <!-- Main Image / Thumbnail -->
+                                    <div class="col-lg-4 col-md-5">
+                                        <div class="position-relative overflow-hidden rounded-3 theater-thumb-wrapper" style="height: 210px;">
+                                            <img src="@sampleImageGallery[(index - 1) % sampleImageGallery.Length]" class="w-100 h-100 object-fit-cover theater-thumb-img" alt="@theater.Name" />
+                                            <span class="position-absolute top-0 start-0 m-3 badge bg-danger text-white fw-bold shadow-sm">
+                                                <i class="bi bi-star-fill text-warning me-1"></i> CineZone Premium
+                                            </span>
+                                            <span class="position-absolute bottom-0 end-0 m-3 badge bg-dark bg-opacity-75 text-white border border-secondary">
+                                                <i class="bi bi-door-open me-1"></i> @roomCount Phòng chiếu
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Info Content từ SQL Database -->
+                                    <div class="col-lg-8 col-md-7">
+                                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                                            <div>
+                                                <span class="badge bg-secondary bg-opacity-25 text-danger border border-danger border-opacity-25 mb-1 me-2">
+                                                    @cityStr
+                                                </span>
+                                                <h3 class="h4 fw-bold text-white mb-1">@theater.Name</h3>
+                                            </div>
+                                            <a href="/Home/Schedule?theaterId=@theater.TheaterId" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-2">
+                                                <i class="bi bi-ticket-perforated-fill"></i> Đặt Vé Ngay
+                                            </a>
+                                        </div>
+
+                                        <p class="text-white-50 mb-3 small d-flex align-items-start gap-2">
+                                            <i class="bi bi-geo-alt text-danger fs-5 mt-n1 flex-shrink-0"></i>
+                                            <span>@addr</span>
+                                        </p>
+
+                                        <div class="d-flex flex-wrap gap-3 mb-3 small text-white-50">
+                                            <div><i class="bi bi-telephone text-warning me-1"></i> <strong>Hotline:</strong> @phone</div>
+                                            <div><i class="bi bi-clock text-warning me-1"></i> <strong>Giờ mở cửa:</strong> 08:00 - 24:00</div>
+                                        </div>
+
+                                        <!-- Amenities Badges -->
+                                        <div class="d-flex flex-wrap gap-1.5 mb-3">
+                                            <span class="badge bg-dark border border-secondary border-opacity-50 text-white-50 fw-normal px-2.5 py-1.5 rounded-pill">
+                                                <i class="bi bi-check-circle-fill text-success me-1"></i> IMAX 3D
+                                            </span>
+                                            <span class="badge bg-dark border border-secondary border-opacity-50 text-white-50 fw-normal px-2.5 py-1.5 rounded-pill">
+                                                <i class="bi bi-check-circle-fill text-success me-1"></i> Dolby Atmos
+                                            </span>
+                                            <span class="badge bg-dark border border-secondary border-opacity-50 text-white-50 fw-normal px-2.5 py-1.5 rounded-pill">
+                                                <i class="bi bi-check-circle-fill text-success me-1"></i> VIP Lounge
+                                            </span>
+                                            <span class="badge bg-dark border border-secondary border-opacity-50 text-white-50 fw-normal px-2.5 py-1.5 rounded-pill">
+                                                <i class="bi bi-check-circle-fill text-success me-1"></i> Ghế Đôi Sweetbox
+                                            </span>
+                                        </div>
+
+                                        <!-- Expand / Collapse Toggle Button (Sổ xuống hình ảnh rạp) -->
+                                        <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-25">
+                                            <button class="btn btn-outline-light btn-sm rounded-pill px-3 py-1.5 btn-toggle-gallery d-inline-flex align-items-center gap-2"
+                                                    type="button"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#galleryCollapse-@theater.TheaterId"
+                                                    aria-expanded="false"
+                                                    aria-controls="galleryCollapse-@theater.TheaterId">
+                                                <i class="bi bi-images text-danger"></i>
+                                                <span>Xem hình ảnh rạp & chi tiết</span>
+                                                <i class="bi bi-chevron-down toggle-icon transition-transform"></i>
+                                            </button>
+
+                                            <a href="@mapUrl" target="_blank" class="btn btn-link text-warning p-0 text-decoration-none small d-inline-flex align-items-center gap-1">
+                                                <i class="bi bi-box-arrow-up-right"></i> Chỉ đường Google Maps
+                                            </a>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                <!-- COLLAPSIBLE SECTION: GALLERIES & DETAILS (SỔ XUỐNG HÌNH ẢNH RẠP) -->
+                                <div class="collapse mt-4 pt-4 border-top border-secondary border-opacity-25" id="galleryCollapse-@theater.TheaterId">
+                                    <div class="bg-dark bg-opacity-50 p-4 rounded-4 border border-secondary border-opacity-25">
+                                        
+                                        <h5 class="fw-bold text-white mb-3 d-flex align-items-center gap-2">
+                                            <i class="bi bi-camera-fill text-danger"></i> KHÔNG GIAN VÀ CƠ SỞ VẬT CHẤT RẠP - @theater.Name
+                                        </h5>
+                                        <p class="text-white-50 small mb-4">
+                                            Hình ảnh thực tế không gian sảnh đón, phòng chiếu chuẩn 4K, hệ thống ghế da ngả lưng cao cấp và quầy phục vụ bắp nước tại <strong>@theater.Name</strong>.
+                                        </p>
+
+                                        <!-- Image Gallery Grid -->
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-md-6 col-lg-3">
+                                                <div class="gallery-card rounded-3 overflow-hidden position-relative">
+                                                    <img src="@sampleImageGallery[0]" class="w-100 h-100 object-fit-cover gallery-img" alt="Phòng chiếu phim" />
+                                                    <div class="gallery-caption">
+                                                        <span class="fw-semibold text-white small">Phòng chiếu IMAX 3D</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 col-lg-3">
+                                                <div class="gallery-card rounded-3 overflow-hidden position-relative">
+                                                    <img src="@sampleImageGallery[1]" class="w-100 h-100 object-fit-cover gallery-img" alt="Sảnh chờ rạp" />
+                                                    <div class="gallery-caption">
+                                                        <span class="fw-semibold text-white small">Sảnh chờ VIP Lounge</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 col-lg-3">
+                                                <div class="gallery-card rounded-3 overflow-hidden position-relative">
+                                                    <img src="@sampleImageGallery[2]" class="w-100 h-100 object-fit-cover gallery-img" alt="Ghế xem phim" />
+                                                    <div class="gallery-caption">
+                                                        <span class="fw-semibold text-white small">Ghế da cao cấp Sweetbox</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 col-lg-3">
+                                                <div class="gallery-card rounded-3 overflow-hidden position-relative">
+                                                    <img src="@sampleImageGallery[3]" class="w-100 h-100 object-fit-cover gallery-img" alt="Quầy Bắp Nước" />
+                                                    <div class="gallery-caption">
+                                                        <span class="fw-semibold text-white small">Quầy Popcorn & Concessions</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Extra Details & Action Bar -->
+                                        <div class="row g-3 align-items-center bg-black bg-opacity-40 p-3 rounded-3 border border-secondary border-opacity-25">
+                                            <div class="col-md-8">
+                                                <div class="d-flex flex-wrap gap-4 small text-white-50">
+                                                    <div><i class="bi bi-speaker-fill text-danger me-1"></i> <strong>Âm thanh:</strong> Dolby Atmos 360°</div>
+                                                    <div><i class="bi bi-display-fill text-danger me-1"></i> <strong>Máy chiếu:</strong> Christie Laser 4K</div>
+                                                    <div><i class="bi bi-p-square-fill text-danger me-1"></i> <strong>Đỗ xe:</strong> Tầng hầm B1-B3</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 text-md-end">
+                                                <a href="/Home/Schedule?theaterId=@theater.TheaterId" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-semibold">
+                                                    <i class="bi bi-calendar-event me-1"></i> Xem lịch chiếu rạp này
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="col-12 text-center py-5 text-white-50">
+                    <i class="bi bi-building-exclamation fs-1 text-danger d-block mb-2"></i>
+                    Chưa có rạp chiếu nào trong cơ sở dữ liệu.
+                </div>
+            }
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Leaflet JS for Map -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            
+            // Initializing Leaflet Map
+            const mapCenter = [16.047079, 108.206230]; // Vietnam center
+            const map = L.map('cinezone-map').setView(mapCenter, 6);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18,
+                attribution: '© OpenStreetMap contributors | CineZone Cinema System'
+            }).addTo(map);
+
+            // Dynamic SQL Theater Pin Markers
+            const sqlMapTheaters = [
+                @if (sqlTheaters.Any())
+                {
+                    int i = 0;
+                    foreach (var t in sqlTheaters)
+                    {
+                        i++;
+                        string a = t.Address ?? "";
+                        double lat = a.Contains("Hà Nội") ? 21.0125 + (i * 0.008) :
+                                    (a.Contains("Đà Nẵng") ? 16.0610 + (i * 0.008) :
+                                    (a.Contains("Cần Thơ") ? 10.0342 + (i * 0.008) : 10.7743 + (i * 0.012)));
+                        double lng = a.Contains("Hà Nội") ? 105.8496 + (i * 0.008) :
+                                    (a.Contains("Đà Nẵng") ? 108.2272 + (i * 0.008) :
+                                    (a.Contains("Cần Thơ") ? 105.7876 + (i * 0.008) : 106.7032 + (i * 0.012)));
+                        string cCode = a.Contains("Hà Nội") ? "hanoi" :
+                                      (a.Contains("Đà Nẵng") ? "danang" :
+                                      (a.Contains("Cần Thơ") ? "cantho" : "hcm"));
+                        
+                        @:{ id: @t.TheaterId, name: "@Html.Raw(JavaScriptEncoder.Default.Encode(t.Name))", lat: @lat, lng: @lng, city: "@cCode", address: "@Html.Raw(JavaScriptEncoder.Default.Encode(a))" },
+                    }
+                }
+            ];
+
+            const customIcon = L.divIcon({
+                className: 'custom-map-pin',
+                html: `<div class="pin-pulse"><i class="bi bi-film"></i></div>`,
+                iconSize: [36, 36],
+                iconAnchor: [18, 18]
+            });
+
+            sqlMapTheaters.forEach(t => {
+                const marker = L.marker([t.lat, t.lng], { icon: customIcon }).addTo(map);
+                marker.bindPopup(`
+                    <div style="color: #000; font-family: sans-serif; padding: 4px;">
+                        <strong style="color: #dc3545; font-size: 14px;">${t.name}</strong><br/>
+                        <small style="color: #555;">${t.address}</small><br/>
+                        <button onclick="scrollToTheater(${t.id})" style="margin-top: 6px; background: #dc3545; color: white; border: none; padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; font-weight: bold;">
+                            Xem ảnh rạp & chi tiết
+                        </button>
+                    </div>
+                `);
+            });
+
+            // Scroll to Theater function
+            window.scrollToTheater = function(id) {
+                const element = document.getElementById(`theater-card-${id}`);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    const collapseEl = document.getElementById(`galleryCollapse-${id}`);
+                    if (collapseEl && !collapseEl.classList.contains('show')) {
+                        const bsCollapse = new bootstrap.Collapse(collapseEl, { toggle: true });
+                    }
+                }
+            };
+
+            // City Filter Buttons Logic
+            const filterBtns = document.querySelectorAll('.btn-city-filter');
+            const theaterCards = document.querySelectorAll('.theater-item-card');
+
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const city = this.getAttribute('data-city');
+
+                    theaterCards.forEach(card => {
+                        if (city === 'all' || card.getAttribute('data-city') === city) {
+                            card.style.display = 'block';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+
+                    // Filter Map View
+                    if (city === 'all') {
+                        map.setView(mapCenter, 6);
+                    } else if (city === 'hcm') {
+                        map.setView([10.785, 106.71], 12);
+                    } else if (city === 'hanoi') {
+                        map.setView([21.0125, 105.8496], 13);
+                    } else if (city === 'danang') {
+                        map.setView([16.0610, 108.2272], 13);
+                    } else if (city === 'cantho') {
+                        map.setView([10.0342, 105.7876], 13);
+                    }
+                });
+            });
+
+            // Rotate Chevron icon on collapse toggle
+            document.querySelectorAll('.btn-toggle-gallery').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const icon = this.querySelector('.toggle-icon');
+                    if (icon) {
+                        icon.classList.toggle('rotate-180');
+                    }
+                });
+            });
+
+        });
+    </script>
+}

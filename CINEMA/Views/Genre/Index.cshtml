@@ -1,11 +1,11 @@
-﻿@model IEnumerable<CINEMA.Models.Genre>
+@model IEnumerable<CINEMA.Models.Genre>
 @{
     ViewData["Title"] = "Quản lý Thể loại";
     Layout = "_AdminLayout";
 }
 
 @section Styles {
-    <link rel="stylesheet" href="~/css/genre-management.css" />
+    <link rel="stylesheet" href="~/css/pages/genre/genre-management.css" asp-append-version="true" />
 }
 
 <div class="container-fluid py-4">
@@ -118,30 +118,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        // Kích hoạt Tooltip
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-
-        // Hàm tìm kiếm
-        function filterTable() {
-            let input = document.getElementById("searchInput");
-            let filter = input.value.toLowerCase();
-            let table = document.querySelector(".custom-table");
-            let rows = table.getElementsByTagName("tr");
-
-            for (let i = 1; i < rows.length; i++) {
-                let genreName = rows[i].getElementsByTagName("td")[1].textContent.toLowerCase();
-                let desc = rows[i].getElementsByTagName("td")[2].textContent.toLowerCase();
-
-                if (genreName.indexOf(filter) > -1 || desc.indexOf(filter) > -1) {
-                    rows[i].style.display = "";
-                } else {
-                    rows[i].style.display = "none";
-                }
-            }
-        }
-    </script>
+    <script src="~/js/pages/genre/index.js" asp-append-version="true"></script>
 }

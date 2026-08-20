@@ -1,4 +1,4 @@
-﻿@model IEnumerable<CINEMA.Models.Admin>
+@model IEnumerable<CINEMA.Models.Admin>
 
 @{
     ViewData["Title"] = "Quản lý phân ca";
@@ -115,76 +115,5 @@
 </div>
 
 @section Styles {
-    <style>
-        /* Thêm vào phần style có sẵn */
-        .shift-block {
-            /* ... giữ nguyên các thuộc tính cũ ... */
-            position: relative; /* Thêm cái này để định vị nút Xóa */
-        }
-
-            .shift-block .pe-4 {
-                padding-right: 1.5rem !important; /* Tạo khoảng trống để text không đè lên nút X */
-            }
-
-        .btn-delete-shift {
-            background: transparent;
-            opacity: 0.6;
-            transition: all 0.2s;
-            font-size: 1.1rem; /* Kích thước icon X */
-            line-height: 1;
-        }
-
-            .btn-delete-shift:hover {
-                opacity: 1;
-                transform: scale(1.1);
-            }
-
-        .z-index-1 {
-            z-index: 10;
-        }
-
-        .schedule-table th, .schedule-table td {
-            border-color: #e0e4e8;
-        }
-
-        .avatar-circle {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-        }
-
-        .cell-hover:hover {
-            background-color: #f8f9fa;
-        }
-
-        /* Thiết kế khối lịch làm việc giống ảnh mẫu */
-        .shift-block {
-            background-color: #e8f5e9; /* Màu nền xanh lá nhạt */
-            border-left: 3px solid #2e7d32; /* Viền trái xanh lá đậm */
-            padding: 6px 8px;
-            border-radius: 0 4px 4px 0;
-            font-size: 0.8rem;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-
-            .shift-block:hover {
-                background-color: #c8e6c9;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-
-            .shift-block .time-text {
-                color: #555;
-                font-size: 0.75rem;
-            }
-
-            .shift-block .shift-name {
-                color: #2e7d32;
-                font-weight: 500;
-            }
-    </style>
+    <link rel="stylesheet" href="~/css/pages/dutyschedule/index.css" asp-append-version="true" />
 }

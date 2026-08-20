@@ -1,251 +1,568 @@
-﻿@model IEnumerable<CINEMA.Models.Admin>
+@model IEnumerable<CINEMA.Models.Admin>
 
 @{
-    ViewData["Title"] = "Quản lý nhân viên";
+    ViewData["Title"] = "Quản lý cấp quyền & phân quyền Admin";
     Layout = "_AdminLayout";
 }
 
+<style>
+    .card-module {
+        border-radius: 1rem;
+        transition: all 0.2s ease-in-out;
+    }
+    .card-module-blue {
+        background-color: #f4fbfd;
+        border: 1.5px solid #d4eff6;
+    }
+    .card-module-yellow {
+        background-color: #fffdf5;
+        border: 1.5px solid #fceecb;
+    }
+    .card-module-purple {
+        background-color: #fcf8ff;
+        border: 1.5px solid #ebd9fc;
+    }
+    .card-module-green {
+        background-color: #f5fbf7;
+        border: 1.5px solid #ccecd7;
+    }
+    .btn-teal {
+        background-color: #0b6b7a;
+        border-color: #0b6b7a;
+    }
+    .btn-teal:hover {
+        background-color: #08535f;
+        border-color: #08535f;
+    }
+    .form-check-input:checked {
+        background-color: #0b6b7a;
+        border-color: #0b6b7a;
+    }
+</style>
+
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Header Page -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
         <div>
-            <h4 class="fw-bold text-primary mb-0">Quản lý nhân viên</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a asp-action="Dashboard">Dashboard</a></li>
-                    <li class="breadcrumb-item active">Danh sách nhân viên</li>
-                </ol>
-            </nav>
+            <h3 class="fw-bold text-dark mb-1">
+                <i class="bi bi-shield-lock text-primary me-2"></i>QUẢN LÝ CẤP QUYỀN & PHÂN QUYỀN ADMIN
+            </h3>
+            <p class="text-muted mb-0 small">Phân quyền vai trò, quản lý đặc quyền chi tiết và tài khoản nhân sự hệ thống CineZone</p>
         </div>
-        <a asp-action="CreateStaff" class="btn btn-primary rounded-pill px-4 shadow-sm">
-            <i class="bi bi-plus-circle me-1"></i> Thêm nhân viên
+        <a asp-action="CreateStaff" class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fw-bold">
+            <i class="bi bi-person-plus-fill me-2"></i>Thêm Admin Mới
         </a>
     </div>
 
-    <div class="card shadow-sm border-0 rounded-4">
-
-        <div class="card-header bg-white border-0 p-3">
-
-            <form method="get">
-
-                <div class="input-group">
-
-                    <input type="text"
-                           name="search"
-                           class="form-control"
-                           placeholder="Tìm theo tên hoặc email..." />
-
-                    <button class="btn btn-primary">
-                        <i class="bi bi-search"></i>
-                    </button>
-
+    <!-- 4 Statistic Cards Top -->
+    <div class="row g-3 mb-4">
+        <!-- Super Admin Card -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-4 border-danger bg-white">
+                <div class="d-flex align-items-center">
+                    <div class="bg-danger-subtle text-danger p-3 rounded-circle me-3">
+                        <i class="bi bi-shield-fill-check fs-3"></i>
+                    </div>
+                    <div>
+                        <span class="text-uppercase text-muted fw-semibold small d-block">Super Admin</span>
+                        <h4 class="fw-bold text-dark mb-0">@(ViewBag.SuperAdminCount ?? 0) <span class="fs-6 text-muted fw-normal">Tài khoản</span></h4>
+                        <span class="badge bg-danger-subtle text-danger mt-1">🔑 Toàn quyền hệ thống</span>
+                    </div>
                 </div>
+            </div>
+        </div>
 
+        <!-- Manager Card -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-4 border-primary bg-white">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary-subtle text-primary p-3 rounded-circle me-3">
+                        <i class="bi bi-film fs-3"></i>
+                    </div>
+                    <div>
+                        <span class="text-uppercase text-muted fw-semibold small d-block">Quản Lý Phim & Vé</span>
+                        <h4 class="fw-bold text-dark mb-0">@(ViewBag.ManagerCount ?? 0) <span class="fs-6 text-muted fw-normal">Tài khoản</span></h4>
+                        <span class="badge bg-primary-subtle text-primary mt-1">🎬 Quản lý Phim & Lịch chiếu</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Staff Card -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-4 border-success bg-white">
+                <div class="d-flex align-items-center">
+                    <div class="bg-success-subtle text-success p-3 rounded-circle me-3">
+                        <i class="bi bi-person-badge fs-3"></i>
+                    </div>
+                    <div>
+                        <span class="text-uppercase text-muted fw-semibold small d-block">Nhân Viên Bán Vé</span>
+                        <h4 class="fw-bold text-dark mb-0">@(ViewBag.StaffCount ?? 0) <span class="fs-6 text-muted fw-normal">Tài khoản</span></h4>
+                        <span class="badge bg-success-subtle text-success mt-1">🎟️ Quét QR & Bán vé quầy</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Security Card -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-4 border-purple bg-white" style="border-color: #6f42c1 !important;">
+                <div class="d-flex align-items-center">
+                    <div class="p-3 rounded-circle me-3" style="background-color: #f3ebf9; color: #6f42c1;">
+                        <i class="bi bi-lock-fill fs-3"></i>
+                    </div>
+                    <div>
+                        <span class="text-uppercase text-muted fw-semibold small d-block">Bảo Mật Hệ Thống</span>
+                        <h4 class="fw-bold text-dark mb-0">BẢO VỆ 100%</h4>
+                        <span class="badge mt-1" style="background-color: #f3ebf9; color: #6f42c1;">🔒 Phân quyền chi tiết</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Notifications -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Main Card Table -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white p-3 border-0 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+            <h5 class="fw-bold text-dark mb-0">
+                <i class="bi bi-people-fill text-primary me-2"></i>Danh Sách Tài Khoản Quản Trị Viên & Quyền Hạn
+            </h5>
+            <form method="get" class="d-flex align-items-center gap-2" style="max-width: 380px; width: 100%;">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="search" class="form-control bg-light border-0" placeholder="Tìm theo tên, email hoặc mã NV..." value="@Context.Request.Query["search"]" />
+                    <button class="btn btn-primary" type="submit">Tìm kiếm</button>
+                </div>
             </form>
-
         </div>
 
         <div class="card-body p-0">
-
             <div class="table-responsive">
-
                 <table class="table table-hover align-middle mb-0">
-
-                    <thead class="table-light">
-
+                    <thead class="bg-light text-uppercase text-secondary fw-semibold small">
                         <tr>
-
-                            <th width="90">Ảnh</th>
-
-                            <th>Mã NV</th>
-
-                            <th>Họ tên</th>
-
-                            <th>Email</th>
-
-                            <th>Giới tính</th>
-
-                            <th>Ngày vào làm</th>
-
-                            <th>Chi nhánh</th>
-
-                            <th>Chức vụ</th>
-
-                            <th>Vai trò</th>
-
-                            <th>Trạng thái</th>
-
-                            <th class="text-center">
-                                Thao tác
-                            </th>
-
+                            <th class="ps-4">Mã Admin</th>
+                            <th>Quản Trị Viên</th>
+                            <th>Email Đăng Nhập</th>
+                            <th>Vai Trò (Role)</th>
+                            <th style="min-width: 320px;">Quyền Hạn Được Cấp</th>
+                            <th>Đăng Nhập Cuối</th>
+                            <th>Trạng Thái</th>
+                            <th class="text-end pe-4">Thao Tác Cấp Quyền</th>
                         </tr>
-
                     </thead>
-
                     <tbody>
-
-                        @foreach (var item in Model)
+                        @if (Model != null && Model.Any())
                         {
-                            <tr>
-
-                                <td>
-
-                                    @if (!string.IsNullOrEmpty(item.Avatar))
-                                    {
-                                        <img src="@item.Avatar"
-                                             class="rounded-circle border"
-                                             width="55"
-                                             height="55"
-                                             style="object-fit:cover">
-                                    }
-                                    else
-                                    {
-                                        <img src="/images/default-avatar.png"
-                                             class="rounded-circle border"
-                                             width="55"
-                                             height="55">
-                                    }
-
-                                </td>
-
-                                <td>@item.EmployeeCode</td>
-
-                                <td class="fw-bold">
-                                    @item.FullName
-                                </td>
-
-                                <td>
-                                    @item.Email
-                                </td>
-
-                                
-
-                                <td>@item.Gender</td>
-
-                                <td>@item.HireDate?.ToString("dd/MM/yyyy")</td>
-
-                                <td>
-                                    @{
-                                        var theaterDict = ViewBag.TheaterDict as Dictionary<int, string>;
-                                        int currentId = item.BranchId ?? 0; // Lấy ID rạp từ nhân viên
-
-                                        if (theaterDict != null && currentId > 0 && theaterDict.ContainsKey(currentId))
-                                        {
-                                            <span class="fw-bold text-dark">@theaterDict[currentId]</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted fst-italic">Chưa gán rạp</span>
-                                        }
-                                    }
-                                </td>
-
-                                <td>
-                                    @(item.Position?.PositionName ?? "Chưa gán")
-                                </td>
-
-                                <td>
-
-                                    @if (item.Role == "SuperAdmin")
-                                    {
-                                        <span class="badge bg-danger">
-                                            SuperAdmin
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <!-- Mã Admin -->
+                                    <td class="ps-4">
+                                        <span class="badge bg-light text-dark font-monospace border px-2 py-1 fs-6">
+                                            #@(item.EmployeeCode ?? $"ADM-{item.AdminId:D3}")
                                         </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-primary">
-                                            Staff
-                                        </span>
-                                    }
+                                    </td>
 
-                                </td>
-
-                                <td>
-
-                                    @if (item.IsActive)
-                                    {
-                                        <span class="badge bg-success">
-                                            Hoạt động
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">
-                                            Khóa
-                                        </span>
-                                    }
-
-                                </td>
-
-                                <td class="text-center">
-
-                                    <div class="btn-group">
-
-                                        <a asp-action="DetailsStaff"
-                                           asp-route-id="@item.AdminId"
-                                           class="btn btn-sm btn-outline-info">
-                                            <i class="bi bi-eye"></i>
-
-                                        </a>
-
-                                        <a asp-action="EditStaff"
-                                           asp-route-id="@item.AdminId"
-                                           class="btn btn-sm btn-outline-warning">
-
-                                            <i class="bi bi-pencil"></i>
-
-                                        </a>
-
-                                        <a asp-action="ResetPassword"
-                                           asp-route-id="@item.AdminId"
-                                           class="btn btn-sm btn-outline-secondary"
-                                           title="Reset password">
-
-                                            <i class="bi bi-key"></i>
-
-                                        </a>
-
-                                        <form asp-action="ToggleStaffStatus"
-                                              asp-route-id="@item.AdminId"
-                                              method="post"
-                                              style="display:inline">
-
-                                            @if (item.IsActive)
+                                    <!-- Quản trị viên (Avatar + Name) -->
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            @if (!string.IsNullOrEmpty(item.Avatar))
                                             {
-                                                <button class="btn btn-sm btn-outline-danger"
-                                                        title="Khóa tài khoản">
-
-                                                    <i class="bi bi-lock"></i>
-
-                                                </button>
+                                                <img src="@item.Avatar" class="rounded-circle me-3 border shadow-sm" width="45" height="45" style="object-fit: cover;" />
                                             }
                                             else
                                             {
-                                                <button class="btn btn-sm btn-outline-success"
-                                                        title="Mở khóa">
-
-                                                    <i class="bi bi-unlock"></i>
-
-                                                </button>
+                                                <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center fw-bold me-3 shadow-sm" style="width: 45px; height: 45px; font-size: 1.1rem;">
+                                                    @(string.IsNullOrEmpty(item.FullName) ? "A" : item.FullName.Substring(0, 1).ToUpper())
+                                                </div>
                                             }
+                                            <div>
+                                                <div class="fw-bold text-dark mb-0">@item.FullName</div>
+                                                <small class="text-muted">@(item.Position?.PositionName ?? "Quản trị viên")</small>
+                                            </div>
+                                        </div>
+                                    </td>
 
-                                        </form>
+                                    <!-- Email -->
+                                    <td>
+                                        <span class="text-primary font-monospace">@item.Email</span>
+                                    </td>
 
-                                    </div>
+                                    <!-- Role Badge -->
+                                    <td>
+                                        @if (item.Role == "SuperAdmin")
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill fw-bold">
+                                                <i class="bi bi-shield-fill-check me-1"></i>Super Admin
+                                            </span>
+                                        }
+                                        else if (item.Role == "Manager")
+                                        {
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-bold">
+                                                <i class="bi bi-award-fill me-1"></i>Quản Lý Phim & Vé
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-bold">
+                                                <i class="bi bi-person-badge-fill me-1"></i>Nhân Viên Bán Vé
+                                            </span>
+                                        }
+                                    </td>
 
+                                    <!-- Quyền hạn được cấp -->
+                                    <td>
+                                        <div class="p-2 rounded-3 bg-light border border-light-subtle small text-secondary">
+                                            @if (item.Role == "SuperAdmin")
+                                            {
+                                                <span><i class="bi bi-check-circle-fill text-danger me-1"></i><strong>Toàn Quyền Quản Trị Hệ Thống</strong> (Xem/Thêm/Sửa/Xóa tất cả Module Phim, Vé, Lương, Phân Quyền)</span>
+                                            }
+                                            else if (item.Role == "Manager")
+                                            {
+                                                <span><i class="bi bi-check-circle-fill text-primary me-1"></i><strong>Quản Lý Phim, Suất Chiếu & Khuyến Mãi</strong> (Thêm/Sửa/Xóa Phim, Lịch chiếu, Voucher)</span>
+                                            }
+                                            else
+                                            {
+                                                <span><i class="bi bi-check-circle-fill text-success me-1"></i><strong>Quản Lý Bán Vé & Check-In</strong> (Quét mã QR check-in, Đặt vé quầy, Kiểm tra đơn hàng)</span>
+                                            }
+                                        </div>
+                                    </td>
+
+                                    <!-- Đăng nhập cuối -->
+                                    <td class="small text-muted">
+                                        @if (item.LastLogin.HasValue)
+                                        {
+                                            <div><i class="bi bi-clock me-1"></i>@item.LastLogin.Value.ToString("dd/MM/yyyy")</div>
+                                            <div class="fw-bold text-dark">@item.LastLogin.Value.ToString("HH:mm:ss")</div>
+                                        }
+                                        else
+                                        {
+                                            <span class="fst-italic text-muted">Chưa đăng nhập</span>
+                                        }
+                                    </td>
+
+                                    <!-- Trạng thái -->
+                                    <td>
+                                        @if (item.IsActive)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fw-semibold">
+                                                <i class="bi bi-record-fill me-1"></i>Đang Hoạt Động
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 rounded-pill fw-semibold">
+                                                <i class="bi bi-lock-fill me-1"></i>Đã Khóa
+                                            </span>
+                                        }
+                                    </td>
+
+                                    <!-- Thao tác cấp quyền -->
+                                    <td class="text-end pe-4">
+                                        <div class="d-flex justify-content-end gap-1">
+                                            <!-- Button Cấp Quyền Mới -->
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm btn-grant-permissions"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#modalGrantPermissions"
+                                                    data-id="@item.AdminId"
+                                                    data-name="@item.FullName"
+                                                    data-role="@item.Role"
+                                                    data-permissions="@item.Permissions">
+                                                <i class="bi bi-key-fill me-1"></i>Cấp Quyền
+                                            </button>
+
+                                            <!-- Sửa thông tin -->
+                                            <a asp-action="EditStaff" asp-route-id="@item.AdminId" class="btn btn-sm btn-outline-primary rounded-circle" title="Sửa thông tin">
+                                                <i class="bi bi-pencil-fill"></i>
+                                            </a>
+
+                                            <!-- Toggle Khóa/Mở -->
+                                            <form asp-action="ToggleStaffStatus" asp-route-id="@item.AdminId" method="post" class="d-inline">
+                                                @if (item.IsActive)
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle" title="Khóa tài khoản" onclick="return confirm('Bạn có chắc chắn muốn khóa tài khoản này?');">
+                                                        <i class="bi bi-lock-fill"></i>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-outline-success rounded-circle" title="Mở khóa tài khoản">
+                                                        <i class="bi bi-unlock-fill"></i>
+                                                    </button>
+                                                }
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2 text-muted"></i>
+                                    Chưa có tài khoản quản trị nào trong hệ thống
                                 </td>
-
                             </tr>
                         }
-
                     </tbody>
-
                 </table>
-
             </div>
-
         </div>
-
     </div>
 </div>
+
+<!-- Form Modal Cấp Quyền Cho Admin Chuẩn Giao Diện Mẫu -->
+<div class="modal fade" id="modalGrantPermissions" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            
+            <!-- Modal Header -->
+            <div class="modal-header border-0 pb-0 pt-4 px-4 position-relative">
+                <div>
+                    <h4 class="modal-title fw-bold text-primary mb-1" id="modalGrantTitle" style="color: #0b6b7a !important;">
+                        CẤP QUYỀN CHO ADMIN: <span id="grantAdminNameDisplay" class="text-dark">Admin Name</span>
+                    </h4>
+                    <p class="text-muted small mb-0">Vai trò hiện tại: <span id="grantRoleDisplay" class="fw-bold text-dark">Super Admin (1)</span></p>
+                </div>
+                <button type="button" class="btn-close rounded-circle p-2 bg-light position-absolute top-0 end-0 m-4" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Modal Form Body -->
+            <form asp-action="SavePermissions" method="post">
+                <div class="modal-body p-4">
+                    <input type="hidden" id="grantAdminId" name="id" />
+                    <input type="hidden" id="grantRoleInput" name="role" value="Staff" />
+
+                    <!-- Role Quick Selector -->
+                    <div class="mb-4 p-3 bg-light rounded-3 d-flex align-items-center justify-content-between">
+                        <label class="fw-bold text-dark mb-0"><i class="bi bi-shield-badge text-primary me-2"></i>Chọn Vai Trò (Role):</label>
+                        <select id="roleSelector" class="form-select fw-bold border-2 border-info w-auto">
+                            <option value="SuperAdmin">🔴 Super Admin (Toàn Quyền)</option>
+                            <option value="Manager">🔵 Manager (Quản Lý Phim & Vé)</option>
+                            <option value="Staff">🟢 Staff (Nhân Viên Bán Vé & QR)</option>
+                        </select>
+                    </div>
+
+                    <!-- MODULE 1: QUẢN LÝ PHIM & SUẤT CHIẾU -->
+                    <div class="card-module card-module-blue p-3 mb-3">
+                        <h6 class="fw-bold text-uppercase mb-3" style="color: #0b6b7a;">
+                            <i class="bi bi-film me-2"></i>MODULE QUẢN LÝ PHIM & SUẤT CHIẾU
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="movies_view" id="perm_movies_view" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_movies_view">Xem danh sách phim & lịch chiếu</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="movies_create" id="perm_movies_create" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_movies_create">Thêm phim & tạo suất chiếu mới</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="movies_edit" id="perm_movies_edit" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_movies_edit">Chỉnh sửa thông tin phim & giá vé</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="movies_delete" id="perm_movies_delete" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_movies_delete">Xóa phim / suất chiếu khỏi rạp</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MODULE 2: QUẢN LÝ ĐƠN HÀNG & BÁN VÉ -->
+                    <div class="card-module card-module-yellow p-3 mb-3">
+                        <h6 class="fw-bold text-uppercase mb-3" style="color: #b37400;">
+                            <i class="bi bi-ticket-perforated me-2"></i>MODULE QUẢN LÝ ĐƠN HÀNG & BÁN VÉ
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="orders_view" id="perm_orders_view" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_orders_view">Xem danh sách đơn hàng đặt vé</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="orders_scan" id="perm_orders_scan" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_orders_scan">Quét mã QR Code check-in vé rạp</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="orders_pos" id="perm_orders_pos" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_orders_pos">Đặt vé tại quầy cho khách</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="orders_cancel" id="perm_orders_cancel" />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_orders_cancel">Hủy / Hoàn tiền đơn hàng</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MODULE 3: KHUYẾN MÃI & COMBO -->
+                    <div class="card-module card-module-green p-3 mb-3">
+                        <h6 class="fw-bold text-uppercase mb-3" style="color: #198754;">
+                            <i class="bi bi-tag me-2"></i>MODULE KHUYẾN MÃI & COMBO
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="vouchers_view" id="perm_vouchers_view" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_vouchers_view">Xem danh sách Voucher & Combo</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="vouchers_create" id="perm_vouchers_create" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_vouchers_create">Tạo & chỉnh sửa mã giảm giá Voucher</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="combos_manage" id="perm_combos_manage" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_combos_manage">Quản lý danh mục Combo bắp nước</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MODULE 4: BẢO MẬT & QUẢN TRỊ -->
+                    <div class="card-module card-module-purple p-3 mb-4">
+                        <h6 class="fw-bold text-uppercase mb-3" style="color: #6f42c1;">
+                            <i class="bi bi-shield-check me-2"></i>MODULE BẢO MẬT & QUẢN TRỊ
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="security_assign" id="perm_security_assign" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_security_assign">Cấp quyền cho Admin/Nhân viên khác</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="security_create" id="perm_security_create" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_security_create">Tạo tài khoản Admin/Nhân viên mới</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="staff_payroll" id="perm_staff_payroll" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_staff_payroll">Xem bảng công & tính lương nhân sự</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input perm-check" type="checkbox" name="selectedPermissions" value="security_logs" id="perm_security_logs" checked />
+                                    <label class="form-check-label fw-medium text-dark" for="perm_security_logs">Xem nhật ký thao tác & đăng nhập (Log)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-teal w-100 py-3 rounded-pill fw-bold text-white fs-5 shadow-sm">
+                        <i class="bi bi-person-check-fill me-2"></i>LƯU THAY ĐỔI CẤP QUYỀN
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const modal = document.getElementById('modalGrantPermissions');
+            if (modal) {
+                modal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const id = button.getAttribute('data-id');
+                    const name = button.getAttribute('data-name');
+                    const role = button.getAttribute('data-role') || 'Staff';
+                    const perms = button.getAttribute('data-permissions') || '';
+
+                    document.getElementById('grantAdminId').value = id;
+                    document.getElementById('grantAdminNameDisplay').innerText = name;
+                    document.getElementById('grantRoleDisplay').innerText = role + ` (${id})`;
+                    document.getElementById('roleSelector').value = role;
+                    document.getElementById('grantRoleInput').value = role;
+
+                    // Set checkboxes based on saved permissions or role default
+                    const checkboxes = document.querySelectorAll('.perm-check');
+                    if (perms && perms.trim() !== "") {
+                        const permArray = perms.split(',');
+                        checkboxes.forEach(cb => {
+                            cb.checked = permArray.includes(cb.value);
+                        });
+                    } else {
+                        // Apply default template for role
+                        applyRoleDefaults(role);
+                    }
+                });
+            }
+
+            const roleSelector = document.getElementById('roleSelector');
+            if (roleSelector) {
+                roleSelector.addEventListener('change', function () {
+                    const selectedRole = this.value;
+                    document.getElementById('grantRoleInput').value = selectedRole;
+                    applyRoleDefaults(selectedRole);
+                });
+            }
+
+            function applyRoleDefaults(role) {
+                const checkboxes = document.querySelectorAll('.perm-check');
+                if (role === 'SuperAdmin') {
+                    checkboxes.forEach(cb => cb.checked = true);
+                } else if (role === 'Manager') {
+                    checkboxes.forEach(cb => {
+                        const val = cb.value;
+                        if (val.startsWith('movies_') || val.startsWith('vouchers_') || val.startsWith('combos_') || val === 'orders_view') {
+                            cb.checked = true;
+                        } else {
+                            cb.checked = false;
+                        }
+                    });
+                } else {
+                    checkboxes.forEach(cb => {
+                        const val = cb.value;
+                        if (val === 'movies_view' || val === 'orders_view' || val === 'orders_scan' || val === 'orders_pos' || val === 'vouchers_view') {
+                            cb.checked = true;
+                        } else {
+                            cb.checked = false;
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+}

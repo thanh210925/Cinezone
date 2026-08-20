@@ -1,4 +1,4 @@
-﻿@model CINEMA.Models.Genre
+@model CINEMA.Models.Genre
 
 @{
     ViewData["Title"] = "Xóa Thể loại";
@@ -74,23 +74,5 @@
 </div>
 
 @section Styles {
-    <style>
-        .modal-content {
-            border-radius: 1rem;
-        }
-
-        .modal-header {
-            border-top-left-radius: 1rem;
-            border-top-right-radius: 1rem;
-        }
-
-        .btn-danger, .bg-danger {
-            background: linear-gradient(135deg, #dc2626, #ef4444);
-            border: none;
-        }
-
-            .btn-danger:hover {
-                background: linear-gradient(135deg, #b91c1c, #dc2626);
-            }
-    </style>
+    <link rel="stylesheet" href="~/css/pages/genre/delete.css" asp-append-version="true" />
 }
