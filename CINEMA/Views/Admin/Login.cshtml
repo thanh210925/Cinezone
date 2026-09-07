@@ -40,14 +40,19 @@
 
                     <!-- Section: Chọn Vai Trò Đăng Nhập Nhanh -->
                     <div class="mb-4">
-                        <label class="fw-bold text-dark mb-3 d-flex align-items-center">
-                            <i class="bi bi-person-gear text-primary me-2 fs-5"></i>Chọn vai trò đăng nhập nhanh:
-                        </label>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <label class="fw-bold text-dark mb-0 d-flex align-items-center">
+                                <i class="bi bi-person-gear text-primary me-2 fs-5"></i>Chọn vai trò đăng nhập nhanh:
+                            </label>
+                            <span class="badge bg-light text-secondary border fw-normal" style="font-size: 0.75rem;">
+                                <i class="bi bi-key-fill text-warning me-1"></i>Pass mặc định: <strong>123456</strong>
+                            </span>
+                        </div>
 
                         <div class="row g-2">
                             <!-- Super Admin Card -->
                             <div class="col-3">
-                                <div class="role-card active" id="cardSuperAdmin" onclick="selectRole('SuperAdmin', 'Admin1@gmail.com', '👑 Super Admin (Toàn Quyền)', '#d9534f')">
+                                <div class="role-card active" id="cardSuperAdmin" onclick="selectRole('SuperAdmin', 'admin@cinezone.vn', '123456', '👑 Super Admin (Toàn Quyền)', '#d9534f')">
                                     <span class="role-icon text-danger">👑</span>
                                     <div class="fw-bold text-dark small">Super Admin</div>
                                     <div class="text-muted extra-small" style="font-size: 0.72rem;">Toàn Quyền</div>
@@ -56,16 +61,16 @@
 
                             <!-- Manager Card -->
                             <div class="col-3">
-                                <div class="role-card" id="cardManager" onclick="selectRole('Manager', 'manager@cinezone.vn', '🎬 Manager (Phim & Lịch Chiếu)', '#0275d8')">
+                                <div class="role-card" id="cardManager" onclick="selectRole('Manager', 'manager@cinezone.vn', '123456', '🎬 Manager (Phim & Lịch Chiếu)', '#0275d8')">
                                     <span class="role-icon text-primary">🎬</span>
                                     <div class="fw-bold text-dark small">Manager</div>
                                     <div class="text-muted extra-small" style="font-size: 0.72rem;">Phim & Vé</div>
                                 </div>
                             </div>
 
-                            <!-- CRM Card (MỚI) -->
+                            <!-- CRM Card -->
                             <div class="col-3">
-                                <div class="role-card" id="cardCRM" onclick="selectRole('CRM', 'crm@cinezone.vn', '💜 CRM (Quản Lý KH & CSKH)', '#6f42c1')">
+                                <div class="role-card" id="cardCRM" onclick="selectRole('CRM', 'crm@cinezone.vn', '123456', '💜 CRM (Quản Lý KH & CSKH)', '#6f42c1')">
                                     <span class="role-icon" style="color: #6f42c1;">🎧</span>
                                     <div class="fw-bold text-dark small">CRM</div>
                                     <div class="text-muted extra-small" style="font-size: 0.72rem;">CSKH & CRM</div>
@@ -74,7 +79,7 @@
 
                             <!-- Staff Card -->
                             <div class="col-3">
-                                <div class="role-card" id="cardStaff" onclick="selectRole('Staff', 'staff@cinezone.vn', '🎟️ Staff (Bán Vé & QR)', '#5cb85c')">
+                                <div class="role-card" id="cardStaff" onclick="selectRole('Staff', 'staff@cinezone.vn', '123456', '🎟️ Staff (Bán Vé & QR)', '#5cb85c')">
                                     <span class="role-icon text-success">🎟️</span>
                                     <div class="fw-bold text-dark small">Staff</div>
                                     <div class="text-muted extra-small" style="font-size: 0.72rem;">Bán Vé & QR</div>
@@ -115,6 +120,7 @@
                                        name="password" 
                                        class="form-control form-control-custom text-dark fw-medium" 
                                        placeholder="••••••••" 
+                                       value="123456"
                                        required />
                                 <button type="button" class="btn bg-light border border-start-0 rounded-end-3 text-muted" id="togglePasswordBtn">
                                     <i class="bi bi-eye-fill" id="togglePasswordIcon"></i>
@@ -158,7 +164,7 @@
 
 @section Scripts {
     <script>
-        function selectRole(roleCode, email, badgeText, badgeColor) {
+        function selectRole(roleCode, email, password, badgeText, badgeColor) {
             // Remove active class from all cards
             document.getElementById('cardSuperAdmin')?.classList.remove('active');
             document.getElementById('cardManager')?.classList.remove('active');
@@ -176,10 +182,15 @@
                 document.getElementById('cardStaff')?.classList.add('active');
             }
 
-            // Fill email input
+            // Fill email & password inputs
             const emailInput = document.getElementById('emailInput');
             if (emailInput) {
                 emailInput.value = email;
+            }
+
+            const passwordInput = document.getElementById('passwordInput');
+            if (passwordInput) {
+                passwordInput.value = password || '123456';
             }
 
             // Update bottom badge

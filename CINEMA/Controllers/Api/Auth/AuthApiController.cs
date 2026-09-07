@@ -23,9 +23,16 @@ namespace CINEMA.Controllers.Api.AuthApi
         }
 
         /// <summary>
-        /// Đăng nhập Khách hàng
+        /// Đăng nhập Khách hàng và cấp JWT Token cùng Refresh Token
         /// </summary>
+        /// <param name="model">Thông tin email và mật khẩu đăng nhập</param>
+        /// <response code="200">Đăng nhập thành công, trả về Access Token và Refresh Token</response>
+        /// <response code="400">Dữ liệu đầu vào không hợp lệ</response>
+        /// <response code="401">Email hoặc mật khẩu không chính xác</response>
         [HttpPost("login")]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Login([FromBody] LoginDto model)
         {
             if (!ModelState.IsValid)
@@ -60,9 +67,16 @@ namespace CINEMA.Controllers.Api.AuthApi
         }
 
         /// <summary>
-        /// Đăng nhập Admin / Quản trị viên
+        /// Đăng nhập Admin / Quản trị viên và cấp JWT Token
         /// </summary>
+        /// <param name="model">Thông tin đăng nhập của Admin/Staff</param>
+        /// <response code="200">Đăng nhập thành công</response>
+        /// <response code="400">Dữ liệu đầu vào không hợp lệ</response>
+        /// <response code="401">Tài khoản hoặc mật khẩu không chính xác</response>
         [HttpPost("admin-login")]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> AdminLogin([FromBody] LoginDto model)
         {
             if (!ModelState.IsValid)
@@ -101,9 +115,14 @@ namespace CINEMA.Controllers.Api.AuthApi
         }
 
         /// <summary>
-        /// Đăng ký tài khoản Khách hàng
+        /// Đăng ký tài khoản Khách hàng mới
         /// </summary>
+        /// <param name="model">Thông tin tài khoản đăng ký</param>
+        /// <response code="200">Đăng ký thành công, tự động cấp JWT Token</response>
+        /// <response code="400">Dữ liệu không hợp lệ hoặc Email đã tồn tại</response>
         [HttpPost("register")]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Register([FromBody] RegisterDto model)
         {
             if (!ModelState.IsValid)
@@ -150,9 +169,16 @@ namespace CINEMA.Controllers.Api.AuthApi
         }
 
         /// <summary>
-        /// Cấp lại Access Token từ Refresh Token
+        /// Cấp lại Access Token mới từ Refresh Token
         /// </summary>
+        /// <param name="model">Chuỗi Refresh Token cần gia hạn</param>
+        /// <response code="200">Cấp lại Access Token và Refresh Token mới thành công</response>
+        /// <response code="400">Dữ liệu không hợp lệ</response>
+        /// <response code="401">Refresh Token không hợp lệ hoặc đã hết hạn</response>
         [HttpPost("refresh-token")]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto model)
         {
             if (!ModelState.IsValid)

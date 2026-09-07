@@ -43,9 +43,16 @@ namespace CINEMA.Controllers.Api.AdminApi
         }
 
         /// <summary>
-        /// API Quét QR Code mã đơn hàng / mã vé để check-in trực tiếp tại rạp
+        /// API Quét QR Code mã đơn hàng / mã vé để check-in trực tiếp tại cửa rạp
         /// </summary>
+        /// <param name="model">Dữ liệu mã QR Code quét từ vé khách hàng</param>
+        /// <response code="200">Xác thực vé thành công hoặc vé đã qua check-in trước đó</response>
+        /// <response code="400">Dữ liệu mã QR không hợp lệ hoặc không tìm thấy đơn hàng</response>
+        /// <response code="401">Chưa đăng nhập hoặc không có quyền Nhân viên/Admin</response>
         [HttpPost("scan-qr")]
+        [ProducesResponseType(typeof(ScanQrResultDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ScanQrResultDto), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> ScanQrCode([FromBody] ScanQrRequestDto model)
         {
             if (!ModelState.IsValid)

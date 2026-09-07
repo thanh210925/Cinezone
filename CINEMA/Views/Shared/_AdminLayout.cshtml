@@ -2,10 +2,15 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @inject CinemaContext _context
 @{
+    var role = HttpContextAccessor.HttpContext.Session.GetString("Role") ?? "Staff";
+    bool isSuperAdmin = string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
+    bool isManager = string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase) || isSuperAdmin;
+    bool isCRM = string.Equals(role, "CRM", StringComparison.OrdinalIgnoreCase) || isSuperAdmin;
+    bool isStaff = string.Equals(role, "Staff", StringComparison.OrdinalIgnoreCase) || isSuperAdmin;
+
     // Truy vấn đếm số lượng đơn xin nghỉ phép đang "Chờ duyệt" (Chỉ đếm khi là SuperAdmin)
     int pendingLeaveCount = 0;
-    var role = HttpContextAccessor.HttpContext.Session.GetString("Role");
-    if (role == "SuperAdmin")
+    if (isSuperAdmin)
     {
         pendingLeaveCount = _context.LeaveRequests.Count(l => l.Status == "Chờ duyệt");
     }
@@ -55,7 +60,9 @@
                 <div class="avatar"><i class="bi bi-person-fill"></i></div>
                 <div>
                     <div class="admin-name">@Context.Session.GetString("Name")</div>
-                    <div class="admin-role">@(role == "SuperAdmin" ? "Super Admin" : "Administrator")</div>
+                    <div class="admin-role">
+                        @(isSuperAdmin ? "Super Admin" : (role == "Manager" ? "Manager (Phim & Rạp)" : (role == "CRM" ? "CRM (CSKH)" : "Nhân viên Staff")))
+                    </div>
                 </div>
             </div>
 
@@ -67,13 +74,16 @@
                         <i class="bi bi-speedometer2"></i><span>Dashboard</span>
                     </a>
                 </li>
-                <li>
-                    <a asp-controller="AdminChat" asp-action="ChatSupport" class="@IsActive("AdminChat", "ChatSupport")">
-                        <i class="bi bi-chat-dots-fill"></i><span>Hỗ trợ Khách hàng</span>
-                    </a>
-                </li>
+                @if (isManager || isCRM)
+                {
+                    <li>
+                        <a asp-controller="AdminChat" asp-action="ChatSupport" class="@IsActive("AdminChat", "ChatSupport")">
+                            <i class="bi bi-chat-dots-fill"></i><span>Hỗ trợ Khách hàng</span>
+                        </a>
+                    </li>
+                }
 
-                @if (role == "SuperAdmin")
+                @if (isSuperAdmin)
                 {
                     <li class="menu-group-title">Quản trị nhân sự</li>
                     <li>
@@ -149,118 +159,148 @@
                     </a>
                 </li>
 
-                <li class="menu-group-title">Vận hành rạp phim</li>
-                <li>
-                    <a asp-controller="Theater" asp-action="Index" class="@IsActive("Theater", "")">
-                        <i class="bi bi-building"></i><span>Quản lý Rạp</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Auditorium" asp-action="Index" class="@IsActive("Auditorium", "")">
-                        <i class="bi bi-easel"></i><span>Quản lý Phòng Chiếu</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Movie" asp-action="Index" class="@IsActive("Movie", "")">
-                        <i class="bi bi-film"></i><span>Quản lý Phim</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Showtime" asp-action="Index" class="@IsActive("Showtime", "")">
-                        <i class="bi bi-calendar-event"></i><span>Quản lý Lịch Chiếu</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Genre" asp-action="Index" class="@IsActive("Genre", "")">
-                        <i class="bi bi-tags"></i><span>Quản lý Thể Loại</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Combo" asp-action="Index" class="@IsActive("Combo", "")">
-                        <i class="bi bi-cup-straw"></i><span>Quản lý Combo</span>
-                    </a>
-                </li>
+                @if (isManager || isStaff)
+                {
+                    <li class="menu-group-title">Vận hành rạp phim</li>
+                    @if (isManager)
+                    {
+                        <li>
+                            <a asp-controller="Theater" asp-action="Index" class="@IsActive("Theater", "")">
+                                <i class="bi bi-building"></i><span>Quản lý Rạp</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Auditorium" asp-action="Index" class="@IsActive("Auditorium", "")">
+                                <i class="bi bi-easel"></i><span>Quản lý Phòng Chiếu</span>
+                            </a>
+                        </li>
+                    }
+                    <li>
+                        <a asp-controller="Movie" asp-action="Index" class="@IsActive("Movie", "")">
+                            <i class="bi bi-film"></i><span>Quản lý Phim</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Showtime" asp-action="Index" class="@IsActive("Showtime", "")">
+                            <i class="bi bi-calendar-event"></i><span>Quản lý Lịch Chiếu</span>
+                        </a>
+                    </li>
+                    @if (isManager)
+                    {
+                        <li>
+                            <a asp-controller="Genre" asp-action="Index" class="@IsActive("Genre", "")">
+                                <i class="bi bi-tags"></i><span>Quản lý Thể Loại</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Combo" asp-action="Index" class="@IsActive("Combo", "")">
+                                <i class="bi bi-cup-straw"></i><span>Quản lý Combo</span>
+                            </a>
+                        </li>
+                    }
+                }
 
-                <li class="menu-group-title">Kinh doanh &amp; Khách hàng</li>
-                <li>
-                    <a asp-controller="CustomerAdmin" asp-action="Index" class="@IsActive("CustomerAdmin", "")">
-                        <i class="bi bi-people"></i><span>Quản lý Khách Hàng</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Reviews" asp-action="Index" class="@IsActive("Reviews", "")">
-                        <i class="bi bi-chat-square-text"></i><span>Quản lý Đánh Giá</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="AdminOrders" asp-action="Index" class="@IsActive("AdminOrders", "")">
-                        <i class="bi bi-bag-check"></i><span>Quản lý Đơn Hàng</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="AdminVoucher" asp-action="Index" class="@IsActive("AdminVoucher", "")">
-                        <i class="bi bi-ticket-perforated"></i><span>Quản lý Voucher</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="AdminVoucherCondition" asp-action="Index" class="@IsActive("AdminVoucherCondition", "")">
-                        <i class="bi bi-gear-wide-connected"></i><span>Phạm vi Voucher</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="AdminPopup" asp-action="Index" class="@IsActive("AdminPopup", "")">
-                        <i class="bi bi-megaphone"></i><span>Quản lý Popup</span>
-                    </a>
-                </li>
+                @if (isCRM || isStaff)
+                {
+                    <li class="menu-group-title">Kinh doanh &amp; Khách hàng</li>
+                    @if (isCRM)
+                    {
+                        <li>
+                            <a asp-controller="CustomerAdmin" asp-action="Index" class="@IsActive("CustomerAdmin", "")">
+                                <i class="bi bi-people"></i><span>Quản lý Khách Hàng</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Reviews" asp-action="Index" class="@IsActive("Reviews", "")">
+                                <i class="bi bi-chat-square-text"></i><span>Quản lý Đánh Giá</span>
+                            </a>
+                        </li>
+                    }
+                    <li>
+                        <a asp-controller="AdminOrders" asp-action="Index" class="@IsActive("AdminOrders", "")">
+                            <i class="bi bi-bag-check"></i><span>Quản lý Đơn Hàng</span>
+                        </a>
+                    </li>
+                    @if (isCRM)
+                    {
+                        <li>
+                            <a asp-controller="AdminVoucher" asp-action="Index" class="@IsActive("AdminVoucher", "")">
+                                <i class="bi bi-ticket-perforated"></i><span>Quản lý Voucher</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="AdminVoucherCondition" asp-action="Index" class="@IsActive("AdminVoucherCondition", "")">
+                                <i class="bi bi-gear-wide-connected"></i><span>Phạm vi Voucher</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="AdminPopup" asp-action="Index" class="@IsActive("AdminPopup", "")">
+                                <i class="bi bi-megaphone"></i><span>Quản lý Popup</span>
+                            </a>
+                        </li>
+                    }
+                }
 
-                <li class="menu-group-title">Nhật ký &amp; Phân tích khách hàng</li>
-                <li>
-                    <a asp-controller="AdminTracking" asp-action="CustomerActivityLogs" class="@IsActive("AdminTracking", "CustomerActivityLogs")">
-                        <i class="bi bi-clock-history"></i><span>Nhật ký hoạt động KH</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="AdminTracking" asp-action="MovieViewStats" class="@IsActive("AdminTracking", "MovieViewStats")">
-                        <i class="bi bi-eye"></i><span>Thống kê lượt xem phim</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="AdminTracking" asp-action="CustomerSearchLogs" class="@IsActive("AdminTracking", "CustomerSearchLogs")">
-                        <i class="bi bi-search"></i><span>Lịch sử tìm kiếm</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="AdminTracking" asp-action="TopSearchKeywords" class="@IsActive("AdminTracking", "TopSearchKeywords")">
-                        <i class="bi bi-graph-up"></i><span>Top từ khóa tìm kiếm</span>
-                    </a>
-                </li>
+                @if (isCRM)
+                {
+                    <li class="menu-group-title">Nhật ký &amp; Phân tích khách hàng</li>
+                    <li>
+                        <a asp-controller="AdminTracking" asp-action="CustomerActivityLogs" class="@IsActive("AdminTracking", "CustomerActivityLogs")">
+                            <i class="bi bi-clock-history"></i><span>Nhật ký hoạt động KH</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="AdminTracking" asp-action="MovieViewStats" class="@IsActive("AdminTracking", "MovieViewStats")">
+                            <i class="bi bi-eye"></i><span>Thống kê lượt xem phim</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="AdminTracking" asp-action="CustomerSearchLogs" class="@IsActive("AdminTracking", "CustomerSearchLogs")">
+                            <i class="bi bi-search"></i><span>Lịch sử tìm kiếm</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="AdminTracking" asp-action="TopSearchKeywords" class="@IsActive("AdminTracking", "TopSearchKeywords")">
+                            <i class="bi bi-graph-up"></i><span>Top từ khóa tìm kiếm</span>
+                        </a>
+                    </li>
+                }
 
-                <li class="menu-group-title">Báo cáo &amp; Thống kê</li>
-                <li>
-                    <a asp-controller="Statistics" asp-action="Index" class="@IsActive("Statistics", "Index")">
-                        <i class="bi bi-bar-chart-line"></i><span>Báo Cáo Doanh Thu</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Statistics" asp-action="AdvancedStats" class="@IsActive("Statistics", "AdvancedStats")">
-                        <i class="bi bi-pie-chart"></i><span>Báo cáo chuyên sâu</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Statistics" asp-action="RecommendationRules" class="@IsActive("Statistics", "RecommendationRules")">
-                        <i class="bi bi-diagram-3"></i><span>Quy luật gợi ý (Apriori)</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Statistics" asp-action="KnnRecommendation" class="@IsActive("Statistics", "KnnRecommendation")">
-                        <i class="bi bi-people"></i><span>Gợi ý phim (KNN)</span>
-                    </a>
-                </li>
-                <li>
-                    <a asp-controller="Statistics" asp-action="CustomerSegmentation" class="@IsActive("Statistics", "CustomerSegmentation")">
-                        <i class="bi bi-pie-chart-fill"></i><span>Phân cụm khách hàng</span>
-                    </a>
-                </li>
+                @if (isManager || isCRM)
+                {
+                    <li class="menu-group-title">Báo cáo &amp; Thống kê</li>
+                    <li>
+                        <a asp-controller="Statistics" asp-action="Index" class="@IsActive("Statistics", "Index")">
+                            <i class="bi bi-bar-chart-line"></i><span>Báo Cáo Doanh Thu</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Statistics" asp-action="AdvancedStats" class="@IsActive("Statistics", "AdvancedStats")">
+                            <i class="bi bi-pie-chart"></i><span>Báo cáo chuyên sâu</span>
+                        </a>
+                    </li>
+                    @if (isManager)
+                    {
+                        <li>
+                            <a asp-controller="Statistics" asp-action="RecommendationRules" class="@IsActive("Statistics", "RecommendationRules")">
+                                <i class="bi bi-diagram-3"></i><span>Quy luật gợi ý (Apriori)</span>
+                            </a>
+                        </li>
+                    }
+                    @if (isCRM)
+                    {
+                        <li>
+                            <a asp-controller="Statistics" asp-action="KnnRecommendation" class="@IsActive("Statistics", "KnnRecommendation")">
+                                <i class="bi bi-people"></i><span>Gợi ý phim (KNN)</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a asp-controller="Statistics" asp-action="CustomerSegmentation" class="@IsActive("Statistics", "CustomerSegmentation")">
+                                <i class="bi bi-pie-chart-fill"></i><span>Phân cụm khách hàng</span>
+                            </a>
+                        </li>
+                    }
+                }
 
                 <li class="menu-divider">
                     <a asp-controller="Admin" asp-action="Logout" class="logout-link">

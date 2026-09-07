@@ -5,11 +5,16 @@
     Layout = "_AdminLayout";
     ViewData["Title"] = "Dashboard";
     var adminId = HttpContextAccessor.HttpContext.Session.GetString("AdminId");
-    var role = HttpContextAccessor.HttpContext.Session.GetString("Role");
+    var role = HttpContextAccessor.HttpContext.Session.GetString("Role") ?? "Staff";
+
+    bool isSuperAdmin = string.Equals(role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
+    bool isManager = string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase) || isSuperAdmin;
+    bool isCRM = string.Equals(role, "CRM", StringComparison.OrdinalIgnoreCase) || isSuperAdmin;
+    bool isStaff = string.Equals(role, "Staff", StringComparison.OrdinalIgnoreCase) || isSuperAdmin;
     
     // Đếm số lượng đơn xin nghỉ phép chờ duyệt (giống sidebar)
     int pendingLeaveCount = 0;
-    if (role == "SuperAdmin")
+    if (isSuperAdmin)
     {
         pendingLeaveCount = _dbContext.LeaveRequests.Count(l => l.Status == "Chờ duyệt");
     }
@@ -21,12 +26,20 @@
 
 <div class="dashboard-home p-2">
 
+    @if (Context.Request.Query["error"] == "Unauthorized")
+    {
+        <div class="alert alert-warning alert-dismissible fade show border-0 shadow-sm rounded-4 mb-4 fw-semibold text-dark" role="alert" style="background-color: #fff3cd;">
+            <i class="bi bi-shield-lock-fill me-2 fs-5 text-warning"></i>Tài khoản của bạn không có quyền truy cập chức năng này!
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <!-- 1. WELCOME BANNER -->
     <div class="welcome-banner p-4 p-md-5 rounded-4 text-white mb-4 d-flex align-items-center justify-content-between">
         <div>
             <span class="badge bg-warning text-dark fw-bold mb-2 text-uppercase letter-spacing-1">CineZone System Control</span>
             <h2 class="fw-bold mb-2 text-white">Xin chào, @ViewBag.Name 👋</h2>
-            <p class="text-white text-opacity-75 mb-0 small">Chào mừng bạn trở lại với hệ thống điều khiển rạp chiếu phim CineZone. Dưới đây là phím tắt điều hướng nhanh.</p>
+            <p class="text-white text-opacity-75 mb-0 small">Chào mừng bạn trở lại với hệ thống điều khiển rạp chiếu phim CineZone. Dưới đây là phím tắt điều hướng nhanh dành cho vai trò của bạn.</p>
         </div>
         <div class="d-none d-lg-block me-3">
             <i class="bi bi-shield-check" style="font-size: 4.5rem; opacity: 0.15;"></i>
@@ -36,122 +49,148 @@
     <!-- 2. SHORTCUTS GRID GROUPED BY SIDEBAR MENU -->
     
     <!-- PHÂN HỆ: VẬN HÀNH RẠP CHIẾU & KINH DOANH -->
-    <div class="section-header-line mt-4">
-        <h5>🍿 Vận hành rạp &amp; Kinh doanh</h5>
-    </div>
-    
-    <div class="row g-3 mb-4">
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Theater" asp-action="Index" class="quick-nav-card">
-                <div class="quick-nav-icon icon-success"><i class="bi bi-building"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Quản lý Rạp</h6>
-                    <p class="quick-nav-desc">Hệ thống chi nhánh rạp chiếu phim.</p>
-                </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
+    @if (isManager || isCRM || isStaff)
+    {
+        <div class="section-header-line mt-4">
+            <h5>🍿 Vận hành rạp &amp; Kinh doanh</h5>
         </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Auditorium" asp-action="Index" class="quick-nav-card">
-                <div class="quick-nav-icon icon-info"><i class="bi bi-easel"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Quản lý Phòng Chiếu</h6>
-                    <p class="quick-nav-desc">Phòng máy chiếu, sơ đồ ghế ngồi.</p>
+        
+        <div class="row g-3 mb-4">
+            @if (isManager)
+            {
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="Theater" asp-action="Index" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-success"><i class="bi bi-building"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Quản lý Rạp</h6>
+                            <p class="quick-nav-desc">Hệ thống chi nhánh rạp chiếu phim.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Movie" asp-action="Index" class="quick-nav-card">
-                <div class="quick-nav-icon icon-danger"><i class="bi bi-film"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Quản lý Phim</h6>
-                    <p class="quick-nav-desc">Danh sách phim và thời lượng phim.</p>
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="Auditorium" asp-action="Index" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-info"><i class="bi bi-easel"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Quản lý Phòng Chiếu</h6>
+                            <p class="quick-nav-desc">Phòng máy chiếu, sơ đồ ghế ngồi.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Showtime" asp-action="Index" class="quick-nav-card">
-                <div class="quick-nav-icon icon-primary"><i class="bi bi-calendar-event"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Quản lý Lịch Chiếu</h6>
-                    <p class="quick-nav-desc">Sắp xếp ca chiếu phim và phòng.</p>
+            }
+
+            @if (isManager || isStaff)
+            {
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="Movie" asp-action="Index" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-danger"><i class="bi bi-film"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Quản lý Phim</h6>
+                            <p class="quick-nav-desc">Danh sách phim và thời lượng phim.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Genre" asp-action="Index" class="quick-nav-card">
-                <div class="quick-nav-icon icon-secondary"><i class="bi bi-tags"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Quản lý Thể Loại</h6>
-                    <p class="quick-nav-desc">Thể loại phim kinh dị, hài, tình cảm...</p>
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="Showtime" asp-action="Index" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-primary"><i class="bi bi-calendar-event"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Quản lý Lịch Chiếu</h6>
+                            <p class="quick-nav-desc">Sắp xếp ca chiếu phim và phòng.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Combo" asp-action="Index" class="quick-nav-card">
-                <div class="quick-nav-icon icon-warning"><i class="bi bi-cup-straw"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Quản lý Combo</h6>
-                    <p class="quick-nav-desc">Thức ăn, nước uống và combo rạp phim.</p>
+            }
+
+            @if (isManager)
+            {
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="Genre" asp-action="Index" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-secondary"><i class="bi bi-tags"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Quản lý Thể Loại</h6>
+                            <p class="quick-nav-desc">Thể loại phim kinh dị, hài, tình cảm...</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="CustomerAdmin" asp-action="Index" class="quick-nav-card">
-                <div class="quick-nav-icon icon-success"><i class="bi bi-people"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Quản lý Khách Hàng</h6>
-                    <p class="quick-nav-desc">Xem và phân hạng thành viên khách hàng.</p>
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="Combo" asp-action="Index" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-warning"><i class="bi bi-cup-straw"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Quản lý Combo</h6>
+                            <p class="quick-nav-desc">Thức ăn, nước uống và combo rạp phim.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="AdminOrders" asp-action="Index" class="quick-nav-card">
-                <div class="quick-nav-icon icon-primary"><i class="bi bi-bag-check"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Quản lý Đơn Hàng</h6>
-                    <p class="quick-nav-desc">Lịch sử hóa đơn đặt hàng rạp phim.</p>
+            }
+
+            @if (isCRM)
+            {
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="CustomerAdmin" asp-action="Index" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-success"><i class="bi bi-people"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Quản lý Khách Hàng</h6>
+                            <p class="quick-nav-desc">Xem và phân hạng thành viên khách hàng.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="AdminVoucher" asp-action="Index" class="quick-nav-card">
-                <div class="quick-nav-icon icon-danger"><i class="bi bi-ticket-perforated"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Quản lý Voucher</h6>
-                    <p class="quick-nav-desc">Thiết lập mã giảm giá và hạn dùng.</p>
+            }
+
+            @if (isCRM || isStaff)
+            {
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="AdminOrders" asp-action="Index" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-primary"><i class="bi bi-bag-check"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Quản lý Đơn Hàng</h6>
+                            <p class="quick-nav-desc">Lịch sử hóa đơn đặt hàng rạp phim.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="AdminPopup" asp-action="Index" class="quick-nav-card">
-                <div class="quick-nav-icon icon-warning"><i class="bi bi-megaphone"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Quản lý Popup</h6>
-                    <p class="quick-nav-desc">Thông báo pop-up hiển thị trang chủ.</p>
+            }
+
+            @if (isCRM)
+            {
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="AdminVoucher" asp-action="Index" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-danger"><i class="bi bi-ticket-perforated"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Quản lý Voucher</h6>
+                            <p class="quick-nav-desc">Thiết lập mã giảm giá và hạn dùng.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Reviews" asp-action="Index" class="quick-nav-card">
-                <div class="quick-nav-icon icon-purple"><i class="bi bi-chat-square-text"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Quản lý Đánh Giá</h6>
-                    <p class="quick-nav-desc">Kiểm duyệt và phản hồi bình luận phim.</p>
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="AdminPopup" asp-action="Index" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-warning"><i class="bi bi-megaphone"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Quản lý Popup</h6>
+                            <p class="quick-nav-desc">Thông báo pop-up hiển thị trang chủ.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="Reviews" asp-action="Index" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-purple"><i class="bi bi-chat-square-text"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Quản lý Đánh Giá</h6>
+                            <p class="quick-nav-desc">Kiểm duyệt và phản hồi bình luận phim.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
+                </div>
+            }
         </div>
-    </div>
+    }
 
     <!-- PHÂN HỆ: QUẢN TRỊ NHÂN SỰ & CÁ NHÂN -->
     <div class="section-header-line mt-4">
@@ -159,16 +198,19 @@
     </div>
     
     <div class="row g-3 mb-4">
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="AdminChat" asp-action="ChatSupport" class="quick-nav-card">
-                <div class="quick-nav-icon icon-warning"><i class="bi bi-chat-dots-fill"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Hỗ trợ Khách hàng</h6>
-                    <p class="quick-nav-desc">Trò chuyện hỗ trợ khách hàng thời gian thực.</p>
-                </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
+        @if (isManager || isCRM)
+        {
+            <div class="col-xxl-3 col-xl-4 col-sm-6">
+                <a asp-controller="AdminChat" asp-action="ChatSupport" class="quick-nav-card">
+                    <div class="quick-nav-icon icon-warning"><i class="bi bi-chat-dots-fill"></i></div>
+                    <div class="quick-nav-content">
+                        <h6 class="quick-nav-title">Hỗ trợ Khách hàng</h6>
+                        <p class="quick-nav-desc">Trò chuyện hỗ trợ khách hàng thời gian thực.</p>
+                    </div>
+                    <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                </a>
+            </div>
+        }
         <div class="col-xxl-3 col-xl-4 col-sm-6">
             <a asp-controller="AdminAttendance" asp-action="MySchedule" class="quick-nav-card">
                 <div class="quick-nav-icon icon-primary"><i class="bi bi-calendar-week"></i></div>
@@ -210,7 +252,7 @@
             </a>
         </div>
         
-        @if (role == "SuperAdmin")
+        @if (isSuperAdmin)
         {
             <div class="col-xxl-3 col-xl-4 col-sm-6">
                 <a asp-controller="AdminStaff" asp-action="StaffList" class="quick-nav-card">
@@ -322,160 +364,186 @@
     </div>
 
     <!-- PHÂN HỆ: BÁO CÁO & PHÂN TÍCH -->
-    <div class="section-header-line mt-4">
-        <h5>📊 Báo cáo, Thống kê &amp; Phân tích</h5>
-    </div>
-    
-    <div class="row g-3 mb-5">
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Statistics" asp-action="Index" class="quick-nav-card">
-                <div class="quick-nav-icon icon-primary"><i class="bi bi-bar-chart-line"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Báo Cáo Doanh Thu</h6>
-                    <p class="quick-nav-desc">Thống kê chi tiết tài chính &amp; hóa đơn.</p>
-                </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
+    @if (isManager || isCRM)
+    {
+        <div class="section-header-line mt-4">
+            <h5>📊 Báo cáo, Thống kê &amp; Phân tích</h5>
         </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Statistics" asp-action="AdvancedStats" class="quick-nav-card">
-                <div class="quick-nav-icon icon-info"><i class="bi bi-pie-chart"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Báo cáo chuyên sâu</h6>
-                    <p class="quick-nav-desc">Hiệu suất rạp phim, tỷ lệ lấp đầy ghế.</p>
+        
+        <div class="row g-3 mb-5">
+            <div class="col-xxl-3 col-xl-4 col-sm-6">
+                <a asp-controller="Statistics" asp-action="Index" class="quick-nav-card">
+                    <div class="quick-nav-icon icon-primary"><i class="bi bi-bar-chart-line"></i></div>
+                    <div class="quick-nav-content">
+                        <h6 class="quick-nav-title">Báo Cáo Doanh Thu</h6>
+                        <p class="quick-nav-desc">Thống kê chi tiết tài chính &amp; hóa đơn.</p>
+                    </div>
+                    <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                </a>
+            </div>
+            <div class="col-xxl-3 col-xl-4 col-sm-6">
+                <a asp-controller="Statistics" asp-action="AdvancedStats" class="quick-nav-card">
+                    <div class="quick-nav-icon icon-info"><i class="bi bi-pie-chart"></i></div>
+                    <div class="quick-nav-content">
+                        <h6 class="quick-nav-title">Báo cáo chuyên sâu</h6>
+                        <p class="quick-nav-desc">Hiệu suất rạp phim, tỷ lệ lấp đầy ghế.</p>
+                    </div>
+                    <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                </a>
+            </div>
+
+            @if (isManager)
+            {
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="Statistics" asp-action="RecommendationRules" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-success"><i class="bi bi-diagram-3"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Quy luật gợi ý (Apriori)</h6>
+                            <p class="quick-nav-desc">Luật kết hợp gợi ý bán bắp nước kèm vé.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Statistics" asp-action="RecommendationRules" class="quick-nav-card">
-                <div class="quick-nav-icon icon-success"><i class="bi bi-diagram-3"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Quy luật gợi ý (Apriori)</h6>
-                    <p class="quick-nav-desc">Luật kết hợp gợi ý bán bắp nước kèm vé.</p>
+            }
+
+            @if (isCRM)
+            {
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="Statistics" asp-action="KnnRecommendation" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-danger"><i class="bi bi-people"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Gợi ý phim (KNN)</h6>
+                            <p class="quick-nav-desc">Mô phỏng gợi ý phim cá nhân hóa theo nhóm sở thích.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Statistics" asp-action="KnnRecommendation" class="quick-nav-card">
-                <div class="quick-nav-icon icon-danger"><i class="bi bi-people"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Gợi ý phim (KNN)</h6>
-                    <p class="quick-nav-desc">Mô phỏng gợi ý phim cá nhân hóa theo nhóm sở thích.</p>
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="Statistics" asp-action="CustomerSegmentation" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-success"><i class="bi bi-pie-chart-fill"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Phân cụm khách hàng</h6>
+                            <p class="quick-nav-desc">Phân tích hành vi và phân cụm khách hàng bằng K-Means.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="Statistics" asp-action="CustomerSegmentation" class="quick-nav-card">
-                <div class="quick-nav-icon icon-success"><i class="bi bi-pie-chart-fill"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Phân cụm khách hàng</h6>
-                    <p class="quick-nav-desc">Phân tích hành vi và phân cụm khách hàng bằng K-Means.</p>
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="AdminTracking" asp-action="CustomerActivityLogs" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-secondary"><i class="bi bi-clock-history"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Nhật ký hoạt động KH</h6>
+                            <p class="quick-nav-desc">Hành động click, đặt chỗ, hủy của khách.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="AdminTracking" asp-action="CustomerActivityLogs" class="quick-nav-card">
-                <div class="quick-nav-icon icon-secondary"><i class="bi bi-clock-history"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Nhật ký hoạt động KH</h6>
-                    <p class="quick-nav-desc">Hành động click, đặt chỗ, hủy của khách.</p>
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="AdminTracking" asp-action="MovieViewStats" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-warning"><i class="bi bi-eye"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Thống kê lượt xem phim</h6>
+                            <p class="quick-nav-desc">Lượng click, lượt tìm kiếm phim chi tiết.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="AdminTracking" asp-action="MovieViewStats" class="quick-nav-card">
-                <div class="quick-nav-icon icon-warning"><i class="bi bi-eye"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Thống kê lượt xem phim</h6>
-                    <p class="quick-nav-desc">Lượng click, lượt tìm kiếm phim chi tiết.</p>
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="AdminTracking" asp-action="CustomerSearchLogs" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-danger"><i class="bi bi-search"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Lịch sử tìm kiếm</h6>
+                            <p class="quick-nav-desc">Các từ khóa khách hàng tìm kiếm.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="AdminTracking" asp-action="CustomerSearchLogs" class="quick-nav-card">
-                <div class="quick-nav-icon icon-danger"><i class="bi bi-search"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Lịch sử tìm kiếm</h6>
-                    <p class="quick-nav-desc">Các từ khóa khách hàng tìm kiếm.</p>
+                <div class="col-xxl-3 col-xl-4 col-sm-6">
+                    <a asp-controller="AdminTracking" asp-action="TopSearchKeywords" class="quick-nav-card">
+                        <div class="quick-nav-icon icon-success"><i class="bi bi-graph-up"></i></div>
+                        <div class="quick-nav-content">
+                            <h6 class="quick-nav-title">Top từ khóa tìm kiếm</h6>
+                            <p class="quick-nav-desc">Xếp hạng từ khóa xu hướng trong rạp.</p>
+                        </div>
+                        <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
+            }
         </div>
-        <div class="col-xxl-3 col-xl-4 col-sm-6">
-            <a asp-controller="AdminTracking" asp-action="TopSearchKeywords" class="quick-nav-card">
-                <div class="quick-nav-icon icon-success"><i class="bi bi-graph-up"></i></div>
-                <div class="quick-nav-content">
-                    <h6 class="quick-nav-title">Top từ khóa tìm kiếm</h6>
-                    <p class="quick-nav-desc">Xếp hạng từ khóa xu hướng trong rạp.</p>
-                </div>
-                <div class="quick-nav-arrow"><i class="bi bi-arrow-right-short"></i></div>
-            </a>
-        </div>
-    </div>
+    }
 
     <!-- 3. REVENUE SUMMARY & ANALYTICS -->
-    <div class="section-header-line">
-        <h4>📊 Chỉ số và Phân tích doanh thu</h4>
-    </div>
-    
-    @await Component.InvokeAsync("RevenueDashboard")
+    @if (isSuperAdmin || isManager || isCRM)
+    {
+        <div class="section-header-line">
+            <h4>📊 Chỉ số và Phân tích doanh thu</h4>
+        </div>
+        
+        @await Component.InvokeAsync("RevenueDashboard")
+    }
 
     <!-- 4. GENERAL COUNTERS -->
     <div class="row g-3 mt-2">
-        <div class="col-xl-3 col-md-6">
-            <div class="card shadow-sm border-0 rounded-3 h-100">
-                <div class="card-body text-center py-4">
-                    <span class="text-muted text-uppercase fw-semibold" style="font-size:0.75rem;">Tổng phim đang chiếu</span>
-                    <h2 class="text-primary fw-bold mt-2 mb-0">@ViewBag.TotalMovies</h2>
+        @if (isManager || isStaff)
+        {
+            <div class="col-xl-3 col-md-6">
+                <div class="card shadow-sm border-0 rounded-3 h-100">
+                    <div class="card-body text-center py-4">
+                        <span class="text-muted text-uppercase fw-semibold" style="font-size:0.75rem;">Tổng phim đang chiếu</span>
+                        <h2 class="text-primary fw-bold mt-2 mb-0">@ViewBag.TotalMovies</h2>
+                    </div>
                 </div>
             </div>
-        </div>
+        }
 
-        <div class="col-xl-3 col-md-6">
-            <div class="card shadow-sm border-0 rounded-3 h-100">
-                <div class="card-body text-center py-4">
-                    <span class="text-muted text-uppercase fw-semibold" style="font-size:0.75rem;">Tổng số khách hàng</span>
-                    <h2 class="text-success fw-bold mt-2 mb-0">@ViewBag.TotalCustomers</h2>
+        @if (isCRM)
+        {
+            <div class="col-xl-3 col-md-6">
+                <div class="card shadow-sm border-0 rounded-3 h-100">
+                    <div class="card-body text-center py-4">
+                        <span class="text-muted text-uppercase fw-semibold" style="font-size:0.75rem;">Tổng số khách hàng</span>
+                        <h2 class="text-success fw-bold mt-2 mb-0">@ViewBag.TotalCustomers</h2>
+                    </div>
                 </div>
             </div>
-        </div>
+        }
 
-        <div class="col-xl-3 col-md-6">
-            <div class="card shadow-sm border-0 rounded-3 h-100">
-                <div class="card-body text-center py-4">
-                    <span class="text-muted text-uppercase fw-semibold" style="font-size:0.75rem;">Tổng số đơn hàng</span>
-                    <h2 class="text-danger fw-bold mt-2 mb-0">@ViewBag.TotalOrders</h2>
+        @if (isCRM || isStaff || isManager)
+        {
+            <div class="col-xl-3 col-md-6">
+                <div class="card shadow-sm border-0 rounded-3 h-100">
+                    <div class="card-body text-center py-4">
+                        <span class="text-muted text-uppercase fw-semibold" style="font-size:0.75rem;">Tổng số đơn hàng</span>
+                        <h2 class="text-danger fw-bold mt-2 mb-0">@ViewBag.TotalOrders</h2>
+                    </div>
                 </div>
             </div>
-        </div>
+        }
 
-        <div class="col-xl-3 col-md-6">
-            <div class="card shadow-sm border-0 rounded-3 h-100 position-relative">
-                <div class="card-body text-center py-4">
-                    <span class="text-muted text-uppercase fw-semibold" style="font-size:0.75rem;">Tổng số đánh giá</span>
-                    <h2 class="text-purple fw-bold mt-2 mb-0" style="color: #6f42c1;">@ViewBag.TotalReviews</h2>
-                    
-                    @if (ViewBag.TotalReportedReviews > 0)
-                    {
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="margin-left: -20px; margin-top: 15px;">
-                            @ViewBag.TotalReportedReviews báo cáo
-                        </span>
-                    }
+        @if (isCRM)
+        {
+            <div class="col-xl-3 col-md-6">
+                <div class="card shadow-sm border-0 rounded-3 h-100 position-relative">
+                    <div class="card-body text-center py-4">
+                        <span class="text-muted text-uppercase fw-semibold" style="font-size:0.75rem;">Tổng số đánh giá</span>
+                        <h2 class="text-purple fw-bold mt-2 mb-0" style="color: #6f42c1;">@ViewBag.TotalReviews</h2>
+                        
+                        @if (ViewBag.TotalReportedReviews > 0)
+                        {
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="margin-left: -20px; margin-top: 15px;">
+                                @ViewBag.TotalReportedReviews báo cáo
+                            </span>
+                        }
+                    </div>
                 </div>
             </div>
-        </div>
+        }
     </div>
 
     <!-- 5. TOP MOVIES & EMPLOYEES ROW -->
     <div class="row g-4 mt-3 mb-4">
         <!-- Top bán chạy -->
-        <div class="col-lg-6">
+        <div class="@(isSuperAdmin ? "col-lg-6" : "col-12")">
             <div class="card shadow-sm border-0 rounded-3 h-100">
                 <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
                     <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-trophy-fill text-warning me-2"></i> Top phim bán chạy</h5>
@@ -507,48 +575,51 @@
             </div>
         </div>
 
-        <!-- Top nhân viên xuất sắc -->
-        <div class="col-lg-6">
-            <div class="card shadow-sm border-0 rounded-3 h-100">
-                <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
-                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-star-fill text-warning me-2"></i> Nhân viên xuất sắc</h5>
-                </div>
-                <div class="card-body px-4">
-                    <div class="row g-3">
-                        <div class="col-4 text-center">
-                            <img src="/images/employees/employee1.jpg" class="rounded-circle border border-2 shadow-sm mb-2" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
-                            <div class="fw-bold text-dark small" style="font-size:0.8rem;">Băng Thanh</div>
-                            <small class="badge bg-warning-soft text-warning rounded-pill mt-1" style="font-size:0.65rem;">Chairman</small>
-                        </div>
-                        <div class="col-4 text-center">
-                            <img src="/images/employees/employee3.jpg" class="rounded-circle border border-2 shadow-sm mb-2" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
-                            <div class="fw-bold text-dark small" style="font-size:0.8rem;">Thái Vĩnh An</div>
-                            <small class="badge bg-primary-soft text-primary rounded-pill mt-1" style="font-size:0.65rem;">COO</small>
-                        </div>
-                        <div class="col-4 text-center">
-                            <img src="/images/employees/employee4.jpg" class="rounded-circle border border-2 shadow-sm mb-2" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
-                            <div class="fw-bold text-dark small" style="font-size:0.8rem;">L.N.Chính Đức</div>
-                            <small class="badge bg-info-soft text-info rounded-pill mt-1" style="font-size:0.65rem;">HR Manager</small>
-                        </div>
-                        <div class="col-4 text-center">
-                            <img src="/images/employees/employee2.jpg" class="rounded-circle border border-2 shadow-sm mb-2" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
-                            <div class="fw-bold text-dark small" style="font-size:0.8rem;">Huỳnh Dĩnh Tâm</div>
-                            <small class="badge bg-success-soft text-success rounded-pill mt-1" style="font-size:0.65rem;">CMO</small>
-                        </div>
-                        <div class="col-4 text-center">
-                            <img src="/images/employees/employee5.jpg" class="rounded-circle border border-2 shadow-sm mb-2" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
-                            <div class="fw-bold text-dark small" style="font-size:0.8rem;">Lý Tấn Phát</div>
-                            <small class="badge bg-secondary-soft text-secondary rounded-pill mt-1" style="font-size:0.65rem;">Security</small>
-                        </div>
-                        <div class="col-4 text-center">
-                            <img src="/images/employees/employee6.jpg" class="rounded-circle border border-2 shadow-sm mb-2" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
-                            <div class="fw-bold text-dark small" style="font-size:0.8rem;">P.V.A.Tuấn</div>
-                            <small class="badge bg-danger-soft text-danger rounded-pill mt-1" style="font-size:0.65rem;">CFO</small>
+        <!-- Top nhân viên xuất sắc (Chỉ dành cho SuperAdmin xem) -->
+        @if (isSuperAdmin)
+        {
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0 rounded-3 h-100">
+                    <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
+                        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-star-fill text-warning me-2"></i> Nhân viên xuất sắc</h5>
+                    </div>
+                    <div class="card-body px-4">
+                        <div class="row g-3">
+                            <div class="col-4 text-center">
+                                <img src="/images/employees/employee1.jpg" class="rounded-circle border border-2 shadow-sm mb-2" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
+                                <div class="fw-bold text-dark small" style="font-size:0.8rem;">Băng Thanh</div>
+                                <small class="badge bg-warning-soft text-warning rounded-pill mt-1" style="font-size:0.65rem;">Chairman</small>
+                            </div>
+                            <div class="col-4 text-center">
+                                <img src="/images/employees/employee3.jpg" class="rounded-circle border border-2 shadow-sm mb-2" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
+                                <div class="fw-bold text-dark small" style="font-size:0.8rem;">Thái Vĩnh An</div>
+                                <small class="badge bg-primary-soft text-primary rounded-pill mt-1" style="font-size:0.65rem;">COO</small>
+                            </div>
+                            <div class="col-4 text-center">
+                                <img src="/images/employees/employee4.jpg" class="rounded-circle border border-2 shadow-sm mb-2" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
+                                <div class="fw-bold text-dark small" style="font-size:0.8rem;">L.N.Chính Đức</div>
+                                <small class="badge bg-info-soft text-info rounded-pill mt-1" style="font-size:0.65rem;">HR Manager</small>
+                            </div>
+                            <div class="col-4 text-center">
+                                <img src="/images/employees/employee2.jpg" class="rounded-circle border border-2 shadow-sm mb-2" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
+                                <div class="fw-bold text-dark small" style="font-size:0.8rem;">Huỳnh Dĩnh Tâm</div>
+                                <small class="badge bg-success-soft text-success rounded-pill mt-1" style="font-size:0.65rem;">CMO</small>
+                            </div>
+                            <div class="col-4 text-center">
+                                <img src="/images/employees/employee5.jpg" class="rounded-circle border border-2 shadow-sm mb-2" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
+                                <div class="fw-bold text-dark small" style="font-size:0.8rem;">Lý Tấn Phát</div>
+                                <small class="badge bg-secondary-soft text-secondary rounded-pill mt-1" style="font-size:0.65rem;">Security</small>
+                            </div>
+                            <div class="col-4 text-center">
+                                <img src="/images/employees/employee6.jpg" class="rounded-circle border border-2 shadow-sm mb-2" style="width: 70px; height: 70px; object-fit: cover;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" />
+                                <div class="fw-bold text-dark small" style="font-size:0.8rem;">P.V.A.Tuấn</div>
+                                <small class="badge bg-danger-soft text-danger rounded-pill mt-1" style="font-size:0.65rem;">CFO</small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        }
     </div>
 
 </div>

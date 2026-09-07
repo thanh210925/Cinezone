@@ -96,8 +96,15 @@ namespace CINEMA.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.RefreshTokens.Add(refreshToken);
-            await _context.SaveChangesAsync();
+            try
+            {
+                _context.RefreshTokens.Add(refreshToken);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[JwtService Error] Không thể lưu Refresh Token: {ex.Message}");
+            }
 
             return refreshToken;
         }

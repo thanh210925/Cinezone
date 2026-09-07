@@ -144,6 +144,7 @@ body {
     padding: 25px;
     transition: all 0.3s ease;
     width: calc(100% - 280px);
+    min-width: 0;
 }
 
     .main-content.expanded {
@@ -157,6 +158,8 @@ body {
     padding: 25px;
     min-height: calc(100vh - 100px);
     box-shadow: 0 3px 15px rgba(0,0,0,.08);
+    overflow-x: auto;
+    max-width: 100%;
 }
 
 .footer {
@@ -294,6 +297,8 @@ body {
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 1px 3px rgba(20,22,34,.06);
+    overflow-x: auto;
+    max-width: 100%;
 }
 
 .footer {

@@ -1,14 +1,18 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using CINEMA.Controllers;
+using CINEMA.Middlewares;
 using CINEMA.Models;
 using CINEMA.Services;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Stripe;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace CINEMA
 {
@@ -47,6 +51,10 @@ namespace CINEMA
             builder.Services.AddScoped<INotificationService, NotificationService>();
             builder.Services.AddHttpContextAccessor();
 
+            // 🟢 FluentValidation Configuration
+            builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddValidatorsFromAssemblyContaining<CINEMA.Validators.LoginDtoValidator>();
+
             // 🟢 Swagger / OpenAPI Configuration
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
@@ -58,14 +66,31 @@ namespace CINEMA
                     Description = "Hệ thống API toàn diện cho ứng dụng đặt vé xem phim Cinezone"
                 });
 
+                c.CustomSchemaIds(type => type.FullName ?? type.Name);
+                c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+                c.DocInclusionPredicate((docName, apiDesc) =>
+                {
+                    if (apiDesc.RelativePath != null && apiDesc.RelativePath.StartsWith("api", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                    return apiDesc.CustomAttributes().OfType<Microsoft.AspNetCore.Mvc.ApiControllerAttribute>().Any();
+                });
+
+                var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                if (System.IO.File.Exists(xmlPath))
+                {
+                    c.IncludeXmlComments(xmlPath);
+                }
+
                 // Cấu hình Nút Authorize Bearer Token trên Swagger UI
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    Description = "Nhập Token theo định dạng: Bearer {your_jwt_token}",
+                    Description = "Dán trực tiếp chuỗi Token vào bên dưới (Swagger sẽ tự thêm 'Bearer')",
                     Name = "Authorization",
                     In = ParameterLocation.Header,
-                    Type = SecuritySchemeType.ApiKey,
-                    Scheme = "Bearer"
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT"
                 });
 
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -112,7 +137,8 @@ namespace CINEMA
                 };
             })
             // GG
-       ;
+            
+            ;
 
             //Stripe
             builder.Services.AddScoped<IPaymentService, PaymentService>();
@@ -129,13 +155,32 @@ namespace CINEMA
                         BEGIN
                             ALTER TABLE Admins ADD Permissions NVARCHAR(1000) NULL;
                         END
+
+                        IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'RefreshTokens')
+                        BEGIN
+                            CREATE TABLE RefreshTokens (
+                                Id INT IDENTITY(1,1) PRIMARY KEY,
+                                Token NVARCHAR(450) NOT NULL,
+                                UserId INT NOT NULL,
+                                UserType NVARCHAR(50) NOT NULL DEFAULT 'Customer',
+                                ExpiresAt DATETIME2 NOT NULL,
+                                IsRevoked BIT NOT NULL DEFAULT 0,
+                                CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE()
+                            );
+                        END
                     ");
+
+                    // Seed tài khoản Admin đăng nhập nhanh
+                    CINEMA.Helpers.AdminSeeder.Seed(db);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"[Database Auto-Migration Error] {ex.Message}");
                 }
             }
+
+            // 🟢 Global API Exception Middleware
+            app.UseApiExceptionMiddleware();
 
             // 🟢 Enable Swagger Middleware
             app.UseSwagger();
@@ -184,6 +229,19 @@ namespace CINEMA
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
+            app.MapGet("/debug-swagger", (Swashbuckle.AspNetCore.Swagger.ISwaggerProvider provider) =>
+            {
+                try
+                {
+                    var doc = provider.GetSwagger("v1");
+                    return Results.Ok(new { success = true, title = doc.Info.Title, pathsCount = doc.Paths.Count });
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem(detail: ex.ToString(), title: "Swagger Generation Exception");
+                }
+            });
 
             app.Run();
         }

@@ -57,7 +57,7 @@
     <!-- 4 Statistic Cards Top -->
     <div class="row g-3 mb-4">
         <!-- Super Admin Card -->
-        <div class="col-md-3">
+        <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-4 border-danger bg-white">
                 <div class="d-flex align-items-center">
                     <div class="bg-danger-subtle text-danger p-3 rounded-circle me-3">
@@ -73,7 +73,7 @@
         </div>
 
         <!-- Manager Card -->
-        <div class="col-md-3">
+        <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-4 border-primary bg-white">
                 <div class="d-flex align-items-center">
                     <div class="bg-primary-subtle text-primary p-3 rounded-circle me-3">
@@ -89,7 +89,7 @@
         </div>
 
         <!-- Staff Card -->
-        <div class="col-md-3">
+        <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-4 border-success bg-white">
                 <div class="d-flex align-items-center">
                     <div class="bg-success-subtle text-success p-3 rounded-circle me-3">
@@ -105,7 +105,7 @@
         </div>
 
         <!-- System Security Card -->
-        <div class="col-md-3">
+        <div class="col-xl-3 col-md-6">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3 border-start border-4 border-purple bg-white" style="border-color: #6f42c1 !important;">
                 <div class="d-flex align-items-center">
                     <div class="p-3 rounded-circle me-3" style="background-color: #f3ebf9; color: #6f42c1;">
@@ -157,14 +157,14 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light text-uppercase text-secondary fw-semibold small">
                         <tr>
-                            <th class="ps-4">Mã Admin</th>
-                            <th>Quản Trị Viên</th>
-                            <th>Email Đăng Nhập</th>
-                            <th>Vai Trò (Role)</th>
-                            <th style="min-width: 320px;">Quyền Hạn Được Cấp</th>
-                            <th>Đăng Nhập Cuối</th>
-                            <th>Trạng Thái</th>
-                            <th class="text-end pe-4">Thao Tác Cấp Quyền</th>
+                            <th class="ps-4 text-nowrap">Mã Admin</th>
+                            <th class="text-nowrap">Quản Trị Viên</th>
+                            <th class="text-nowrap">Email Đăng Nhập</th>
+                            <th class="text-nowrap">Vai Trò (Role)</th>
+                            <th style="min-width: 300px;">Quyền Hạn Được Cấp</th>
+                            <th class="text-nowrap">Đăng Nhập Cuối</th>
+                            <th class="text-nowrap">Trạng Thái</th>
+                            <th class="text-end pe-4 text-nowrap">Thao Tác Cấp Quyền</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -275,18 +275,19 @@
                                     </td>
 
                                     <!-- Thao tác cấp quyền -->
-                                    <td class="text-end pe-4">
+                                    <td class="text-end pe-4 text-nowrap">
                                         <div class="d-flex justify-content-end gap-1">
                                             <!-- Button Cấp Quyền Mới -->
                                             <button type="button" 
-                                                    class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm btn-grant-permissions"
+                                                    class="btn btn-sm btn-warning text-dark rounded-circle shadow-sm btn-grant-permissions"
                                                     data-bs-toggle="modal" 
                                                     data-bs-target="#modalGrantPermissions"
                                                     data-id="@item.AdminId"
                                                     data-name="@item.FullName"
                                                     data-role="@item.Role"
-                                                    data-permissions="@item.Permissions">
-                                                <i class="bi bi-key-fill me-1"></i>Cấp Quyền
+                                                    data-permissions="@item.Permissions"
+                                                    title="Cấp quyền chi tiết">
+                                                <i class="bi bi-key-fill"></i>
                                             </button>
 
                                             <!-- Sửa thông tin -->

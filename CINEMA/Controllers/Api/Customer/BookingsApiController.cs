@@ -217,28 +217,29 @@ namespace CINEMA.Controllers.Api.CustomerApi
                 .AsNoTracking();
 
             var totalItems = await query.CountAsync();
-            var orders = await query
+            var rawOrders = await query
                 .OrderByDescending(o => o.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(o => new OrderResponseDto
-                {
-                    OrderId = o.OrderId,
-                    Status = o.Status ?? "Pending",
-                    PaymentMethod = o.PaymentMethod ?? "Unknown",
-                    TicketTotal = o.TicketTotal ?? 0,
-                    ComboTotal = o.ComboTotal ?? 0,
-                    DiscountAmount = o.DiscountAmount ?? 0,
-                    TotalAmount = o.TotalAmount ?? 0,
-                    CreatedAt = o.CreatedAt ?? DateTime.Now,
-                    MovieTitle = o.Tickets.FirstOrDefault() != null && o.Tickets.FirstOrDefault()!.Showtime != null && o.Tickets.FirstOrDefault()!.Showtime!.Movie != null ? o.Tickets.FirstOrDefault()!.Showtime!.Movie!.Title : "Phim",
-                    AuditoriumName = o.Tickets.FirstOrDefault() != null && o.Tickets.FirstOrDefault()!.Showtime != null && o.Tickets.FirstOrDefault()!.Showtime!.Auditorium != null ? o.Tickets.FirstOrDefault()!.Showtime!.Auditorium!.Name : "",
-                    ShowtimeStart = o.Tickets.FirstOrDefault() != null && o.Tickets.FirstOrDefault()!.Showtime != null ? o.Tickets.FirstOrDefault()!.Showtime!.StartTime : null,
-                    SeatNames = o.Tickets.Select(t => t.Seat != null ? $"{t.Seat.RowLabel}{t.Seat.SeatNumber}" : "").Where(s => !string.IsNullOrEmpty(s)).ToList(),
-                    ComboNames = o.OrderCombos.Select(oc => oc.Combo != null ? $"{oc.Combo.Name} (x{oc.Quantity})" : "").Where(s => !string.IsNullOrEmpty(s)).ToList(),
-                    QrCodeData = $"CINEZONE-ORDER-{o.OrderId}"
-                })
                 .ToListAsync();
+
+            var orders = rawOrders.Select(o => new OrderResponseDto
+            {
+                OrderId = o.OrderId,
+                Status = o.Status ?? "Pending",
+                PaymentMethod = o.PaymentMethod ?? "Unknown",
+                TicketTotal = o.TicketTotal ?? 0,
+                ComboTotal = o.ComboTotal ?? 0,
+                DiscountAmount = o.DiscountAmount ?? 0,
+                TotalAmount = o.TotalAmount ?? 0,
+                CreatedAt = o.CreatedAt ?? DateTime.Now,
+                MovieTitle = o.Tickets.FirstOrDefault()?.Showtime?.Movie?.Title ?? "Phim",
+                AuditoriumName = o.Tickets.FirstOrDefault()?.Showtime?.Auditorium?.Name ?? "",
+                ShowtimeStart = o.Tickets.FirstOrDefault()?.Showtime?.StartTime,
+                SeatNames = o.Tickets.Select(t => t.Seat != null ? $"{t.Seat.RowLabel}{t.Seat.SeatNumber}" : "").Where(s => !string.IsNullOrEmpty(s)).ToList(),
+                ComboNames = o.OrderCombos.Select(oc => oc.Combo != null ? $"{oc.Combo.Name} (x{oc.Quantity})" : "").Where(s => !string.IsNullOrEmpty(s)).ToList(),
+                QrCodeData = $"CINEZONE-ORDER-{o.OrderId}"
+            }).ToList();
 
             return Ok(new { totalItems, page, pageSize, data = orders });
         }
